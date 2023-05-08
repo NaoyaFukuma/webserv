@@ -1,5 +1,5 @@
-#ifndef _EPOLL_HPP_
-#define _EPOLL_HPP_
+#ifndef EPOLL_HPP_
+#define EPOLL_HPP_
 
 #include "Socket.hpp"
 #include <map>
