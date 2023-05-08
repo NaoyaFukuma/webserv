@@ -67,4 +67,4 @@ private:                                     // 使用予定無し
   SocketBuff &operator=(const SocketBuff &); // 代入演算子
 };
 
-#endif // IOBUFF_HPP_
+#endif // SOCKETBUFF_HPP_

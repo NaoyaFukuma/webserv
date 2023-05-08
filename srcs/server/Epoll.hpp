@@ -24,4 +24,4 @@ public:
   int Wait(struct epoll_event *events, int maxevents, int timeout);
 };
 
-#endif
+#endif // EPOLL_HPP_

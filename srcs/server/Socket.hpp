@@ -66,4 +66,4 @@ public:
   int ProcessSocket(Epoll *epoll_map, void *data);
 };
 
-#endif
+#endif // SOCKET_HPP_
