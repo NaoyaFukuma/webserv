@@ -31,3 +31,5 @@ fclean: clean
 
 docker:
 	cd docker && docker compose up -d && docker exec -it debian /bin/bash
+
+.PHONY: docker
