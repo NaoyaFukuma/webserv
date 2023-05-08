@@ -28,6 +28,12 @@ clean:
 fclean: clean
 	$(RM) $(NAME)
 
+test: test/test_hello
+	./test/test_hello
+
+test/test_hello: test/test_hello.cpp srcs/hello.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^
+
 .PHONY: all clean fclean re
 
 docker:
