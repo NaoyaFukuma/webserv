@@ -1,5 +1,6 @@
 # webserv
-This is when you finally understand why a URL starts with HTTP
+This is when you finally understand why a URL starts with HTTP.
+42Tokyo's Rank5 project.
 
 ## Summary:
 This project is about writing your ow HTTP server.
