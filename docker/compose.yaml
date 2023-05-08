@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  debian:
+    build:
+      context: ./debian
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../:/app
+    restart: on-failure
+    container_name: debian
