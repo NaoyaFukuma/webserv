@@ -5,20 +5,15 @@ server: 'server' '{' server_directive+ '}';
 server_directive:
 	listen_directive
 	| servername_directive
-	| location_directive
-	| location_back_directive;
+	| location_directive;
 
-listen_directive: 'listen' WHITESPACE (ip_address '|')? (port) END_DIRECTIVE;
-IP_ADDRESS: NUMBER '.' NUMBER '.' NUMBER '.' NUMBER;
-PORT: NUMBER;
+listen_directive: 'listen' WHITESPACE (IP_ADDR ':')? (PORT) END_DIRECTIVE;
 servername_directive:
 	'server_name' WHITESPACE ((DOMAIN_NAME | IP_ADDR) WHITESPACE)+ END_DIRECTIVE;
 location_directive:
-	'location' PATH '{' directive_in_location+ '}';
-location_back_directive:
-	'location_back' PATH '{' directive_in_location+ '}';
+	'location' PATH '{' match_directive (directive_in_location)* '}';
 directive_in_location:
-	allow_method_directive
+  allow_method_directive
 	| client_max_body_size_directive
 	| root_directive
 	| index_directive
@@ -26,6 +21,7 @@ directive_in_location:
 	| is_cgi_directive
 	| return_directive;
 
+match_directive: 'match' WHITESPACE ('prefix' | 'suffix') END_DIRECTIVE;
 allow_method_directive:
 	'allow_method' WHITESPACE METHOD (WHITESPACE METHOD)* END_DIRECTIVE;
 client_max_body_size_directive:
@@ -40,12 +36,11 @@ return_directive: 'return' WHITESPACE URL;
 
 ON_OFF: 'on' | 'off';
 METHOD: 'GET' | 'POST' | 'DELETE';
-PATH: (.*? '/')? (.+?);
+PATH: ('/' ALPHABET (ALPHABET | NUMBER | '/' | '.' | '_' | '-')*)?;
 URL: ('http' | 'https') '://' DOMAIN_NAME ('/');
 DOMAIN_NAME: DOMAIN_LABEL ('.' DOMAIN_LABEL)*;
 IP_ADDR: NUMBER+ '.' NUMBER+ '.' NUMBER+ '.' NUMBER+;
-DOMAIN_LABEL: (ALPHABET | NUMBER)+
-	| (ALPHABET | NUMBER)+ (ALPHABET | NUMBER | HYPHEN)* (
+DOMAIN_LABEL: (ALPHABET | NUMBER)+ | (ALPHABET | NUMBER)+ (ALPHABET | NUMBER | HYPHEN)* (
 		ALPHABET
 		| NUMBER
 	)+;
