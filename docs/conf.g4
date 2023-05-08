@@ -8,7 +8,9 @@ server_directive:
 	| location_directive
 	| location_back_directive;
 
-listen_directive: 'listen' WHITESPACE NUMBER END_DIRECTIVE;
+listen_directive: 'listen' WHITESPACE (ip_address '|')? (port) END_DIRECTIVE;
+IP_ADDRESS: NUMBER '.' NUMBER '.' NUMBER '.' NUMBER;
+PORT: NUMBER;
 servername_directive:
 	'server_name' WHITESPACE ((DOMAIN_NAME | IP_ADDR) WHITESPACE)+ END_DIRECTIVE;
 location_directive:
