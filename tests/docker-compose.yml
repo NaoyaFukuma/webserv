@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  webserv:
+    build:
+      context: ..
+      dockerfile: tests/docker/Dockerfile
+    volumes:
+      - ../srcs:/app/srcs
+      - ../tests:/app/tests
+    entrypoint: ["bash", "/app/tests/Server/server_test.sh"]
