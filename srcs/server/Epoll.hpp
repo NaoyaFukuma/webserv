@@ -27,7 +27,7 @@ public:
   int Add(ASocket *socket, uint32_t event_mask);
   int Del(int fd);
   void RegisterListenSocket(const Config &config);
-  void EpollLoop();
+  void EventLoop();
 };
 
 #endif // EPOLL_HPP_

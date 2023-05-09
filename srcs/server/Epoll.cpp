@@ -93,7 +93,7 @@ void Epoll::RegisterListenSocket(const Config &config) {
   }
 }
 
-void Epoll::EpollLoop() {
+void Epoll::EventLoop() {
   struct epoll_event events[max_events_];
   while (true) {
     CheckTimeout();
