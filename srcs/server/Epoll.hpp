@@ -26,6 +26,7 @@ public:
   ASocket *GetSocket(int fd);
   int Add(ASocket *socket, uint32_t event_mask);
   int Del(int fd);
+  int Mod(int fd, uint32_t event_mask);
   void RegisterListenSocket(const Config &config);
   void EventLoop();
 };

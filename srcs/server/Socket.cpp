@@ -15,20 +15,11 @@
 // 継承用のクラス
 
 ASocket::ASocket(std::vector<Vserver> config) : fd_(-1), config_(config) {
-  last_event_time_.last_epollin_time = -1;
-  last_event_time_.last_epollout_time = -1;
+  last_event_.in_time = -1;
+  last_event_.out_time = -1;
 }
-
-ASocket::ASocket(const ASocket &src) : fd_(src.fd_) {}
 
 ASocket::~ASocket() { close(fd_); }
-
-ASocket &ASocket::operator=(const ASocket &rhs) {
-  if (this != &rhs) {
-    fd_ = rhs.fd_;
-  }
-  return *this;
-}
 
 int ASocket::GetFd() const { return fd_; }
 
@@ -46,42 +37,43 @@ int ASocket::SetNonBlocking() const {
 }
 
 bool ASocket::IsTimeout(const time_t &threshold) const {
-  // listen socketの場合はtimeoutしない
   time_t now = time(NULL);
-  if (last_event_time_.last_epollin_time == -1 &&
-      last_event_time_.last_epollout_time == -1) {
+  // listen socketの場合はtimeoutしない
+  if (last_event_.in_time == -1 && last_event_.out_time == -1) {
     return false;
   }
-  return (now - last_event_time_.last_epollin_time > threshold ||
-          now - last_event_time_.last_epollout_time > threshold);
+
+  // epolloutを登録していない間はin_timeのみを見る
+  return (
+      now - last_event_.in_time > threshold ||
+      (last_event_.out_time != -1 && now - last_event_.out_time > threshold));
 }
 
 // ------------------------------------------------------------------
 // 通信用のソケット
 
-ConnSocket::ConnSocket(std::vector<Vserver> config) : ASocket(config) {
-  time_t now = time(NULL);
-  last_event_time_.last_epollin_time = now;
-  last_event_time_.last_epollout_time = now;
+ConnSocket::ConnSocket(std::vector<Vserver> config)
+    : ASocket(config), rdhup_(false) {
+  last_event_.in_time = time(NULL);
+  last_event_.out_time = -1;
 }
-
-ConnSocket::ConnSocket(const ConnSocket &src) : ASocket(src) {}
 
 ConnSocket::~ConnSocket() {}
 
-ConnSocket &ConnSocket::operator=(const ConnSocket &rhs) {
-  if (this != &rhs) {
-    fd_ = rhs.fd_;
-  }
-  return *this;
-}
-
-// 0: 引き続きsocketを利用 -1: socketを閉じる
-int ConnSocket::OnReadable() {
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+int ConnSocket::OnReadable(Epoll *epoll_map) {
+  last_event_.in_time = time(NULL);
   recv_buffer_.ReadSocket(fd_);
   std::cout << recv_buffer_.GetString() << std::endl;
   send_buffer_.AddString(recv_buffer_.GetString());
   recv_buffer_.ClearBuff();
+  if (epoll_map->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLET) == FAILURE) {
+    return FAILURE;
+  }
+  last_event_.out_time = time(NULL);
+  return SUCCESS;
+
+  // Todo: requestのparse
   // request_.Parse(recv_buffer_);
   // if (request_.GetStatus() == COMPLETE || request_.GetStatus() == ERROR) {
   //   // Response response = ProcessRequest(request_, config_);
@@ -89,49 +81,67 @@ int ConnSocket::OnReadable() {
   //   std::cout << request_ << std::endl;
   //   request_.Clear();
   // }
+}
+
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+int ConnSocket::OnWritable(Epoll *epoll_map) {
+  if (send_buffer_.SendSocket(fd_)) {
+    // 送信完了
+    if (epoll_map->Mod(fd_, EPOLLIN | EPOLLET) == FAILURE) {
+      return FAILURE;
+    }
+    // rdhupが立っていたら送信完了後にsocketを閉じる
+    if (rdhup_) {
+      shutdown(fd_, SHUT_WR);
+      return FAILURE;
+    }
+    last_event_.out_time = -1;
+  } else {
+    // 送信中
+    if (epoll_map->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLET) == FAILURE) {
+      return FAILURE;
+    }
+    last_event_.out_time = time(NULL);
+  }
   return SUCCESS;
 }
 
-// 0: 引き続きsocketを利用 -1: socketを閉じる
-int ConnSocket::OnWritable() {
-  send_buffer_.SendSocket(fd_);
-  return SUCCESS;
-}
-
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::ProcessSocket(Epoll *epoll_map, void *data) {
   // clientからの通信を処理
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
   if (event_mask & EPOLLIN) {
     // 受信(Todo: OnReadable(0))
-    if (OnReadable() == FAILURE) {
-      epoll_map->Del(fd_);
-      return FAILURE;
-    }
-  }
-  if (event_mask & EPOLLPRI) {
-    // 緊急メッセージ(Todo: OnReadable(MSG_OOB))
-    if (OnReadable() == FAILURE) {
-      epoll_map->Del(fd_);
+    if (OnReadable(epoll_map) == FAILURE) {
       return FAILURE;
     }
   }
   if (event_mask & EPOLLOUT) {
     // 送信
-    if (OnWritable() == FAILURE) {
-      epoll_map->Del(fd_);
+    if (OnWritable(epoll_map) == FAILURE) {
       return FAILURE;
     }
   }
   if (event_mask & EPOLLRDHUP) {
-    // Todo: クライアントが切断 -> bufferの中身を全て送信してからsocketを閉じる
+    // Todo:クライアントが切断->bufferの中身を全て送信してからsocketを閉じる
     shutdown(fd_, SHUT_RD);
-    shutdown(fd_, SHUT_WR);
-    epoll_map->Del(fd_);
+    if (send_buffer_.GetString().size() == 0) {
+      shutdown(fd_, SHUT_WR);
+      return FAILURE;
+    }
+    rdhup_ = true;
   }
   if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
     // エラー
-    epoll_map->Del(fd_);
+    return FAILURE;
   }
+  // Todo: EPOLLPRIの検討
+  // if (event_mask & EPOLLPRI) {
+  //   // 緊急メッセージ(Todo: OnReadable(MSG_OOB))
+  //   if (OnReadable() == FAILURE) {
+  //     return FAILURE;
+  //   }
+  // }
   return SUCCESS;
 }
 
@@ -140,16 +150,7 @@ int ConnSocket::ProcessSocket(Epoll *epoll_map, void *data) {
 
 ListenSocket::ListenSocket(std::vector<Vserver> config) : ASocket(config) {}
 
-ListenSocket::ListenSocket(const ListenSocket &src) : ASocket(src) {}
-
 ListenSocket::~ListenSocket() {}
-
-ListenSocket &ListenSocket::operator=(const ListenSocket &rhs) {
-  if (this != &rhs) {
-    fd_ = rhs.fd_;
-  }
-  return *this;
-}
 
 int ListenSocket::Create() {
   fd_ = socket(AF_INET, SOCK_STREAM, 0);
@@ -195,11 +196,11 @@ ConnSocket *ListenSocket::Accept() {
   return conn_socket;
 }
 
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ListenSocket::ProcessSocket(Epoll *epoll_map, void *data) {
   // 接続要求を処理
   (void)data;
-  static uint32_t epoll_mask =
-      EPOLLIN | EPOLLPRI | EPOLLRDHUP | EPOLLOUT | EPOLLET;
+  static const uint32_t epoll_mask = EPOLLIN | EPOLLET;
 
   ConnSocket *client_socket = Accept();
   if (client_socket == NULL ||

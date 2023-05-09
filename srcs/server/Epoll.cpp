@@ -63,6 +63,17 @@ int Epoll::Del(int fd) {
   return SUCCESS;
 }
 
+int Epoll::Mod(int fd, uint32_t event_mask) {
+  struct epoll_event ev;
+
+  ev.events = event_mask;
+  ev.data.fd = fd;
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
+    return FAILURE;
+  }
+  return SUCCESS;
+}
+
 void Epoll::CheckTimeout() {
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
        it != fd_to_socket_.end();) {
@@ -79,7 +90,7 @@ void Epoll::CheckTimeout() {
 
 void Epoll::RegisterListenSocket(const Config &config) {
   ConfigMap config_map = ConfigToMap(config);
-  uint32_t epoll_mask = EPOLLIN | EPOLLPRI | EPOLLRDHUP | EPOLLOUT | EPOLLET;
+  static const uint32_t epoll_mask = EPOLLIN | EPOLLET;
 
   for (ConfigMap::iterator it = config_map.begin(); it != config_map.end();
        it++) {
@@ -108,7 +119,9 @@ void Epoll::EventLoop() {
       if (event_socket == NULL) {
         continue;
       }
-      event_socket->ProcessSocket(this, (void *)&event_mask);
+      if (event_socket->ProcessSocket(this, (void *)&event_mask) == FAILURE) {
+        Del(event_fd);
+      }
     }
   }
 }
