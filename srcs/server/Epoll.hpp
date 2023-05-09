@@ -1,6 +1,7 @@
 #ifndef EPOLL_HPP_
 #define EPOLL_HPP_
 
+#include "Config.hpp"
 #include "Socket.hpp"
 #include <map>
 
@@ -12,6 +13,12 @@ private:
   std::map<int, ASocket *> fd_to_socket_;
   static const int epoll_timeout_ = 1000;
   static const int socket_timeout_ = 10;
+  static const int max_events_ = 10;
+
+  ASocket *GetSocket(int fd);
+  int Add(ASocket *socket, uint32_t event_mask);
+  int Del(int fd);
+  void CheckTimeout();
 
 public:
   Epoll();
@@ -19,12 +26,8 @@ public:
   ~Epoll();
   Epoll &operator=(const Epoll &rhs);
 
-  ASocket *GetSocket(int fd);
-  int Create();
-  int Add(ASocket *socket, uint32_t event_mask);
-  int Del(int fd);
-  int Wait(struct epoll_event *events, int maxevents);
-  void CheckTimeout();
+  void RegisterListenSocket(const Config &config);
+  void EpollLoop();
 };
 
 #endif // EPOLL_HPP_
