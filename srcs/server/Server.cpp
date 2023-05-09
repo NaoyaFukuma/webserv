@@ -33,11 +33,11 @@ void ServerLoop(Epoll &epoll) {
     }
     for (int i = 0; i < nfds; i++) {
       int event_fd = events[i].data.fd;
+      uint32_t event_mask = events[i].events;
       ASocket *event_socket = epoll.GetSocket(event_fd);
       if (event_socket == NULL) {
         continue;
       }
-      uint32_t event_mask = events[i].events;
       event_socket->ProcessSocket(&epoll, (void *)&event_mask);
     }
   }
