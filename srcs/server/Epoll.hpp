@@ -15,9 +15,6 @@ private:
   static const int socket_timeout_ = 10;
   static const int max_events_ = 10;
 
-  ASocket *GetSocket(int fd);
-  int Add(ASocket *socket, uint32_t event_mask);
-  int Del(int fd);
   void CheckTimeout();
 
 public:
@@ -26,6 +23,9 @@ public:
   ~Epoll();
   Epoll &operator=(const Epoll &rhs);
 
+  ASocket *GetSocket(int fd);
+  int Add(ASocket *socket, uint32_t event_mask);
+  int Del(int fd);
   void RegisterListenSocket(const Config &config);
   void EpollLoop();
 };
