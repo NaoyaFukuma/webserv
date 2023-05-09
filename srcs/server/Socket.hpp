@@ -1,12 +1,19 @@
 #ifndef SOCKET_HPP_
 #define SOCKET_HPP_
 
+#include "Config.hpp"
 #include "SocketBuff.hpp"
-#include "time.h"
+#include <deque>
 #include <netinet/in.h>
+#include <time.h>
 #include <vector>
 
 class Epoll; // 相互参照
+
+struct LastEventTime {
+  time_t last_epollin_time;
+  time_t last_epollout_time;
+};
 
 // ------------------------------------------------------------------
 // 継承用のクラス
@@ -15,7 +22,7 @@ class ASocket {
 protected:
   int fd_;
   std::vector<Vserver> config_;
-  time_t last_event_time_; // ListenSocketの場合は負の数に設定する
+  LastEventTime last_event_time_; // ListenSocketの場合は負の数に設定する
 
 public:
   ASocket(std::vector<Vserver> config);
@@ -36,7 +43,7 @@ class ConnSocket : public ASocket {
 private:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
-  std::deque<Request> requests_;
+  // std::deque<Request> requests_;
 
 public:
   ConnSocket(std::vector<Vserver> config);
