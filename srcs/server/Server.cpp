@@ -26,7 +26,8 @@ void RegisterListenSocket(Epoll &epoll, const Config &config) {
 void ServerLoop(Epoll &epoll) {
   struct epoll_event events[MAX_EVENTS];
   while (true) {
-    int nfds = epoll.Wait(events, MAX_EVENTS, -1);
+    epoll.CheckTimeout();
+    int nfds = epoll.Wait(events, MAX_EVENTS);
     if (nfds == -1) {
       throw std::runtime_error("Failed to epoll_wait");
     }

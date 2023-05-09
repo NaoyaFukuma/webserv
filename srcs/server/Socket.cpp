@@ -45,6 +45,17 @@ int ASocket::SetNonBlocking() const {
   return SUCCESS;
 }
 
+bool ASocket::IsTimeout(const time_t &threshold) const {
+  // listen socketの場合はtimeoutしない
+  time_t now = time(NULL);
+  if (last_event_time_.last_epollin_time == -1 &&
+      last_event_time_.last_epollout_time == -1) {
+    return false;
+  }
+  return (now - last_event_time_.last_epollin_time > threshold ||
+          now - last_event_time_.last_epollout_time > threshold);
+}
+
 // ------------------------------------------------------------------
 // 通信用のソケット
 
@@ -112,7 +123,7 @@ int ConnSocket::ProcessSocket(Epoll *epoll_map, void *data) {
     }
   }
   if (event_mask & EPOLLRDHUP) {
-    // クライアントが切断 -> bufferの中身を全て送信してからsocketを閉じる
+    // Todo: クライアントが切断 -> bufferの中身を全て送信してからsocketを閉じる
     shutdown(fd_, SHUT_RD);
     shutdown(fd_, SHUT_WR);
     epoll_map->Del(fd_);

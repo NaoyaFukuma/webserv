@@ -67,6 +67,20 @@ int Epoll::Del(int fd) {
   return SUCCESS;
 }
 
-int Epoll::Wait(struct epoll_event *events, int maxevents, int timeout) {
-  return epoll_wait(epoll_fd_, events, maxevents, timeout);
+int Epoll::Wait(struct epoll_event *events, int maxevents) {
+  return epoll_wait(epoll_fd_, events, maxevents, epoll_timeout_);
+}
+
+void Epoll::CheckTimeout() {
+  for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
+       it != fd_to_socket_.end();) {
+    if (it->second->IsTimeout(socket_timeout_)) {
+      std::cerr << "timeout: " << it->first << std::endl;
+      int fd = it->first;
+      it++;
+      Del(fd);
+    } else {
+      it++;
+    }
+  }
 }

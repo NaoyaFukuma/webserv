@@ -10,6 +10,8 @@ class Epoll {
 private:
   int epoll_fd_;
   std::map<int, ASocket *> fd_to_socket_;
+  static const int epoll_timeout_ = 1000;
+  static const int socket_timeout_ = 10;
 
 public:
   Epoll();
@@ -21,7 +23,8 @@ public:
   int Create();
   int Add(ASocket *socket, uint32_t event_mask);
   int Del(int fd);
-  int Wait(struct epoll_event *events, int maxevents, int timeout);
+  int Wait(struct epoll_event *events, int maxevents);
+  void CheckTimeout();
 };
 
 #endif // EPOLL_HPP_

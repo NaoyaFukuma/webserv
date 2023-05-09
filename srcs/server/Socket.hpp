@@ -33,6 +33,7 @@ public:
   int GetFd() const;
   void SetFd(int fd);
   int SetNonBlocking() const;
+  bool IsTimeout(const time_t &threshold) const;
   virtual int ProcessSocket(Epoll *epoll_map, void *data) = 0;
 };
 
