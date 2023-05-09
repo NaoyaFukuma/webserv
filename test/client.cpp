@@ -1,12 +1,13 @@
 /* client */
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <string.h>
 #include <arpa/inet.h>
 #include <iostream>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#define RESPONSE "HTTP/1.1 404 Not Found\r\nDate: Mon, 10 Apr 2023 12:00:00 GMT\r\n\
+#define RESPONSE                                                               \
+  "HTTP/1.1 404 Not Found\r\nDate: Mon, 10 Apr 2023 12:00:00 GMT\r\n\
 Server: Apache/2.4.41 (Ubuntu)\r\n\
 Content-Type: text/html; charset=UTF-8\r\n\
 Content-Length: 146\r\n\
@@ -29,26 +30,26 @@ Connection: keep-alive\r\n\
 using namespace std;
 
 int main() {
-    int client_fd = socket(AF_INET, SOCK_STREAM, 0); // IPv4, TCP, default protocol
-    if (client_fd == -1) { // error
-        return 1;
-    }
-    struct sockaddr_in server_addr; // IPv4
-    server_addr.sin_family = AF_INET; // IPv4
-    server_addr.sin_port = htons(8080); // port
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // localhost
-    char buf[1024];
-    int bytes_read;
-    if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
-        return 1;
-    }
-	std::cout << "connected" << std::endl;
-    while ((bytes_read = read(STDIN_FILENO, buf, 1024)) > 0) { // read from stdin
-        send(client_fd, buf, bytes_read, 0);
-        bytes_read = recv(client_fd, buf, 1024, 0);
-        write(STDOUT_FILENO, buf, bytes_read);
-    }
+  int client_fd =
+      socket(AF_INET, SOCK_STREAM, 0); // IPv4, TCP, default protocol
+  if (client_fd == -1) {               // error
+    return 1;
+  }
+  struct sockaddr_in server_addr;                       // IPv4
+  server_addr.sin_family = AF_INET;                     // IPv4
+  server_addr.sin_port = htons(8080);                   // port
+  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // localhost
+  char buf[1024];
+  int bytes_read;
+  if (connect(client_fd, (struct sockaddr *)&server_addr,
+              sizeof(server_addr)) == -1) {
+    return 1;
+  }
+  std::cout << "connected" << std::endl;
+  send(client_fd, RESPONSE, RESPONSE_SIZE, 0);
+  bytes_read = recv(client_fd, buf, RESPONSE_SIZE, 0);
+  write(STDOUT_FILENO, buf, bytes_read);
 
-    close(client_fd); // close the socket
-    return 0;
+  close(client_fd); // close the socket
+  return 0;
 }
