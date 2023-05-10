@@ -18,7 +18,7 @@ WHITESPACE: ' ' -> skip;
 
 config: server+;
 
-server: server_directive+;
+server: 'server' '{' server_directive+ '}';
 
 server_directive:
 	listen_directive
@@ -71,7 +71,7 @@ is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE;
 
 cgi_path_directive: 'cgi_path' PATH END_DIRECTIVE;
 
-return_directive: 'return' URL;
+return_directive: 'return' STATUS_CODE? (URL | TEXT) END_DIRECTIVE;
 
 ON_OFF: 'on' | 'off';
 METHOD: 'GET' | 'POST' | 'DELETE';
@@ -80,6 +80,9 @@ URL: ('http' | 'https') '://' DOMAIN_NAME ('/');
 DOMAIN_NAME: DOMAIN_LABEL ('.' DOMAIN_LABEL)*;
 IP_ADDR: NUMBER+ '.' NUMBER+ '.' NUMBER+ '.' NUMBER+;
 DOMAIN_LABEL: (ALPHABET | NUMBER)+ | (ALPHABET | NUMBER)+ (ALPHABET | NUMBER | HYPHEN)* (ALPHABET | NUMBER)+;
+TEXT: '\'' (ALPHABET | NUMBER | WHITESPACE | ASCII_SYMBOLS)* '\'' END_DIRECTIVE;
+ASCII_SYMBOLS: '!' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '[' | '\\' | ']' | '^' | '_' | '`' | '{' | '|' | '}' | '~';
+
 STATUS_CODE: NUMBER;
 END_DIRECTIVE: ';';
 ALPHABET: 'a' ..'z' | 'A' ..'Z';
