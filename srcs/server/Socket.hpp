@@ -32,9 +32,8 @@ public:
 
   int GetFd() const;
   void SetFd(int fd);
-  int SetNonBlocking() const;
   bool IsTimeout(const time_t &threshold) const;
-  virtual int ProcessSocket(Epoll *epoll_map, void *data) = 0;
+  virtual int ProcessSocket(Epoll *epoll, void *data) = 0;
 };
 
 // ------------------------------------------------------------------
@@ -51,9 +50,9 @@ public:
   ConnSocket(std::vector<Vserver> config);
   ~ConnSocket();
 
-  int OnReadable(Epoll *epoll_map);
-  int OnWritable(Epoll *epoll_map);
-  int ProcessSocket(Epoll *epoll_map, void *data);
+  int OnReadable(Epoll *epoll);
+  int OnWritable(Epoll *epoll);
+  int ProcessSocket(Epoll *epoll, void *data);
 
 private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
@@ -68,10 +67,10 @@ public:
   ListenSocket(std::vector<Vserver> config);
   ~ListenSocket();
 
-  int Create();
-  int Passive();
+  void Create();
+  void Passive();
   ConnSocket *Accept();
-  int ProcessSocket(Epoll *epoll_map, void *data);
+  int ProcessSocket(Epoll *epoll, void *data);
 
 private: // 使用予定なし
   ListenSocket(const ListenSocket &src);

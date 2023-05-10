@@ -6,13 +6,13 @@
 Epoll::Epoll() : epoll_fd_(-1), fd_to_socket_() {
   epoll_fd_ = epoll_create(1);
   if (epoll_fd_ == -1) {
-    throw std::runtime_error("Failed to create epoll");
+    throw std::runtime_error("Fatal Error: epoll");
   }
 }
 
 Epoll::~Epoll() {
   if (close(epoll_fd_) < 0) {
-    std::cerr << "Systemcall Error: close" << std::endl;
+    std::cerr << "Keep Running Error: close" << std::endl;
   }
 
   std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
@@ -35,7 +35,7 @@ void Epoll::Add(ASocket *socket, uint32_t event_mask) {
   ev.events = event_mask;
   ev.data.fd = fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev) == -1) {
-    throw std::runtime_error("Failed to epoll_ctl");
+    throw std::runtime_error("Fatal Error: epoll_ctl");
   }
   if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
     delete fd_to_socket_[fd];
@@ -45,7 +45,7 @@ void Epoll::Add(ASocket *socket, uint32_t event_mask) {
 
 void Epoll::Del(int fd) {
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
-    throw std::runtime_error("Failed to epoll_ctl");
+    throw std::runtime_error("Fatal Error: epoll_ctl");
   }
   if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
     delete fd_to_socket_[fd];
@@ -59,7 +59,7 @@ void Epoll::Mod(int fd, uint32_t event_mask) {
   ev.events = event_mask;
   ev.data.fd = fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
-    throw std::runtime_error("Failed to epoll_ctl");
+    throw std::runtime_error("Fatal Error: epoll_ctl");
   }
 }
 
@@ -83,10 +83,7 @@ void Epoll::RegisterListenSocket(const Config &config) {
   for (ConfigMap::iterator it = config_map.begin(); it != config_map.end();
        it++) {
     ListenSocket *socket = new ListenSocket(it->second);
-    if (socket->Create() == FAILURE || socket->Passive() == FAILURE) {
-      delete socket;
-      throw std::runtime_error("Failed to set up listen socket");
-    }
+    socket->Passive();
     Add(socket, epoll_mask);
   }
 }
@@ -97,7 +94,7 @@ void Epoll::EventLoop() {
     CheckTimeout();
     int nfds = epoll_wait(epoll_fd_, events, max_events_, epoll_timeout_);
     if (nfds == -1) {
-      throw std::runtime_error("Failed to epoll_wait");
+      throw std::runtime_error("Fatal Error: epoll_wait");
     }
     for (int i = 0; i < nfds; i++) {
       int event_fd = events[i].data.fd;
