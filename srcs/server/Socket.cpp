@@ -20,7 +20,11 @@ ASocket::ASocket(std::vector<Vserver> config) : fd_(-1), config_(config) {
   last_event_.out_time = -1;
 }
 
-ASocket::~ASocket() { close(fd_); }
+ASocket::~ASocket() {
+  if (close(fd_) < 0) {
+    std::cerr << "Keep Running Error: close" << std::endl;
+  }
+}
 
 int ASocket::GetFd() const { return fd_; }
 
