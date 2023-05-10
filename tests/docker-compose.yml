@@ -1,11 +1,9 @@
 version: '3.8'
 
 services:
-  webserv:
+  echo_server:
     build:
       context: ..
-      dockerfile: tests/docker/Dockerfile
+      dockerfile: tests/echo_server/Dockerfile
     volumes:
-      - ../srcs:/app/srcs
-      - ../tests:/app/tests
-    entrypoint: ["bash", "/app/tests/Server/server_test.sh"]
+      - ../../webserv:/app

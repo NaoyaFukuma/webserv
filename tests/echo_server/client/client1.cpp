@@ -43,13 +43,19 @@ int main() {
   int bytes_read;
   if (connect(client_fd, (struct sockaddr *)&server_addr,
               sizeof(server_addr)) == -1) {
+    std::cout << "not connected." << std::endl;
     return 1;
   }
   std::cout << "connected" << std::endl;
   send(client_fd, RESPONSE, RESPONSE_SIZE, 0);
   bytes_read = recv(client_fd, buf, RESPONSE_SIZE, 0);
-  write(STDOUT_FILENO, buf, bytes_read);
-
+  std::cout << "echo_server: " << std::endl;
   close(client_fd); // close the socket
-  return 0;
+  if (std::string(RESPONSE) == std::string(buf)) {
+    std::cout << "OK" << std::endl;
+    return 0;
+  } else {
+    std::cout << "NG" << std::endl;
+    return 1;
+  }
 }
