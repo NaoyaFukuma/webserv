@@ -1,0 +1,65 @@
+server {
+  listen 127.0.0.1:8000;
+  server_name localhost;
+  timeout 60s;
+
+  location / {
+    match back;
+    allow_method GET;
+    max_body_size 1M;
+
+    root /var/www/html;
+    index index.html index.htm;
+    is_cgi on;
+    cgi_path /cgi-bin;
+    error_page 500 /server_error_page.html;
+    error_page 404 403 /not_found.html;
+    autoindex on;
+    return 404;
+    return 404 /not_found.html;
+  }
+
+  location /upload {
+    match prefix;
+    allow_method GET POST DELETE;
+
+    max_body_size 1M;
+
+    root /var/www/user_uploads;
+    autoindex on;
+  }
+}
+
+server {
+  listen 127.0.0.1:8000;
+  server_name www.webserv.com webserv.com;
+
+  location / {
+    root /var/www/html;
+    index index.html;
+  }
+
+  location .php {
+    match back;
+    is_cgi on;
+    root /home/nginx/cgi_bins;
+  }
+}
+
+server {
+  listen 8080;
+  server_name localhost;
+
+  location / {
+    root /var/www/html;
+    index index.html;
+  }
+}
+
+server {
+  listen 9090;
+
+  location / {
+    return 301 http://localhost:8080/;
+  }
+}
