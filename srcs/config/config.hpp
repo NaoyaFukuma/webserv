@@ -105,7 +105,7 @@ private:
 // IPアドレスとポート番号の重複をなくしたConfigMapを作成する
 ConfigMap ConfigToMap(const Config &config);
 
-// debug用
+// test & debug用
 std::ostream &operator<<(std::ostream &os, const Config &conf);
 
 #endif
