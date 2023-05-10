@@ -87,8 +87,8 @@ void ConfigParser::ParseTimeOut(Vserver &server) {
   std::string timeout_str = GetWord();
   this->SkipSpaces();
   this->Expect(';');
-  // TODO:
-  server.timeout_ = (timeout_str);
+  server.timeout_ = ws_strtoi(timeout_str);
+  AssertTimeOut(server.timeout_);
 }
 
 void ConfigParser::ParseLocation(Vserver &server) {

@@ -61,6 +61,7 @@ private:
   void AssertServerName(const std::string &server_name);
   bool IsValidLabel(const std::string &server_name,
                     std::string::const_iterator &it);
+  bool AssertTimeOut(const std::string &timeout_str);
   void AssertLocation(const Location &location);
   void AssertMatch(match_type &dest_match, const std::string &match_str);
   void AssertAllowMethod(std::set<method_type> &dest_method,
