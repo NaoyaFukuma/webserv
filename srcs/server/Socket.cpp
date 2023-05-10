@@ -176,10 +176,8 @@ void ListenSocket::Passive() {
 
 ConnSocket *ListenSocket::Accept() {
   ConnSocket *conn_socket = new ConnSocket(config_);
-  struct sockaddr_in client_addr;
-  socklen_t addrlen = sizeof(client_addr);
 
-  int fd = accept(fd_, (struct sockaddr *)&client_addr, &addrlen);
+  int fd = accept(fd_, NULL, NULL);
   if (fd < 0) {
     std::cerr << "Keep Running Error: accept" << std::endl;
     delete conn_socket;
