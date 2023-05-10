@@ -52,8 +52,8 @@ struct Location {
   // 任意 単一 ステータスコードと、その時に返すファイルのパス(emptyを許容する)
 };
 struct Vserver { // 各バーチャルサーバーの設定を格納する
-  struct sockaddr_in
-      listen_; // 必須 単一 複数指定された場合は最後の一つだけ保持
+  struct sockaddr_in listen_;
+  // 必須 単一 複数指定された場合は最後の一つだけ保持
 
   std::vector<std::string> server_names_;
   // 任意 単一 ディレクティブは一つで、複数指定された場合は最後の一つだけ保持
