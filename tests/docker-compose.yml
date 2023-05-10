@@ -1,9 +1,23 @@
 version: '3.8'
 
 services:
-  echo_server:
+  server:
     build:
       context: ..
-      dockerfile: tests/echo_server/Dockerfile
+      dockerfile: tests/echo_server/server/Dockerfile
     volumes:
       - ../../webserv:/app
+    networks:
+      - webserv-net
+
+  client:
+    build:
+      context: ..
+      dockerfile: tests/echo_server/client/Dockerfile
+    volumes:
+      - ../../webserv:/app
+    networks:
+      - webserv-net
+
+networks:
+  webserv-net:
