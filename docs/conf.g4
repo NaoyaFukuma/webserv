@@ -82,7 +82,6 @@ IP_ADDR: NUMBER+ '.' NUMBER+ '.' NUMBER+ '.' NUMBER+;
 DOMAIN_LABEL: (ALPHABET | NUMBER)+ | (ALPHABET | NUMBER)+ (ALPHABET | NUMBER | HYPHEN)* (ALPHABET | NUMBER)+;
 TEXT: '\'' (ALPHABET | NUMBER | WHITESPACE | ASCII_SYMBOLS)* '\'' END_DIRECTIVE;
 ASCII_SYMBOLS: '!' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '[' | '\\' | ']' | '^' | '_' | '`' | '{' | '|' | '}' | '~';
-
 STATUS_CODE: NUMBER;
 END_DIRECTIVE: ';';
 ALPHABET: 'a' ..'z' | 'A' ..'Z';

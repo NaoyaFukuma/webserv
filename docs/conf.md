@@ -86,22 +86,24 @@ webservで用いる設定ファイルについての解説。
 - Multiple: true
 - 項目:
   ```
-  directive_in_location:
-    match_directive
-    | allow_method_directive
-    | client_max_body_size_directive
-    | root_directive
-    | index_directive
-    | autoindex_directive
-    | is_cgi_directive
-    | return_directive;
+directive_in_location:
+  match_directive
+	| allow_method_directive
+	| client_max_body_size_directive
+	| root_directive
+	| index_directive
+	| is_cgi_directive
+	| cgi_path_directive
+	| error_page_directive
+	| autoindex_directive
+	| return_directive;
   ```
 - 概要: `location`ブロック内の設定要素を表します。
 
 ### match_directive
 - Required: false
 - Multiple: false
-- Syntax: `match_directive: 'match' WHITESPACE ('prefix' | 'suffix') END_DIRECTIVE;`
+- Syntax: `match_directive: 'match' ('prefix' | 'suffix') END_DIRECTIVE;`
 - 概要: パスのマッチング方法を指定します。`prefix`は接頭辞マッチング、`suffix`は接尾辞マッチングです。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
 指定がない場合、prefixをデフォルト設定として採用。
@@ -109,7 +111,7 @@ webservで用いる設定ファイルについての解説。
 ### allow_method_directive
 - Required: false
 - Multiple: false
-- Syntax: `allow_method_directive: 'allow_method' METHOD* END_DIRECTIVE;`
+- Syntax: `allow_method_directive: 'allow_method' METHOD+ END_DIRECTIVE`
 - 概要: 許可されるHTTPメソッドを指定します。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
 指定がない場合は、GET, POST, DELETEをデフォルト設定として採用。
@@ -142,22 +144,6 @@ location /images/,  root /data
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
 指定が無い場合は、リターンするファイル検索を行いません。”404 Not Found”か、auto indexによる返答になります。
 
-### error_page_directive
-- Required: false
-- Multiple: false
-- Syntax: `error_page_directive: 'error_page' STATUS_CODE+ PATH END_DIRECTIVE`
-- 概要:
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
-指定がなければデフォルトのエラーコードとメッセージを出力します。
-
-### autoindex_directive
-- Required: false
-- Multiple: false
-- Syntax: `autoindex_directive: 'autoindex' ON_OFF END_DIRECTIVE`
-- 概要: ディレクトリリスティングの自動生成を有効化または無効化します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
-指定がなければOFFをデフォルトの設定として採用。
-
 ### is_cgi_directive
 - Required: false
 - Multiple: false
@@ -173,10 +159,26 @@ location /images/,  root /data
 - 概要: cgiで実行するアプリケーション（execveなどの第一引数）。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
 
+### autoindex_directive
+- Required: false
+- Multiple: false
+- Syntax: `autoindex_directive: 'autoindex' ON_OFF END_DIRECTIVE`
+- 概要: ディレクトリリスティングの自動生成を有効化または無効化します。
+注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+指定がなければOFFをデフォルトの設定として採用。
+
+### error_page_directive
+- Required: false
+- Multiple: false
+- Syntax: `error_page_directive: 'error_page' STATUS_CODE+ PATH END_DIRECTIVE`
+- 概要:
+注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+指定がなければデフォルトのエラーコードとメッセージを出力します。
+
 ### return_directive
 - Required: false
 - Multiple: false
-- Syntax: `return_directive: 'return' URL;`
+- Syntax: `return_directive: 'return' STATUS_CODE? (URL | TEXT) END_DIRECTIVE`
 - 概要: 指定されたURLにリダイレクトします。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
 指定が無い場合は、”404 Not Found”か、リソースがヒットするならそのリソースが返されます。
