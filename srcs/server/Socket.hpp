@@ -26,14 +26,16 @@ protected:
 
 public:
   ASocket(std::vector<Vserver> config);
-  ASocket(const ASocket &src);
   virtual ~ASocket();
-  ASocket &operator=(const ASocket &rhs);
 
   int GetFd() const;
   void SetFd(int fd);
   bool IsTimeout(const time_t &threshold) const;
   virtual int ProcessSocket(Epoll *epoll, void *data) = 0;
+
+private: // 使用予定なし
+  ASocket(const ASocket &src);
+  ASocket &operator=(const ASocket &rhs);
 };
 
 // ------------------------------------------------------------------
