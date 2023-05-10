@@ -6,7 +6,7 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 
 SRCS_DIR = srcs
 SRCS_SUBDIRS = $(shell find $(SRCS_DIR) -type d)
-SRCS = $(wildcard $(SRCS_DIR)/*.cpp)
+SRCS = $(foreach dir, $(SRCS_SUBDIRS), $(wildcard $(dir)/*.cpp))
 
 OBJS_DIR = objs
 OBJS = $(patsubst $(SRCS_DIR)/%.cpp,$(OBJS_DIR)/%.o,$(SRCS))
