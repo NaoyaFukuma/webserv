@@ -14,6 +14,10 @@ void SocketBuff::ReadSocket(int fd) {
 
   while (true) {
     len = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
+    // recv()がエラーを返すか、リモートがコネクションを閉じた場合にループを抜ける
+    if (len <= 0) {
+      break;
+    }
     this->ss_ << std::string(buf, len);
     if (len < static_cast<ssize_t>(sizeof(buf))) {
       break;
