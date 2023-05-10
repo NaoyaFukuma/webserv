@@ -19,16 +19,18 @@ private:
 
 public:
   Epoll();
-  Epoll(const Epoll &src);
   ~Epoll();
-  Epoll &operator=(const Epoll &rhs);
 
   ASocket *GetSocket(int fd);
-  int Add(ASocket *socket, uint32_t event_mask);
-  int Del(int fd);
-  int Mod(int fd, uint32_t event_mask);
+  void Add(ASocket *socket, uint32_t event_mask);
+  void Del(int fd);
+  void Mod(int fd, uint32_t event_mask);
   void RegisterListenSocket(const Config &config);
   void EventLoop();
+
+private: // 使用予定なし
+  Epoll(const Epoll &src);
+  Epoll &operator=(const Epoll &rhs);
 };
 
 #endif // EPOLL_HPP_

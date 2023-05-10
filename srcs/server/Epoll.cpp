@@ -10,10 +10,10 @@ Epoll::Epoll() : epoll_fd_(-1), fd_to_socket_() {
   }
 }
 
-Epoll::Epoll(const Epoll &src) { *this = src; }
-
 Epoll::~Epoll() {
-  close(epoll_fd_);
+  if (close(epoll_fd_) < 0) {
+    std::cerr << "Systemcall Error: close" << std::endl;
+  }
 
   std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
   while (it != fd_to_socket_.end()) {
@@ -22,63 +22,51 @@ Epoll::~Epoll() {
   }
 }
 
-Epoll &Epoll::operator=(const Epoll &rhs) {
-  if (this != &rhs) {
-    epoll_fd_ = rhs.epoll_fd_;
-    fd_to_socket_ = rhs.fd_to_socket_;
-  }
-  return *this;
-}
-
 ASocket *Epoll::GetSocket(int fd) {
   if (fd_to_socket_.find(fd) == fd_to_socket_.end())
     return NULL;
   return fd_to_socket_[fd];
 }
 
-int Epoll::Add(ASocket *socket, uint32_t event_mask) {
+void Epoll::Add(ASocket *socket, uint32_t event_mask) {
   struct epoll_event ev;
   int fd = socket->GetFd();
 
   ev.events = event_mask;
   ev.data.fd = fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev) == -1) {
-    return FAILURE;
+    throw std::runtime_error("Failed to epoll_ctl");
   }
   if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
     delete fd_to_socket_[fd];
   }
   fd_to_socket_[fd] = socket;
-  return SUCCESS;
 }
 
-int Epoll::Del(int fd) {
+void Epoll::Del(int fd) {
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
-    return FAILURE;
+    throw std::runtime_error("Failed to epoll_ctl");
   }
   if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
     delete fd_to_socket_[fd];
     fd_to_socket_.erase(fd);
   }
-  return SUCCESS;
 }
 
-int Epoll::Mod(int fd, uint32_t event_mask) {
+void Epoll::Mod(int fd, uint32_t event_mask) {
   struct epoll_event ev;
 
   ev.events = event_mask;
   ev.data.fd = fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
-    return FAILURE;
+    throw std::runtime_error("Failed to epoll_ctl");
   }
-  return SUCCESS;
 }
 
 void Epoll::CheckTimeout() {
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
        it != fd_to_socket_.end();) {
     if (it->second->IsTimeout(socket_timeout_)) {
-      std::cerr << "timeout: " << it->first << std::endl;
       int fd = it->first;
       it++;
       Del(fd);
@@ -95,11 +83,11 @@ void Epoll::RegisterListenSocket(const Config &config) {
   for (ConfigMap::iterator it = config_map.begin(); it != config_map.end();
        it++) {
     ListenSocket *socket = new ListenSocket(it->second);
-    if (socket->Create() == FAILURE || socket->Passive() == FAILURE ||
-        Add(socket, epoll_mask) == FAILURE) {
+    if (socket->Create() == FAILURE || socket->Passive() == FAILURE) {
       delete socket;
-      throw std::runtime_error("Failed to register listen socket");
+      throw std::runtime_error("Failed to set up listen socket");
     }
+    Add(socket, epoll_mask);
   }
 }
 
