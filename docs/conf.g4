@@ -32,7 +32,7 @@ servername_directive:
 	'server_name' (DOMAIN_NAME | IP_ADDR)+ END_DIRECTIVE;
 
 timeout_directive:
-	'timeout' NUMBER 's' END_DIRECTIVE;
+	'timeout' NUMBER END_DIRECTIVE;
 
 location_directive:
 	'location' PATH '{' directive_in_location+ '}';
