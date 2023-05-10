@@ -87,8 +87,7 @@ void ConfigParser::ParseTimeOut(Vserver &server) {
   std::string timeout_str = GetWord();
   this->SkipSpaces();
   this->Expect(';');
-  server.timeout_ = ws_strtoi(timeout_str);
-  AssertTimeOut(server.timeout_);
+  AssertTimeOut(server.timeout_, timeout_str);
 }
 
 void ConfigParser::ParseLocation(Vserver &server) {
@@ -355,6 +354,13 @@ bool ConfigParser::IsValidLabel(const std::string &server_name,
     }
   }
   return true;
+}
+
+void ConfigParser::AssertTimeOut(int &dest_timeout,
+                                 const std::string &timeout_str) {
+  if (!ws_strtoi<int>(&dest_timeout, timeout_str)) {
+    throw ParserException("Invalid timeout: %s", timeout_str.c_str());
+  }
 }
 
 void ConfigParser::AssertLocation(const Location &location) { (void)location; }
