@@ -1,5 +1,6 @@
 #include "SocketBuff.hpp"
 
+#include "define.hpp"
 #include <fstream>
 #include <ios>
 #include <iostream>
@@ -8,7 +9,8 @@
 SocketBuff::SocketBuff() {}  // デフォルトコンストラクタ
 SocketBuff::~SocketBuff() {} // デストラクタ
 
-void SocketBuff::ReadSocket(int fd) {
+// FAILURE: socketを閉じる, SUCCESS: socketを閉じない
+int SocketBuff::ReadSocket(int fd) {
   char buf[1024];
   ssize_t len;
 
@@ -23,6 +25,8 @@ void SocketBuff::ReadSocket(int fd) {
       break;
     }
   }
+  // len == 0の時、リモートがコネクションを閉じたことを意味する
+  return len != 0 ? SUCCESS : FAILURE;
 }
 
 bool SocketBuff::GetLine(std::string &line) {

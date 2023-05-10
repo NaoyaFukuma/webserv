@@ -63,8 +63,10 @@ ConnSocket::~ConnSocket() {}
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::OnReadable(Epoll *epoll_map) {
   last_event_.in_time = time(NULL);
-  recv_buffer_.ReadSocket(fd_);
-  std::cout << recv_buffer_.GetString() << std::endl;
+  if (recv_buffer_.ReadSocket(fd_) == FAILURE) {
+    return FAILURE;
+  }
+  std::cout << "recv_buffer_: " << recv_buffer_.GetString() << std::endl;
   send_buffer_.AddString(recv_buffer_.GetString());
   recv_buffer_.ClearBuff();
   if (epoll_map->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLET) == FAILURE) {
@@ -109,21 +111,11 @@ int ConnSocket::OnWritable(Epoll *epoll_map) {
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::ProcessSocket(Epoll *epoll_map, void *data) {
   // clientからの通信を処理
+  std::cout << "Socket: " << fd_ << std::endl;
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
-  if (event_mask & EPOLLIN) {
-    // 受信(Todo: OnReadable(0))
-    if (OnReadable(epoll_map) == FAILURE) {
-      return FAILURE;
-    }
-  }
-  if (event_mask & EPOLLOUT) {
-    // 送信
-    if (OnWritable(epoll_map) == FAILURE) {
-      return FAILURE;
-    }
-  }
   if (event_mask & EPOLLRDHUP) {
     // Todo:クライアントが切断->bufferの中身を全て送信してからsocketを閉じる
+    std::cout << "EPOLLRDHUP" << std::endl;
     shutdown(fd_, SHUT_RD);
     if (send_buffer_.GetString().size() == 0) {
       shutdown(fd_, SHUT_WR);
@@ -132,8 +124,23 @@ int ConnSocket::ProcessSocket(Epoll *epoll_map, void *data) {
     rdhup_ = true;
   }
   if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
+    std::cout << "EPOLLERR || EPOLLHUP" << std::endl;
     // エラー
     return FAILURE;
+  }
+  if (event_mask & EPOLLIN) {
+    // 受信(Todo: OnReadable(0))
+    std::cout << "EPOLLIN" << std::endl;
+    if (OnReadable(epoll_map) == FAILURE) {
+      return FAILURE;
+    }
+  }
+  if (event_mask & EPOLLOUT) {
+    // 送信
+    std::cout << "EPOLLOUT" << std::endl;
+    if (OnWritable(epoll_map) == FAILURE) {
+      return FAILURE;
+    }
   }
   // Todo: EPOLLPRIの検討
   // if (event_mask & EPOLLPRI) {

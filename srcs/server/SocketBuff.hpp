@@ -14,7 +14,7 @@ public:
   ~SocketBuff();
 
   // EPOLLINを検知したソケットFDを受け取り、全てバッファに格納する
-  void ReadSocket(int fd);
+  int ReadSocket(int fd);
 
   // バッファから1行読み込み、引数に受け取った文字列に格納する
   // 戻り値がtrueだと、lineに読み込んだ文字列が入る
