@@ -1,5 +1,5 @@
-#ifndef CONF_HPP
-#define CONF_HPP
+#ifndef CONFIG_HPP_
+#define CONFIG_HPP_
 
 #include <map>
 #include <netinet/in.h> // sockaddr_in
@@ -108,4 +108,4 @@ ConfigMap ConfigToMap(const Config &config);
 // test & debug用
 std::ostream &operator<<(std::ostream &os, const Config &conf);
 
-#endif
+#endif // CONFIG_HPP_
