@@ -1,6 +1,7 @@
 #include "Socket.hpp"
 #include "Epoll.hpp"
 #include "define.hpp"
+#include "utils.hpp"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -155,11 +156,13 @@ ListenSocket::~ListenSocket() {}
 
 void ListenSocket::Passive() {
   struct sockaddr_in sockaddr;
+  uint32_t addr;
   std::string ip = config_[0].listen_.listen_ip_;
   int port = config_[0].listen_.listen_port_;
 
   sockaddr.sin_family = AF_INET;
-  sockaddr.sin_addr.s_addr = inet_addr(ip.c_str());
+  ws_inet_addr(addr, ip);
+  sockaddr.sin_addr.s_addr = htonl(addr);
   sockaddr.sin_port = htons(port);
   // Bind server socket to address
   if (bind(fd_, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1) {
@@ -167,7 +170,7 @@ void ListenSocket::Passive() {
     throw std::runtime_error("Fatal Error: bind");
   }
   if (listen(fd_, SOMAXCONN) == -1) {
-    throw std::runtime_error("Fatal Error: listen");
+    throw std::runtime_error("Fata Error: listen");
   }
 }
 
