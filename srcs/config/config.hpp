@@ -32,14 +32,37 @@ struct Return {
   size_t text_length_;
 };
 
+/*
+以下のMyListenCompとConfigMapはセットで使われる。
+各仮想サーバー（Vserver）の設定項目で、
+その各サーバーがlistenするIPアドレスとポートの情報を持っており、
+その情報が重複する可能性がある。重複することは許容されるが、
+bind()するIPアドレスとポートの情報が重複するとエラーになってしまう。
+従って、重複する情報を持つVserverを検出し、まとめる必要がある。
+mapのkeyにstruct sockaddr_inを使い、複数のVserverをvectorで保持することで、
+これらの対応関係を表現している。
+*/
+struct MyListenComp {
+  bool operator()(const struct sockaddr_in &lhs,
+                  const struct sockaddr_in &rhs) const {
+    if (lhs.sin_addr.s_addr != rhs.sin_addr.s_addr) {
+      return lhs.sin_addr.s_addr < rhs.sin_addr.s_addr;
+    }
+    return lhs.sin_port < rhs.sin_port;
+  }
+};
+
+typedef std::map<struct sockaddr_in, std::vector<Vserver>, MyListenComp>
+    ConfigMap;
+
 struct Location {
   std::string path_; // locationのパス
   match_type match_; // 後方一致は、CGIの場合のみ使用可能
   std::set<method_type> allow_method_; // GET POST DELETE から１個以上指定
-  uint64_t
-      client_max_body_size_; // 任意 単一 デフォルト１MB, 0は無制限 制限超え 413
-                             // Request Entity Too Large
-                             // 制限されるのはボディ部分でヘッダーは含まない
+  uint64_t client_max_body_size_;
+  // 任意 単一 デフォルト１MB, 0は無制限 制限超え 413
+  // Request Entity Too Large
+  // 制限されるのはボディ部分でヘッダーは含まない
   std::string root_;  // 必須 単一 相対パスの起点
   std::string index_; // 任意 単一 ディレクトリへのアクセス
   std::map<int, std::string> error_pages_;
@@ -62,8 +85,6 @@ struct Vserver { // 各バーチャルサーバーの設定を格納する
   std::vector<Location> locations_; // 任意 複数可
 };
 
-typedef std::map<struct sockaddr_in, std::vector<Vserver>> ConfigMap;
-
 class Config {
 public:
   Config();
@@ -80,7 +101,11 @@ private:
   Config &operator=(const Config &other);
 };
 
+// listen socketを作成でbind()する際にエラーにならないように、
+// IPアドレスとポート番号の重複をなくしたConfigMapを作成する
 ConfigMap ConfigToMap(const Config &config);
+
+// debug用
 std::ostream &operator<<(std::ostream &os, const Config &conf);
 
 #endif
