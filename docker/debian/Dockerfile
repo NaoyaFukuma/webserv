@@ -1,7 +1,7 @@
 FROM debian:latest
 
 RUN apt-get update && \
-	apt-get install -y build-essential gcc tini
+	apt-get install -y build-essential gcc tini curl
 
 WORKDIR /app
 
