@@ -71,7 +71,7 @@ webservで用いる設定ファイルについての解説。
 ### servername_directive
 - Required: true
 - Multiple: false
-- Syntax: `'server_name' ((DOMAIN_NAME | IP_ADDR)) END_DIRECTIVE`
+- Syntax: `'server_name' (DOMAIN_NAME | IP_ADDR)+ END_DIRECTIVE`
 - 概要: サーバーに関連付けられたドメイン名またはIPアドレスを指定します。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
 

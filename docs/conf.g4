@@ -29,7 +29,7 @@ server_directive:
 listen_directive: 'listen' ((DOMAIN_NAME | IP_ADDR) ':')? (PORT) END_DIRECTIVE;
 
 servername_directive:
-	'server_name' ((DOMAIN_NAME | IP_ADDR)) END_DIRECTIVE;
+	'server_name' (DOMAIN_NAME | IP_ADDR)+ END_DIRECTIVE;
 
 timeout_directive:
 	'timeout' NUMBER 's' END_DIRECTIVE;
