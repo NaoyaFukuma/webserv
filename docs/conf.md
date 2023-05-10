@@ -15,6 +15,7 @@ webservで用いる設定ファイルについての解説。
      - [server_directive](#server_directive)
        - [listen_directive](#listen_directive)
        - [servername_directive](#servername_directive)
+       - [timeout_directive](#timeout_directive)
        - [location_directive](#location_directive)
          - [directive_in_location](#directive_in_location)
            - [match](#match)
@@ -86,17 +87,17 @@ webservで用いる設定ファイルについての解説。
 - Multiple: true
 - 項目:
   ```
-directive_in_location:
-  match_directive
-	| allow_method_directive
-	| client_max_body_size_directive
-	| root_directive
-	| index_directive
-	| is_cgi_directive
-	| cgi_path_directive
-	| error_page_directive
-	| autoindex_directive
-	| return_directive;
+  directive_in_location:
+    match_directive
+    | allow_method_directive
+    | client_max_body_size_directive
+    | root_directive
+    | index_directive
+    | is_cgi_directive
+    | cgi_path_directive
+    | error_page_directive
+    | autoindex_directive
+    | return_directive;
   ```
 - 概要: `location`ブロック内の設定要素を表します。
 
