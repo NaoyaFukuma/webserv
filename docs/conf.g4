@@ -44,7 +44,7 @@ directive_in_location:
 	| root_directive
 	| index_directive
 	| is_cgi_directive
-	| cgi_psth_directive
+	| cgi_path_directive
 	| error_page_directive
 	| autoindex_directive
 	| return_directive;
