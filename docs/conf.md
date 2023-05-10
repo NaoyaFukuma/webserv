@@ -51,7 +51,7 @@ webservで用いる設定ファイルについての解説。
     | timeout_directive
     | location_directive
   ```
-- 概要: 仮想サーバーの設定項目としては、この３つが用意されています。
+- 概要: 仮想サーバーの設定項目としては、この4つが用意されています。
 
 ### listen_directive
 - Required: true
