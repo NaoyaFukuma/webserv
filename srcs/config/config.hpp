@@ -2,7 +2,7 @@
 #define CONF_HPP
 
 #include <map>
-#include <netinet/in.h>
+#include <netinet/in.h> // sockaddr_in
 #include <set>
 #include <string>
 #include <vector>
@@ -51,15 +51,10 @@ struct Location {
   struct Return return_;
   // 任意 単一 ステータスコードと、その時に返すファイルのパス(emptyを許容する)
 };
+struct Vserver { // 各バーチャルサーバーの設定を格納する
+  struct sockaddr_in
+      listen_; // 必須 単一 複数指定された場合は最後の一つだけ保持
 
-struct Listen { // 単一
-  std::string listen_ip_;
-  std::string listen_ip_port_;
-  int listen_port_;
-};
-
-struct Vserver {  // 各バーチャルサーバーの設定を格納する
-  Listen listen_; // 必須 単一
   std::vector<std::string> server_names_;
   // 任意 単一 ディレクティブは一つで、複数指定された場合は最後の一つだけ保持
   // 一つのディレクティブ内に、サーバーネームは並べて複数可能
@@ -67,7 +62,7 @@ struct Vserver {  // 各バーチャルサーバーの設定を格納する
   std::vector<Location> locations_; // 任意 複数可
 };
 
-typedef std::map<std::string, std::vector<Vserver>> ConfigMap;
+typedef std::map<struct sockaddr_in, std::vector<Vserver>> ConfigMap;
 
 class Config {
 public:
