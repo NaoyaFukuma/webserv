@@ -15,6 +15,8 @@
 #define FAILURE 1
 
 #define MAX_TRY 10
+#define BUFF_SIZE 1024
+
 #define EXEC_TEST(proc)                                                        \
   {                                                                            \
     std::string ps(#proc);                                                     \
@@ -68,7 +70,7 @@ int read_file(std::string &dst, std::string path) {
 }
 
 std::string read_socket(int fd) {
-  char buf[1024];
+  char buf[BUFF_SIZE];
   std::string response = "";
   while (true) {
     int len = recv(fd, buf, sizeof(buf), 0);
@@ -97,7 +99,8 @@ int assert_equal(std::string expected, std::string actual) {
   }
 }
 
-int test_basically_close(std::string host, std::string port, std::string path) {
+int test(std::string host, std::string port, std::string path,
+         bool shut = false) {
   int client_fd = connect_to_server(host, port);
   std::string request;
   if (client_fd == -1) {
@@ -111,6 +114,9 @@ int test_basically_close(std::string host, std::string port, std::string path) {
     return FAILURE;
   }
   send(client_fd, request.c_str(), request.size(), 0);
+  if (shut) {
+    shutdown(client_fd, SHUT_WR);
+  }
   std::string response = read_socket(client_fd);
   close(client_fd);
   return assert_equal(request, response);
@@ -120,26 +126,66 @@ int test1() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/404.txt";
-
-  return test_basically_close(host, port, path);
+  return test(host, port, path);
 }
 
 int test2() {
   std::string host = "webserv";
   std::string port = "8000";
   std::string path = "./request/404.txt";
-  return test_basically_close(host, port, path);
+  return test(host, port, path);
 }
 
 int test3() {
   std::string host = "webserv";
   std::string port = "9090";
   std::string path = "./request/404.txt";
-  return test_basically_close(host, port, path);
+  return test(host, port, path);
+}
+
+int test4() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  return test(host, port, path);
+}
+
+int test5() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len3072.txt";
+  return test(host, port, path);
+}
+
+// test when shutdown client socket
+int test6() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/404.txt";
+  return test(host, port, path, true);
+}
+
+int test7() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  return test(host, port, path, true);
+}
+
+int test8() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len3072.txt";
+  return test(host, port, path, true);
 }
 
 int main() {
   EXEC_TEST(test1());
   EXEC_TEST(test2());
   EXEC_TEST(test3());
+  EXEC_TEST(test4());
+  EXEC_TEST(test5());
+  EXEC_TEST(test6());
+  EXEC_TEST(test7());
+  EXEC_TEST(test8());
 }
