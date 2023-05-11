@@ -1,5 +1,5 @@
 server {
-  listen 127.0.0.1:8000;
+  listen 8000;
   server_name localhost;
 
   location / {
@@ -30,7 +30,7 @@ server {
 }
 
 server {
-  listen 127.0.0.1:8000;
+  listen 8000;
   server_name www.webserv.com webserv.com;
 
   location / {

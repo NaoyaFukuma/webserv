@@ -18,19 +18,20 @@
 #define EXEC_TEST(proc)                                                        \
   {                                                                            \
     std::string ps(#proc);                                                     \
-    std::cout << #proc << ": " << proc;                                        \
+    std::cout << ps << ": ";                                                   \
+    proc;                                                                      \
   }
 
 using namespace std;
 
-int connect_to_server(char *host, char *port) {
+int connect_to_server(std::string host, std::string port) {
   struct addrinfo hints, *result, *rp;
   int client_fd;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  int err = getaddrinfo(host, port, &hints, &result);
+  int err = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
   if (err != 0) {
     std::cerr << "getaddrinfo: " << gai_strerror(err) << std::endl;
     return -1;
@@ -52,7 +53,7 @@ int connect_to_server(char *host, char *port) {
   return -1;
 }
 
-int read_file(std::string &dst, char *path) {
+int read_file(std::string &dst, std::string path) {
   std::ifstream file(path);
   if (!file.is_open()) {
     return FAILURE;
@@ -96,7 +97,7 @@ int assert_equal(std::string expected, std::string actual) {
   }
 }
 
-int test_basically_close(char *host, char *port, char path[]) {
+int test_basically_close(std::string host, std::string port, std::string path) {
   int client_fd = connect_to_server(host, port);
   std::string request;
   if (client_fd == -1) {
@@ -116,25 +117,29 @@ int test_basically_close(char *host, char *port, char path[]) {
 }
 
 int test1() {
-  char host[] = "127.0.0.1"; // webserv
-  char port[] = "8080";
-  char path[] = "./request/404.txt";
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/404.txt";
 
   return test_basically_close(host, port, path);
 }
 
 int test2() {
-  char host[] = "127.0.0.1"; // webserv
-  char port[] = "8000";
-  char path[] = "./request/404.txt";
+  std::string host = "webserv";
+  std::string port = "8000";
+  std::string path = "./request/404.txt";
   return test_basically_close(host, port, path);
 }
 
 int test3() {
-  char host[] = "127.0.0.1"; // webserv
-  char port[] = "9090";
-  char path[] = "./request/404.txt";
+  std::string host = "webserv";
+  std::string port = "9090";
+  std::string path = "./request/404.txt";
   return test_basically_close(host, port, path);
 }
 
-int main() { EXEC_TEST(test1()); }
+int main() {
+  EXEC_TEST(test1());
+  EXEC_TEST(test2());
+  EXEC_TEST(test3());
+}
