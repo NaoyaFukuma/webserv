@@ -63,7 +63,7 @@ int ConnSocket::OnReadable(Epoll *epoll) {
   }
   send_buffer_.AddString(recv_buffer_.GetString());
   recv_buffer_.ClearBuff();
-  epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLET);
+  epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
   last_event_.out_time = time(NULL);
   return SUCCESS;
 
@@ -84,7 +84,7 @@ int ConnSocket::OnWritable(Epoll *epoll) {
     return FAILURE;
   } else if (send_result == 1) {
     // 送信完了
-    epoll->Mod(fd_, EPOLLIN | EPOLLET);
+    epoll->Mod(fd_, EPOLLIN | EPOLLRDHUP | EPOLLET);
     // rdhupが立っていたら送信完了後にsocketを閉じる
     if (rdhup_) {
       if (shutdown(fd_, SHUT_WR) < 0) {
@@ -105,20 +105,6 @@ int ConnSocket::ProcessSocket(Epoll *epoll, void *data) {
   // clientからの通信を処理
   // std::cout << "Socket: " << fd_ << std::endl;
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
-  if (event_mask & EPOLLRDHUP) {
-    // Todo:クライアントが切断->bufferの中身を全て送信してからsocketを閉じる
-    std::cout << fd_ << ": EPOLLRDHUP" << std::endl;
-    if (shutdown(fd_, SHUT_RD) < 0) {
-      std::cerr << "Keep Running Error: shutdown" << std::endl;
-    }
-    if (send_buffer_.GetString().size() == 0) {
-      if (shutdown(fd_, SHUT_WR) < 0) {
-        std::cerr << "Keep Running Error: shutdown" << std::endl;
-      }
-      return FAILURE;
-    }
-    rdhup_ = true;
-  }
   if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
     std::cout << fd_ << ": EPOLLERR || EPOLLHUP" << std::endl;
     // エラー
@@ -137,6 +123,20 @@ int ConnSocket::ProcessSocket(Epoll *epoll, void *data) {
     if (OnWritable(epoll) == FAILURE) {
       return FAILURE;
     }
+  }
+  if (event_mask & EPOLLRDHUP) {
+    // Todo:クライアントが切断->bufferの中身を全て送信してからsocketを閉じる
+    std::cout << fd_ << ": EPOLLRDHUP" << std::endl;
+    if (shutdown(fd_, SHUT_RD) < 0) {
+      std::cerr << "Keep Running Error: shutdown" << std::endl;
+    }
+    if (send_buffer_.GetString().size() == 0) {
+      if (shutdown(fd_, SHUT_WR) < 0) {
+        std::cerr << "Keep Running Error: shutdown" << std::endl;
+      }
+      return FAILURE;
+    }
+    rdhup_ = true;
   }
   // Todo: EPOLLPRIの検討
   // if (event_mask & EPOLLPRI) {
@@ -201,7 +201,7 @@ ConnSocket *ListenSocket::Accept() {
 int ListenSocket::ProcessSocket(Epoll *epoll, void *data) {
   // 接続要求を処理
   (void)data;
-  static const uint32_t epoll_mask = EPOLLIN | EPOLLET;
+  static const uint32_t epoll_mask = EPOLLIN | EPOLLRDHUP | EPOLLET;
 
   ConnSocket *client_socket = Accept();
   if (client_socket == NULL) {
