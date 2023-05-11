@@ -1,61 +1,140 @@
 /* client */
 #include <arpa/inet.h>
+#include <fstream>
 #include <iostream>
+#include <netdb.h>
 #include <netinet/in.h>
+#include <sstream>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define RESPONSE                                                               \
-  "HTTP/1.1 404 Not Found\r\nDate: Mon, 10 Apr 2023 12:00:00 GMT\r\n\
-Server: Apache/2.4.41 (Ubuntu)\r\n\
-Content-Type: text/html; charset=UTF-8\r\n\
-Content-Length: 146\r\n\
-Connection: keep-alive\r\n\
-\r\n\
-<!DOCTYPE html>\r\n\
-<html lang=\"en\">\r\n\
-<head>\r\n\
-    <meta charset=\"UTF-8\">\r\n\
-    <title>404 Not Found</title>\r\n\
-</head>\r\n\
-<body>\r\n\
-    <h1>404 Not Found</h1>\r\n\
-    <p>The requested URL was not found on this server.</p>\r\n\
-</body>\r\n\
-</html>\r\n\
-\r\n"
-#define RESPONSE_SIZE 411
+#define OK "\033[32mOK\033[0m"
+#define NG "\033[31mNG\033[0m"
+#define SUCCESS 0
+#define FAILURE 1
+
+#define MAX_TRY 10
+#define EXEC_TEST(proc)                                                        \
+  {                                                                            \
+    std::string ps(#proc);                                                     \
+    std::cout << #proc << ": " << proc;                                        \
+  }
 
 using namespace std;
 
-int main() {
-  int client_fd =
-      socket(AF_INET, SOCK_STREAM, 0); // IPv4, TCP, default protocol
-  if (client_fd == -1) {               // error
-    return 1;
+int connect_to_server(char *host, char *port) {
+  struct addrinfo hints, *result, *rp;
+  int client_fd;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+
+  int err = getaddrinfo(host, port, &hints, &result);
+  if (err != 0) {
+    std::cerr << "getaddrinfo: " << gai_strerror(err) << std::endl;
+    return -1;
   }
-  struct sockaddr_in server_addr;                       // IPv4
-  server_addr.sin_family = AF_INET;                     // IPv4
-  server_addr.sin_port = htons(8080);                   // port
-  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // localhost
+
+  for (int i = 0; i < MAX_TRY; i++) {
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+      client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+      if (client_fd == -1) {
+        continue;
+      }
+      if (connect(client_fd, rp->ai_addr, rp->ai_addrlen) != -1) {
+        return client_fd;
+      }
+      close(client_fd);
+    }
+    usleep(1000);
+  }
+  return -1;
+}
+
+int read_file(std::string &dst, char *path) {
+  std::ifstream file(path);
+  if (!file.is_open()) {
+    return FAILURE;
+  }
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+
+  dst = buffer.str();
+  return SUCCESS;
+}
+
+std::string read_socket(int fd) {
   char buf[1024];
-  int bytes_read;
-  if (connect(client_fd, (struct sockaddr *)&server_addr,
-              sizeof(server_addr)) == -1) {
-    std::cout << "not connected." << std::endl;
-    return 1;
+  std::string response = "";
+  while (true) {
+    int len = recv(fd, buf, sizeof(buf), 0);
+    if (len < 0) {
+      break;
+    }
+    response += std::string(buf, len);
+    if (len < sizeof(buf)) {
+      break;
+    }
   }
-  std::cout << "connected" << std::endl;
-  send(client_fd, RESPONSE, RESPONSE_SIZE, 0);
-  bytes_read = recv(client_fd, buf, RESPONSE_SIZE, 0);
-  std::cout << "echo_server: " << std::endl;
-  close(client_fd); // close the socket
-  if (std::string(RESPONSE) == std::string(buf)) {
-    std::cout << "OK" << std::endl;
-    return 0;
+  return response;
+}
+
+int assert_equal(std::string expected, std::string actual) {
+  if (expected == actual) {
+    std::cout << OK << std::endl;
+    return SUCCESS;
   } else {
-    std::cout << "NG" << std::endl;
-    return 1;
+    std::cout << NG << std::endl;
+    std::cout << "Expected: " << std::endl;
+    std::cout << expected << std::endl;
+    std::cout << "Actual: " << std::endl;
+    std::cout << actual << std::endl;
+    return FAILURE;
   }
 }
+
+int test_basically_close(char *host, char *port, char path[]) {
+  int client_fd = connect_to_server(host, port);
+  std::string request;
+  if (client_fd == -1) {
+    std::cout << NG << std::endl;
+    std::cerr << "Failed to connect to server" << std::endl;
+    return FAILURE;
+  }
+  if (read_file(request, path) == FAILURE) {
+    std::cout << NG << std::endl;
+    std::cerr << "Failed to read request" << std::endl;
+    return FAILURE;
+  }
+  send(client_fd, request.c_str(), request.size(), 0);
+  std::string response = read_socket(client_fd);
+  close(client_fd);
+  return assert_equal(request, response);
+}
+
+int test1() {
+  char host[] = "127.0.0.1"; // webserv
+  char port[] = "8080";
+  char path[] = "./request/404.txt";
+
+  return test_basically_close(host, port, path);
+}
+
+int test2() {
+  char host[] = "127.0.0.1"; // webserv
+  char port[] = "8000";
+  char path[] = "./request/404.txt";
+  return test_basically_close(host, port, path);
+}
+
+int test3() {
+  char host[] = "127.0.0.1"; // webserv
+  char port[] = "9090";
+  char path[] = "./request/404.txt";
+  return test_basically_close(host, port, path);
+}
+
+int main() { EXEC_TEST(test1()); }
