@@ -74,13 +74,10 @@ std::string read_socket(int fd) {
   std::string response = "";
   while (true) {
     int len = recv(fd, buf, sizeof(buf), 0);
-    if (len < 0) {
+    if (len <= 0) {
       break;
     }
     response += std::string(buf, len);
-    if (len < sizeof(buf)) {
-      break;
-    }
   }
   return response;
 }
@@ -113,7 +110,7 @@ int test(std::string host, std::string port, std::string path,
     std::cerr << "Failed to read request" << std::endl;
     return FAILURE;
   }
-  send(client_fd, request.c_str(), request.size(), 0);
+  ssize_t len = send(client_fd, request.c_str(), request.size(), 0);
   if (shut) {
     shutdown(client_fd, SHUT_WR);
   }

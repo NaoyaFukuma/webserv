@@ -16,6 +16,8 @@ services:
       - ../../../webserv:/app
     networks:
       - webserv-net
+    depends_on:
+      - webserv
 
 networks:
   webserv-net:

@@ -6,4 +6,4 @@ RUN apt-get update && \
 WORKDIR /app/tests/echo_server/client
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["./client"]
+CMD ["./client.out"]

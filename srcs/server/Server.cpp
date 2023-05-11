@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     Config config;
     Epoll epoll;
     ParseConfig(config, argv[1]);
-    std::cout << config << std::endl;
+    // std::cout << config << std::endl;
     epoll.RegisterListenSocket(config);
     epoll.EventLoop();
   } catch (const std::exception &e) {

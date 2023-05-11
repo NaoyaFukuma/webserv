@@ -57,7 +57,8 @@ public:
   // バッファからソケットにノンブロッキング送信する 引数はソケットのFD
   // 返り値がfalseの場合は、全ての文字列を送信できていないので、EPOLLOUTに登録し、再度送信する
   // 送信済みの文字数はバッファから削除する
-  bool SendSocket(const int fd);
+  // -1: 相手がcloseしてるなど、sendが失敗 0:送信未完了 1:送信完了
+  int SendSocket(const int fd);
 
   // バッファの文字列をクリアする
   void ClearBuff();

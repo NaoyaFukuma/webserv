@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# compile client
-c++ ./client.cpp -o ./client
+c++ ./client.cpp -o ./client.out
+
+sleep 10
 
 exec "$@"
