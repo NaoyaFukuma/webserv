@@ -10,7 +10,7 @@
 // 複数指定不可の単一のみの設定項目で、複数指定された場合は最後の一つだけ保持する
 enum match_type {
   PREFIX, // 前方一致
-  BACK,   // 後方一致
+  SUFFIX, // 後方一致
 };
 
 enum method_type {
@@ -20,8 +20,10 @@ enum method_type {
 };
 
 enum return_type {
-  RETURN_URL,  // URLを返す
-  RETURN_TEXT, // テキストを返す
+  RETURN_URL,              // URLを返す
+  RETURN_TEXT,             // テキストを返す
+  RETURN_ONLY_STATUS_CODE, // ステータスコードのみ返す
+  RETURN_EMPTY, // returnディレクティブが設定されていない
 };
 
 struct Return {
@@ -32,33 +34,10 @@ struct Return {
   size_t text_length_;
 };
 
-/*
-以下のMyListenCompとConfigMapはセットで使われる。
-各仮想サーバー（Vserver）の設定項目で、
-その各サーバーがlistenするIPアドレスとポートの情報を持っており、
-その情報が重複する可能性がある。重複することは許容されるが、
-bind()するIPアドレスとポートの情報が重複するとエラーになってしまう。
-従って、重複する情報を持つVserverを検出し、まとめる必要がある。
-mapのkeyにstruct sockaddr_inを使い、複数のVserverをvectorで保持することで、
-これらの対応関係を表現している。
-*/
-struct MyListenComp {
-  bool operator()(const struct sockaddr_in &lhs,
-                  const struct sockaddr_in &rhs) const {
-    if (lhs.sin_addr.s_addr != rhs.sin_addr.s_addr) {
-      return lhs.sin_addr.s_addr < rhs.sin_addr.s_addr;
-    }
-    return lhs.sin_port < rhs.sin_port;
-  }
-};
-
-typedef std::map<struct sockaddr_in, std::vector<Vserver>, MyListenComp>
-    ConfigMap;
-
 struct Location {
   std::string path_; // locationのパス
   match_type match_; // 後方一致は、CGIの場合のみ使用可能
-  std::set<method_type> allow_method_; // GET POST DELETE から１個以上指定
+  std::set<method_type> allow_methods_; // GET POST DELETE から１個以上指定
   uint64_t client_max_body_size_;
   // 任意 単一 デフォルト１MB, 0は無制限 制限超え 413
   // Request Entity Too Large
@@ -83,6 +62,10 @@ struct Vserver { // 各バーチャルサーバーの設定を格納する
   // 一つのディレクティブ内に、サーバーネームは並べて複数可能
   int timeout_;                     // 任意 単一 デフォルトは60秒
   std::vector<Location> locations_; // 任意 複数可
+  bool
+      is_default_server_; // デフォルトはfalse
+                          // 一致する場合は、デフォルトサーバーとして処理する
+                          // confファイルで一番上に書かれたものがデフォルトサーバー
 };
 
 class Config {
@@ -91,7 +74,7 @@ public:
   ~Config();
 
   void ParseConfig(const char *src_file);
-  void AddServer(const Vserver &server);
+  void AddServer(Vserver &server);
   std::vector<Vserver> GetServerVec() const;
 
 private:
@@ -100,6 +83,29 @@ private:
   Config(const Config &other);
   Config &operator=(const Config &other);
 };
+
+/*
+以下のMyListenCompとConfigMapはセットで使われる。
+各仮想サーバー（Vserver）の設定項目で、
+その各サーバーがlistenするIPアドレスとポートの情報を持っており、
+その情報が重複する可能性がある。重複することは許容されるが、
+bind()するIPアドレスとポートの情報が重複するとエラーになってしまう。
+従って、重複する情報を持つVserverを検出し、まとめる必要がある。
+mapのkeyにstruct sockaddr_inを使い、複数のVserverをvectorで保持することで、
+これらの対応関係を表現している。
+*/
+struct MyListenComp {
+  bool operator()(const struct sockaddr_in &lhs,
+                  const struct sockaddr_in &rhs) const {
+    if (lhs.sin_addr.s_addr != rhs.sin_addr.s_addr) {
+      return lhs.sin_addr.s_addr < rhs.sin_addr.s_addr;
+    }
+    return lhs.sin_port < rhs.sin_port;
+  }
+};
+
+typedef std::map<struct sockaddr_in, std::vector<Vserver>, MyListenComp>
+    ConfigMap;
 
 // listen socketを作成でbind()する際にエラーにならないように、
 // IPアドレスとポート番号の重複をなくしたConfigMapを作成する

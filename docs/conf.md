@@ -38,7 +38,9 @@ webservで用いる設定ファイルについての解説。
 - Multiple: true
 - Syntax: `server: '{' server_directive+ '}';`
 - 概要: 仮想サーバーごとの設定を定義するブロックです。
-        ブロックを使った、複数項目の設定を受け付けます。
+ブロックを使った、複数項目の設定を受け付けます。
+リクエストのHostヘッダーがいずれのserver_nameとも一致しない場合、
+.confファイルで最も上に配置されたものにルーティングします。
 
 ### server_directive
 - Required: true
@@ -54,11 +56,12 @@ webservで用いる設定ファイルについての解説。
 - 概要: 仮想サーバーの設定項目としては、この4つが用意されています。
 
 ### listen_directive
-- Required: true
+- Required: false
 - Multiple: false
 - Syntax: `'listen' ((DOMAIN_NAME | IP_ADDR) ':')? (PORT) END_DIRECTIVE`
 - 概要: 仮想サーバーが待ち受けるドメイン名またはIPアドレスとポートを指定します。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+指定がない場合、”0.0.0.0:80”をlistenします。
 
 ### timeout_directive
 - Required: false
@@ -143,7 +146,7 @@ location /images/,  root /data
 - Syntax: `index_directive: 'index' PATH END_DIRECTIVE`
 - 概要: ディレクトリインデックスとして使用されるファイルを指定します。
 注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
-指定が無い場合は、リターンするファイル検索を行いません。”404 Not Found”か、auto indexによる返答になります。
+相対パスを指定し、rootディレクティブのPATHを起点にします。
 
 ### is_cgi_directive
 - Required: false
@@ -179,7 +182,7 @@ location /images/,  root /data
 ### return_directive
 - Required: false
 - Multiple: false
-- Syntax: `return_directive: 'return' STATUS_CODE? (URL | TEXT) END_DIRECTIVE`
+- Syntax: `return_directive: 'return' STATUS_CODE? (URL | TEXT)? END_DIRECTIVE`
 - 概要: 指定されたURLにリダイレクトします。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
-指定が無い場合は、”404 Not Found”か、リソースがヒットするならそのリソースが返されます。
+注）複数指定された場合、エラー検出できず、最初に現れた項目の値が採用されます。
+以下のパターンを許容します。

@@ -1,12 +1,62 @@
 #include "ConfigParser.hpp"
-#include "utils.hpp"
 #include <fstream>
 #include <iostream>
+#include <netdb.h> // for getaddrinfo()
+#include <netinet/in.h>
 #include <sstream>
 #include <stdarg.h>
 
+// 行、列、行の内容、エラーの理由を出力する
+#define ERR_MSG_ROW_COL_LINE "Config Error: row %d, col %d\n%s <--- %s\n"
+
+// エラー理由を出力する
+#define ERR_MSG "Config Error: %s\n"
+
+// 正の整数のみ
+template <typename T> bool ws_strtoi(T *dest, const std::string src) {
+  T tmp;
+  for (std::string::const_iterator it = src.begin(); it != src.end(); it++) {
+    if (!isdigit(*it)) {
+      return false;
+    }
+  }
+  std::stringstream ss(src);
+  ss >> tmp;
+  if (ss.fail()) {
+    return false;
+  }
+  if (tmp != 0 && src[0] == '0') {
+    return false;
+  }
+  *dest = tmp;
+  return true;
+}
+
+template <typename T> T mul_assert_overflow(T lhs, T rhs) {
+  if (lhs > 0) {
+    if (rhs > 0) {
+      if (lhs > std::numeric_limits<T>::max() / rhs) {
+        throw std::overflow_error("overflow in multiplication");
+      }
+    } else if (rhs < std::numeric_limits<T>::min() / lhs) {
+      throw std::overflow_error("overflow in multiplication");
+    }
+  } else if (lhs < 0) {
+    if (rhs > 0) {
+      if (lhs < std::numeric_limits<T>::min() / rhs) {
+        throw std::overflow_error("overflow in multiplication");
+      }
+    } else if (rhs < std::numeric_limits<T>::max() / lhs) {
+      throw std::overflow_error("overflow in multiplication");
+    }
+  }
+  return lhs * rhs;
+}
+
 ConfigParser::ConfigParser(const char *filepath)
-    : file_content_(LoadFile(filepath)), it_(file_content_.begin()) {}
+    : file_content_(LoadFile(filepath)), it_(file_content_.begin()) {
+  std::cout << file_content_ << std::endl; // debug
+}
 
 ConfigParser::~ConfigParser() {}
 
@@ -15,7 +65,7 @@ std::string ConfigParser::LoadFile(const char *filepath) {
   std::ifstream ifs(filepath);
   std::stringstream buffer;
   if (!ifs || ifs.fail()) {
-    throw ParserException("Failed to open config file: %s", filepath);
+    throw ParserException("Config Error: open config file: %s", filepath);
   }
   buffer << ifs.rdbuf();
   ifs.close();
@@ -28,15 +78,25 @@ void ConfigParser::Parse(Config &config) {
   while (!this->IsEof()) {
     this->SkipSpaces();
     if (this->GetWord() != "server") {
-      throw ParserException("Unexpected block");
+      int row;
+      int col;
+      std::string line;
+      this->GetErrorPoint(row, col, line);
+      throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(),
+                            "Expected 'server'");
     }
     this->ParseServer(config);
+    this->SkipSpaces();
   }
+  AssertConfig(config);
 }
 
 void ConfigParser::ParseServer(Config &config) {
   Vserver server;
-  server.listen_.listen_port_ = -1;
+
+  server.timeout_ = 60;                // default timeout
+  server.listen_.sin_family = AF_INET; // IPv4 default
+  server.listen_.sin_port = htons(80); // default port
 
   this->SkipSpaces();
   this->Expect('{');
@@ -52,7 +112,12 @@ void ConfigParser::ParseServer(Config &config) {
     } else if (token == "location") {
       this->ParseLocation(server);
     } else {
-      throw ParserException("Unexpected token: %s", token.c_str());
+      int row;
+      int col;
+      std::string line;
+      this->GetErrorPoint(row, col, line);
+      throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(),
+                            "Unexpected token");
     }
     this->SkipSpaces();
   }
@@ -71,6 +136,7 @@ void ConfigParser::ParseListen(Vserver &server) {
 
 void ConfigParser::ParseServerName(Vserver &server) {
   std::vector<std::string> new_server_names;
+
   while (!this->IsEof() && *it_ != ';') {
     this->SkipSpaces();
     std::string server_name = GetWord();
@@ -106,8 +172,8 @@ void ConfigParser::ParseLocation(Vserver &server) {
       ParseMatch(location);
     } else if (token == "allow_method") {
       ParseAllowMethod(location);
-    } else if (token == "max_body_size") {
-      ParseMaxBodySize(location);
+    } else if (token == "client_max_body_size") {
+      ParseClientMaxBodySize(location);
     } else if (token == "root") {
       ParseRoot(location);
     } else if (token == "index") {
@@ -123,7 +189,12 @@ void ConfigParser::ParseLocation(Vserver &server) {
     } else if (token == "return") {
       ParseReturn(location);
     } else {
-      throw ParserException("Unexpected token: %s", token.c_str());
+      int row;
+      int col;
+      std::string line;
+      this->GetErrorPoint(row, col, line);
+      throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(),
+                            "Unexpected token");
     }
     this->SkipSpaces();
   }
@@ -134,10 +205,13 @@ void ConfigParser::ParseLocation(Vserver &server) {
 
 void ConfigParser::SetLocationDefault(Location &location) {
   location.match_ = PREFIX;
-  location.max_body_size_ = 1024 * 1024; // 1MB
-  location.is_cgi_ = false;
+  location.allow_methods_.insert(GET);
+  location.allow_methods_.insert(POST);
+  location.allow_methods_.insert(DELETE);
+  location.client_max_body_size_ = 1024 * 1024; // 1MB
   location.autoindex_ = false;
-  location.return_.first = -1;
+  location.is_cgi_ = false;
+  location.return_.return_type_ = RETURN_EMPTY;
 }
 
 void ConfigParser::ParseMatch(Location &location) {
@@ -149,24 +223,23 @@ void ConfigParser::ParseMatch(Location &location) {
 }
 
 void ConfigParser::ParseAllowMethod(Location &location) {
-  if (!location.allow_method_.empty()) {
-    throw ParserException("allow_method is already set");
-  };
+  location.allow_methods_.clear();
   while (!this->IsEof() && *it_ != ';') {
     this->SkipSpaces();
     std::string method_str = GetWord();
     this->SkipSpaces();
-    AssertAllowMethod(location.allow_method_, method_str);
+    AssertAllowMethod(location.allow_methods_, method_str);
   }
   this->Expect(';');
+  AssertAllowMethods(location.allow_methods_);
 }
 
-void ConfigParser::ParseMaxBodySize(Location &location) {
+void ConfigParser::ParseClientMaxBodySize(Location &location) {
   this->SkipSpaces();
   std::string size_str = GetWord();
   this->SkipSpaces();
   this->Expect(';');
-  AssertMaxBodySize(location.max_body_size_, size_str);
+  AssertClientMaxBodySize(location.client_max_body_size_, size_str);
 }
 
 void ConfigParser::ParseRoot(Location &location) {
@@ -178,12 +251,11 @@ void ConfigParser::ParseRoot(Location &location) {
 }
 
 void ConfigParser::ParseIndex(Location &location) {
-  while (!this->IsEof() && *it_ != ';') {
-    this->SkipSpaces();
-    std::string index_str = GetWord();
-    this->SkipSpaces();
-    AssertIndex(location.index_, index_str);
-  }
+
+  this->SkipSpaces();
+  location.index_ = GetWord();
+  this->SkipSpaces();
+  AssertIndex(location.index_);
   this->Expect(';');
 }
 
@@ -231,27 +303,61 @@ void ConfigParser::ParseAutoIndex(Location &location) {
 }
 
 void ConfigParser::ParseReturn(Location &location) {
-  std::string return_code_str;
-  std::string return_path_str;
+  // return ディレクティブは、複数指定可能だが、その場合最初の return
+  // ディレクティブのみ有効
+  if (location.return_.return_type_ != RETURN_EMPTY) {
+    while (*it_++ != ';') { // すべての return ディレクティブを読み飛ばす
+    }
+    return;
+  }
 
   this->SkipSpaces();
-  return_code_str = GetWord();
-  this->SkipSpaces();
-  if (IsEof()) {
-    throw ParserException("unexpected EOF");
-  }
-  if (*it_ != ';') {
-    return_path_str = GetWord();
+  std::string tmp_str = GetWord();
+
+  // １つ目のワードが、status_codeかURLorTextかを判定
+  if (ws_strtoi(&location.return_.status_code_, tmp_str)) {
+    // status codeが設定されたので、URLかtextかを判定
+    // textはシングルクォーテーションで囲まれている
+    // URLはシングルクォーテーションで囲まれていない
     this->SkipSpaces();
+    if (*it_ == ';') { // status codeのみ指定された場合
+      location.return_.return_type_ = RETURN_ONLY_STATUS_CODE;
+    } else {
+      tmp_str = GetWord();
+      if (tmp_str[0] == '\'') {
+        // text
+        location.return_.return_type_ = RETURN_TEXT;
+        location.return_.return_text_ = tmp_str.substr(1, tmp_str.size() - 2);
+        location.return_.text_length_ = location.return_.return_text_.size();
+      } else {
+        // URL
+        location.return_.return_type_ = RETURN_URL;
+        location.return_.return_url_ = tmp_str;
+      }
+    }
+  } else { // status codeがない場合はURLとみなす
+    location.return_.status_code_ = 302; // defaultはリダレクト
+    location.return_.return_type_ = RETURN_URL;
+    location.return_.return_url_ = tmp_str;
   }
+  this->SkipSpaces();
   this->Expect(';');
-  AssertReturn(location.return_, return_code_str, return_path_str);
+  AssertReturn(location.return_);
 }
 
 // validator
+void ConfigParser::AssertConfig(const Config &config) {
+  if (config.GetServerVec().empty()) {
+    throw ParserException(ERR_MSG, "server brock is not set");
+  }
+}
+
 void ConfigParser::AssertServer(const Vserver &server) {
-  if (server.listen_.listen_port_ == -1) {
-    throw ParserException("Listen port is not set");
+  if (server.server_names_.empty()) {
+    throw ParserException(ERR_MSG, "server name is not set");
+  }
+  if (server.locations_.empty()) {
+    throw ParserException(ERR_MSG, "location is not set");
   }
 }
 
@@ -278,55 +384,29 @@ void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
   hints.ai_family = AF_INET;
   if ((err = getaddrinfo(host_str.c_str(), port_str.c_str(), &hints, &res)) !=
       0) {
-    throw ParserException("getaddrinfo: " + std::string(gai_strerror(err)));
+    throw ParserException(ERR_MSG, gai_strerror(err));
   }
   if (res->ai_family != AF_INET) {
-    throw ParserException("getaddrinfo: not AF_INET");
+    throw ParserException(ERR_MSG, "not AF_INET");
   }
   memcpy(&dest_listen, res->ai_addr, sizeof(struct sockaddr_in));
   freeaddrinfo(res);
   return;
 }
 
-bool ConfigParser::IsValidIp(const std::string &ip_str) {
-  std::string::const_iterator it_start = ip_str.begin();
-  std::string::const_iterator it_end = ip_str.begin();
-
-  std::string octet_str;
-  int num_octets = 0;
-  int octet;
-
-  while (true) {
-    while (it_end != ip_str.end() && *it_end != '.') {
-      it_end++;
-    }
-    octet_str = std::string(it_start, it_end);
-    if (++num_octets > 4) {
-      return false;
-    }
-    if (!ws_strtoi<int>(&octet, octet_str) || octet < 0 || 255 < octet) {
-      return false;
-    }
-    if (it_end == ip_str.end()) {
-      break;
-    }
-    it_start = it_end + 1;
-    it_end = it_start;
-  }
-  return num_octets == 4;
-}
-
 void ConfigParser::AssertServerName(const std::string &server_name) {
   if (server_name.empty()) {
-    throw ParserException("Empty server name");
+    throw ParserException(ERR_MSG, "Empty server name");
   }
   if (server_name.size() > kMaxDomainLength) {
-    throw ParserException("Invalid server name: %s", server_name.c_str());
+    throw ParserException(
+        ERR_MSG, (server_name + " is Invalid too long server name").c_str());
   }
   for (std::string::const_iterator it = server_name.begin();
        it < server_name.end();) {
     if (!IsValidLabel(server_name, it)) {
-      throw ParserException("Invalid server name: %s", server_name.c_str());
+      throw ParserException(
+          ERR_MSG, (server_name + " is Invalid labal server name").c_str());
     }
   }
 }
@@ -359,20 +439,30 @@ bool ConfigParser::IsValidLabel(const std::string &server_name,
 void ConfigParser::AssertTimeOut(int &dest_timeout,
                                  const std::string &timeout_str) {
   if (!ws_strtoi<int>(&dest_timeout, timeout_str)) {
-    throw ParserException("Invalid timeout: %s", timeout_str.c_str());
+    throw ParserException(ERR_MSG,
+                          (timeout_str + " is Invalid timeout").c_str());
   }
 }
 
-void ConfigParser::AssertLocation(const Location &location) { (void)location; }
+void ConfigParser::AssertLocation(const Location &location) {
+  // root ディレクティブが無いとエラー
+  if (location.root_.empty()) {
+    throw ParserException(ERR_MSG, "root is not set");
+  }
+  // is_cgi が true の場合、cgi_path が無いとエラー
+  if (location.is_cgi_ && location.cgi_path_.empty()) {
+    throw ParserException(ERR_MSG, "CGI path is not set");
+  }
+}
 
 void ConfigParser::AssertMatch(match_type &dest_match,
                                const std::string &match_str) {
   if (match_str == "prefix") {
     dest_match = PREFIX;
-  } else if (match_str == "back") {
-    dest_match = BACK;
+  } else if (match_str == "suffix") {
+    dest_match = SUFFIX;
   } else {
-    throw ParserException("Invalid match type: %s", match_str.c_str());
+    throw ParserException(ERR_MSG, (match_str + " is Invalid match").c_str());
   }
 }
 
@@ -387,21 +477,28 @@ void ConfigParser::AssertAllowMethod(std::set<method_type> &dest_method,
   } else if (method_str == "DELETE") {
     src_method = DELETE;
   } else {
-    throw ParserException("Invalid method: %s", method_str.c_str());
+    throw ParserException(ERR_MSG, (method_str + " is Invalid method").c_str());
   }
   if (dest_method.find(src_method) != dest_method.end()) {
-    throw ParserException("Duplicated method: %s", method_str.c_str());
+    throw ParserException(ERR_MSG,
+                          (method_str + " is Duplicated method").c_str());
   }
   dest_method.insert(src_method);
 }
 
-void ConfigParser::AssertMaxBodySize(uint64_t &dest_size,
-                                     const std::string &size_str) {
+void ConfigParser::AssertAllowMethods(std::set<method_type> &dest_method) {
+  if (dest_method.empty()) {
+    throw ParserException(ERR_MSG, "Empty method");
+  }
+}
+
+void ConfigParser::AssertClientMaxBodySize(uint64_t &dest_size,
+                                           const std::string &size_str) {
   char unit = 'B';
   std::size_t len = size_str.length();
 
   if (len == 0) {
-    throw ParserException("Empty size str");
+    throw ParserException(ERR_MSG, "Empty client_max_body_size");
   }
   if (size_str[len - 1] == 'B' || size_str[len - 1] == 'K' ||
       size_str[len - 1] == 'M' || size_str[len - 1] == 'G') {
@@ -409,10 +506,12 @@ void ConfigParser::AssertMaxBodySize(uint64_t &dest_size,
     len--;
   }
   if (len == 0) {
-    throw ParserException("Invalid size: %s", size_str.c_str());
+    throw ParserException(
+        ERR_MSG, (size_str + " is Invalid client_max_body_size").c_str());
   }
   if (!ws_strtoi<uint64_t>(&dest_size, size_str.substr(0, len))) {
-    throw ParserException("Invalid size: %s", size_str.c_str());
+    throw ParserException(
+        ERR_MSG, (size_str + " is Invalid client_max_body_size").c_str());
   }
   switch (unit) {
   case 'B':
@@ -427,18 +526,55 @@ void ConfigParser::AssertMaxBodySize(uint64_t &dest_size,
     dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024 * 1024);
     break;
   default:
-    throw ParserException("Invalid size: %s", size_str.c_str());
+    char unit_str[4] = {'\'', unit, '\'', '\0'};
+    throw ParserException(ERR_MSG, (std::string(unit_str) +
+                                    " is Invalid client_max_body_size unit")
+                                       .c_str());
   }
 }
 
-void ConfigParser::AssertRoot(const std::string &root) {
-  // AssertPath(root);
-  (void)root;
+bool AssertPath(const std::string &path) {
+  // Linux ファイルシステムの制約に従う
+  for (size_t i = 0; i < path.length(); i++) {
+    char c = path[i];
+    if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
+          c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||
+          c == '&' || c == ',' || c == ';' || c == '=' || c == ':' ||
+          c == '|' || c == '^' || c == '!' || c == '*' || c == '`' ||
+          c == '(' || c == ')' || c == '{' || c == '}' || c == '<' ||
+          c == '>' || c == '?' || c == '[' || c == ']' || c == '\'' ||
+          c == '"' || c == '\\' || c == '/')) {
+      return false;
+    }
+  }
+  return true;
 }
 
-void ConfigParser::AssertIndex(std::vector<std::string> &dest_index,
-                               const std::string &index_str) {
-  dest_index.push_back(index_str);
+void ConfigParser::AssertRoot(const std::string &root) {
+  // root が空文字列、または '/' で始まっていない場合はエラー
+  if (root.empty() || root[0] != '/') {
+    throw ParserException(
+        ERR_MSG, (root + " is Invalid root path. must begin with '/'").c_str());
+  }
+
+  // Linux ファイルシステムの制約に従う
+  if (!AssertPath(root)) {
+    throw ParserException(
+        ERR_MSG,
+        (root + " is Invalid root path. use Invalid character.").c_str());
+  }
+}
+
+void ConfigParser::AssertIndex(const std::string &index) {
+  // indexディレクティブは、rootディレクティブが設定されている場合のみ有効
+  // rootディレクティブを起点にした相対パスである必要がある
+
+  // Linux ファイルシステムの制約に従う
+  if (!AssertPath(index)) {
+    throw ParserException(
+        ERR_MSG,
+        (index + " is Invalid index path. use Invalid character.").c_str());
+  }
 }
 
 void ConfigParser::AssertBool(bool &dest_bool, const std::string &bool_str) {
@@ -447,13 +583,20 @@ void ConfigParser::AssertBool(bool &dest_bool, const std::string &bool_str) {
   } else if (bool_str == "off") {
     dest_bool = false;
   } else {
-    throw ParserException("Invalid cgi: %s", bool_str.c_str());
+    throw ParserException(ERR_MSG,
+                          (bool_str + " is Invalid [on | off]").c_str());
   }
 }
 
 void ConfigParser::AssertCgiPath(const std::string &cgi_path) {
-  // AssertPath(cgi_path);
-  (void)cgi_path;
+  // rootディレクティブを起点にした相対パスである必要がある
+
+  // Linux ファイルシステムの制約に従う
+  if (!AssertPath(cgi_path)) {
+    throw ParserException(
+        ERR_MSG,
+        (cgi_path + " is Invalid cgi path. use Invalid character.").c_str());
+  }
 }
 
 void ConfigParser::AssertErrorPages(
@@ -468,21 +611,27 @@ void ConfigParser::AssertErrorPages(
                                                       init_list + valid_codes);
 
   if (error_codes.empty()) {
-    throw ParserException("Empty error code");
+    throw ParserException(ERR_MSG, "Empty error code");
+  }
+  if (error_page_str.empty()) {
+    throw ParserException(ERR_MSG, "Empty error page");
+  }
+  if (!AssertPath(error_page_str)) {
+    throw ParserException(
+        ERR_MSG,
+        (error_page_str + " is Invalid error page path. use Invalid character.")
+            .c_str());
   }
   for (std::vector<int>::const_iterator it = error_codes.begin();
        it != error_codes.end(); it++) {
     if (valid_error_status_codes.count(*it) == 0) {
-      throw ParserException("Invalid error code: %d", *it);
+      throw ParserException("Confg Error: Invalid error code: %d", *it);
     }
     dest_error_pages[*it] = error_page_str;
   }
 }
 
-void ConfigParser::AssertReturn(std::pair<int, std::string> &dest_return,
-                                const std::string &return_code_str,
-                                const std::string &return_path_str) {
-  int return_code;
+void ConfigParser::AssertReturn(struct Return &return_directive) {
   static const int valid_codes = 57;
   static const int init_list[valid_codes] = {
       200, 201, 202, 203, 204, 205, 206, 207, 208, 226, 300, 301, 302, 303, 304,
@@ -492,33 +641,27 @@ void ConfigParser::AssertReturn(std::pair<int, std::string> &dest_return,
   static const std::set<int> valid_status_codes(init_list,
                                                 init_list + valid_codes);
 
-  if (!ws_strtoi<int>(&return_code, return_code_str)) {
-    throw ParserException("Invalid return code: %s", return_code_str.c_str());
-  }
-  if (valid_status_codes.count(return_code) == 0) {
-    throw ParserException("Invalid return code: %d", return_code);
-  }
-  // return ディレクティブは上書きではなく、最初の設定を優先
-  if (dest_return.first == -1) {
-    dest_return.first = return_code;
-    dest_return.second = return_path_str;
+  if (valid_status_codes.count(return_directive.status_code_) == 0) {
+    throw ParserException("Confg Error: Invalid return code: %d",
+                          return_directive.status_code_);
   }
 }
 
 // utils
-char ConfigParser::GetC() {
-  if (IsEof()) {
-    throw ParserException("Unexpected EOF");
-  }
-  return *it_++;
-}
-
 void ConfigParser::Expect(const char c) {
   if (IsEof()) {
     throw ParserException("Unexpected EOF");
   }
   if (*it_ != c) {
-    throw ParserException("Expected %c, but unexpected char: %c", c, *it_);
+    // エラー箇所の行数と列数を計算する
+    int row = 1;
+    int column = 1;
+    std::string line; // エラー箇所の行の内容を表示するために使う
+    this->GetErrorPoint(row, column, line);
+
+    throw ParserException("Config Error: Expected char is [%c], but [%c].\nrow "
+                          "%d: column %d\n%s\n%*c%c",
+                          c, *it_, row, column, line.c_str(), column, ' ', '^');
   }
   it_++;
 }
@@ -529,13 +672,38 @@ void ConfigParser::SkipSpaces() {
   }
 }
 
+void ConfigParser::GetErrorPoint(int &row, int &column, std::string &line) {
+  // エラー箇所の行数と列数を計算する
+  row = 1;
+  column = 1;
+  std::string::const_iterator line_begin = it_;
+  while (line_begin != file_content_.begin() && *line_begin != '\n') {
+    line_begin--;
+  }
+  if (*line_begin == '\n') {
+    line_begin++;
+    column = it_ - line_begin;
+  }
+  std::string::const_iterator line_end = it_;
+  while (line_end != file_content_.end() && *line_end != '\n') {
+    line_end++;
+  }
+  line = std::string(line_begin, line_end);
+}
+
 std::string ConfigParser::GetWord() {
   std::string word;
   while (!this->IsEof() && !this->IsDelim() && !isspace(*it_)) {
     word += *it_++;
   }
   if (word.empty()) {
-    throw ParserException("Empty Word");
+    int row = 1;
+    int column = 1;
+    std::string line; // エラー箇所の行の内容を表示するために使う
+    this->GetErrorPoint(row, column, line);
+    throw ParserException(
+        "Config Error: Empty Word.\nrow %d: column %d\n%s\n%*c%c", row, column,
+        line.c_str(), column, ' ', '^');
   }
   return word;
 }

@@ -40,12 +40,13 @@ private:
 
   void ParseListen(Vserver &server);
   void ParseServerName(Vserver &server);
+  void ParseTimeOut(Vserver &server);
   void ParseLocation(Vserver &server);
   void SetLocationDefault(Location &location);
 
   void ParseMatch(Location &location);
   void ParseAllowMethod(Location &location);
-  void ParseMaxBodySize(Location &location);
+  void ParseClientMaxBodySize(Location &location);
   void ParseRoot(Location &location);
   void ParseIndex(Location &location);
   void ParseIsCgi(Location &location);
@@ -55,35 +56,36 @@ private:
   void ParseReturn(Location &location);
 
   // validator
+  void AssertConfig(const Config &config);
   void AssertServer(const Vserver &server);
-  void AssertListen(Listen &dest_listen, const std::string &listen_str);
+  void AssertListen(struct sockaddr_in &dest_listen,
+                    const std::string &listen_str);
   bool IsValidIp(const std::string &ip_str);
   void AssertServerName(const std::string &server_name);
   bool IsValidLabel(const std::string &server_name,
                     std::string::const_iterator &it);
-  bool AssertTimeOut(int &timeout, const std::string &timeout_str);
+  void AssertTimeOut(int &timeout, const std::string &timeout_str);
   void AssertLocation(const Location &location);
   void AssertMatch(match_type &dest_match, const std::string &match_str);
   void AssertAllowMethod(std::set<method_type> &dest_method,
                          const std::string &method_str);
-  void AssertMaxBodySize(uint64_t &dest_size, const std::string &size_str);
+  void AssertAllowMethods(std::set<method_type> &dest_method);
+  void AssertClientMaxBodySize(uint64_t &dest_size,
+                               const std::string &size_str);
   void AssertRoot(const std::string &root);
-  void AssertIndex(std::vector<std::string> &dest_index,
-                   const std::string &index_str);
+  void AssertIndex(const std::string &index);
   void AssertCgiPath(const std::string &cgi_path);
   void AssertErrorPages(std::map<int, std::string> &dest_error_pages,
                         const std::vector<int> error_codes,
                         const std::string &error_page_str);
   void AssertBool(bool &dest_bool, const std::string &bool_str);
-  void AssertReturn(std::pair<int, std::string> &dest_return,
-                    const std::string &return_code_str,
-                    const std::string &return_path_str);
+  void AssertReturn(struct Return &return_directive);
 
   // utils
-  char GetC();
   void Expect(const char c);
   void SkipSpaces();
   std::string GetWord();
+  void GetErrorPoint(int &row, int &column, std::string &line);
 
   bool IsEof();
   bool IsDelim();
