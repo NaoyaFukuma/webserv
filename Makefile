@@ -33,9 +33,12 @@ fclean: clean
 docker:
 	cd docker && docker compose up -d && docker exec -it debian /bin/bash
 
-test:
-	(	cd tests && \
-    	docker-compose build && \
-    	docker-compose up --abort-on-container-exit	)
+test_echo:
+	@(cd tests/echo_server && \
+	docker-compose down > /dev/null && \
+	docker-compose build > /dev/null && \
+	docker-compose up -d --remove-orphans > /dev/null && \
+	docker-compose logs -f client && \
+	docker-compose down > /dev/null)
 
 .PHONY: docker
