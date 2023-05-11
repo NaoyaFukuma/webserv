@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  webserv:
+    build:
+      context: server
+    volumes:
+      - ../../../webserv:/app
+    networks:
+      - webserv-net
+
+  client:
+    build:
+      context: client
+    volumes:
+      - ../../../webserv:/app
+    networks:
+      - webserv-net
+    depends_on:
+      - webserv
+
+networks:
+  webserv-net:

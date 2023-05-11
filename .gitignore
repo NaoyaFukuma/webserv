@@ -1,4 +1,4 @@
-a.out
+*.out
 *.o
 
 CMakeLists.txt

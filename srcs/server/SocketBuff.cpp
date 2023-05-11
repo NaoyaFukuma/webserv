@@ -115,9 +115,12 @@ void SocketBuff::ClearBuff() {
   this->ss_.seekp(0, std::ios::beg);
 }
 
-bool SocketBuff::SendSocket(const int fd) {
-  size_t len = this->ss_.str().size();
-  size_t send_len = send(fd, this->ss_.str().c_str(), len, MSG_DONTWAIT);
+int SocketBuff::SendSocket(const int fd) {
+  ssize_t len = static_cast<ssize_t>(this->ss_.str().size());
+  ssize_t send_len = send(fd, this->ss_.str().c_str(), len, MSG_DONTWAIT);
+  if (send_len < 0) {
+    return -1;
+  }
   this->Erase(send_len);
   return send_len == len;
 }
