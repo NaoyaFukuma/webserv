@@ -79,6 +79,7 @@ private:
                         const std::vector<int> error_codes,
                         const std::string &error_page_str);
   void AssertBool(bool &dest_bool, const std::string &bool_str);
+  bool isValidUrl(const std::string &url);
   void AssertReturn(struct Return &return_directive);
 
   // utils

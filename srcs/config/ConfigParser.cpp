@@ -631,6 +631,24 @@ void ConfigParser::AssertErrorPages(
   }
 }
 
+bool ConfigParser::isValidUrl(const std::string &url) {
+  // URL should start with http:// or https://
+  if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
+    return false;
+  }
+
+  // URL should have a valid domain name after http:// or https://
+  // URLからドメイン名だけを抽出
+  size_t start = url.find_first_of(':') + 3;
+  size_t end = url.find_first_of('/', start);
+  if (end == std::string::npos) {
+    end = url.length();
+  }
+  std::string domain = url.substr(start, end - start);
+  AssertServerName(domain);
+  return true;
+}
+
 void ConfigParser::AssertReturn(struct Return &return_directive) {
   static const int valid_codes = 57;
   static const int init_list[valid_codes] = {
@@ -644,6 +662,13 @@ void ConfigParser::AssertReturn(struct Return &return_directive) {
   if (valid_status_codes.count(return_directive.status_code_) == 0) {
     throw ParserException("Confg Error: Invalid return code: %d",
                           return_directive.status_code_);
+  }
+  if (return_directive.return_type_ == RETURN_URL &&
+      !isValidUrl(return_directive.return_url_)) {
+    throw ParserException(ERR_MSG,
+                          (return_directive.return_url_ +
+                           " is Invalid return url. use Invalid character.")
+                              .c_str());
   }
 }
 

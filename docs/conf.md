@@ -186,3 +186,9 @@ location /images/,  root /data
 - 概要: 指定されたURLにリダイレクトします。
 注）複数指定された場合、エラー検出できず、最初に現れた項目の値が採用されます。
 以下のパターンを許容します。
+```
+  return CODE URL
+  return CODE TEXT
+  return CODE
+  return URL
+  ```
