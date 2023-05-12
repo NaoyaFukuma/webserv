@@ -33,4 +33,15 @@ fclean: clean
 docker:
 	cd docker && docker compose up -d && docker exec -it debian /bin/bash
 
+test_echo:
+	@(cd tests/echo_server && \
+	docker-compose down > /dev/null && \
+	docker-compose build > /dev/null && \
+	docker-compose up -d --remove-orphans > /dev/null && \
+	docker-compose logs -f client && \
+	docker-compose down > /dev/null)
+
+# 必要に応じて以下を追加
+# docker-compose logs webserv &&
+
 .PHONY: docker
