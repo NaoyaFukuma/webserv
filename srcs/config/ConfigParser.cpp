@@ -702,18 +702,27 @@ void ConfigParser::GetErrorPoint(int &row, int &column, std::string &line) {
   row = 1;
   column = 1;
   std::string::const_iterator line_begin = it_;
-  while (line_begin != file_content_.begin() && *line_begin != '\n') {
+  while (line_begin != this->file_content_.begin() && *line_begin != '\n') {
     line_begin--;
   }
   if (*line_begin == '\n') {
     line_begin++;
-    column = it_ - line_begin;
+    column = this->it_ - line_begin;
   }
-  std::string::const_iterator line_end = it_;
+  std::string::const_iterator line_end = this->it_;
   while (line_end != file_content_.end() && *line_end != '\n') {
     line_end++;
   }
   line = std::string(line_begin, line_end);
+  // エラー箇所の行数を計算する
+  std::stringstream ss(this->file_content_);
+  std::string tmp;
+  while (std::getline(ss, tmp)) {
+    if (tmp == line) {
+      break;
+    }
+    row++;
+  }
 }
 
 std::string ConfigParser::GetWord() {
