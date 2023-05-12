@@ -1,7 +1,7 @@
 #ifndef EPOLL_HPP_
 #define EPOLL_HPP_
 
-#include "Config.hpp"
+#include "../config/Config.hpp"
 #include "Socket.hpp"
 #include <map>
 
