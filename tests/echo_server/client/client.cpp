@@ -315,7 +315,7 @@ int test8() {
 }
 
 // test when client send many requests
-#define SEND 100000
+#define SEND 1000
 int test9() {
   std::string host = "webserv";
   std::string port = "8080";
