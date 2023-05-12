@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <vector>
 
 #define OK "\033[32mOK\033[0m"
 #define NG "\033[31mNG\033[0m"
@@ -152,7 +153,7 @@ int test_basic(std::string host, std::string port, std::string path,
 }
 
 int test_multiple_request(std::string host, std::string port, std::string path,
-                          size_t send_ = 1, bool shut_ = false,
+                          size_t send_, bool shut_ = false,
                           bool read_ = false) {
   int client_fd = connect_to_server(host, port);
   std::string read_buff = "";
@@ -208,6 +209,44 @@ int test_multiple_request(std::string host, std::string port, std::string path,
       return FAILURE;
     }
   }
+}
+
+int test_multiple_client(std::string host, std::string port, std::string path,
+                         size_t client_, bool shut_ = false) {
+  std::vector<int> client_fds(client_);
+  for (int i = 0; i < client_; i++) {
+    client_fds[i] = connect_to_server(host, port);
+    if (client_fds[i] == -1) {
+      std::cout << NG << std::endl;
+      std::cerr << "Failed to connect to server" << std::endl;
+      return FAILURE;
+    }
+  }
+  std::string request = "";
+  if (read_file(request, path) == FAILURE) {
+    std::cout << NG << std::endl;
+    std::cerr << "Failed to read request" << std::endl;
+    return FAILURE;
+  }
+  for (int i = 0; i < client_; i++) {
+    ssize_t len = send(client_fds[i], request.c_str(), request.size(), 0);
+    if (shut_) {
+      shutdown(client_fds[i], SHUT_WR);
+    }
+  }
+  for (int i = 0; i < client_; i++) {
+    std::string response = "";
+    std::string read_buff = "";
+    response = read_socket(client_fds[i], request.size(), read_buff);
+    close(client_fds[i]);
+    if (response != request || read_buff != "") {
+      std::cout << NG << std::endl;
+      // print_diff(request, response);
+      return FAILURE;
+    }
+  }
+  std::cout << OK << std::endl;
+  return SUCCESS;
 }
 
 int test1() {
@@ -317,6 +356,26 @@ int test12() {
   return test_multiple_request(host, port, path, send_, shut_, read_);
 }
 
+// test when many clients send requests
+#define CLIENT 1000
+int test13() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t client_ = CLIENT;
+  bool shut_ = true;
+  return test_multiple_client(host, port, path, client_, shut_);
+}
+
+int test14() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t client_ = CLIENT;
+  bool shut_ = false;
+  return test_multiple_client(host, port, path, client_, shut_);
+}
+
 int main() {
   EXEC_TEST(test1());
   EXEC_TEST(test2());
@@ -330,4 +389,6 @@ int main() {
   EXEC_TEST(test10());
   EXEC_TEST(test11());
   EXEC_TEST(test12());
+  EXEC_TEST(test13());
+  EXEC_TEST(test14());
 }
