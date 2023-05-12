@@ -1,4 +1,5 @@
 #include "ConfigParser.hpp"
+#include "../tmp_utils/utils.hpp"
 #include <fstream>
 #include <iostream>
 #include <netdb.h> // for getaddrinfo()
@@ -11,47 +12,6 @@
 
 // エラー理由を出力する
 #define ERR_MSG "Config Error: %s\n"
-
-// 正の整数のみ
-template <typename T> bool ws_strtoi(T *dest, const std::string src) {
-  T tmp;
-  for (std::string::const_iterator it = src.begin(); it != src.end(); it++) {
-    if (!isdigit(*it)) {
-      return false;
-    }
-  }
-  std::stringstream ss(src);
-  ss >> tmp;
-  if (ss.fail()) {
-    return false;
-  }
-  if (tmp != 0 && src[0] == '0') {
-    return false;
-  }
-  *dest = tmp;
-  return true;
-}
-
-template <typename T> T mul_assert_overflow(T lhs, T rhs) {
-  if (lhs > 0) {
-    if (rhs > 0) {
-      if (lhs > std::numeric_limits<T>::max() / rhs) {
-        throw std::overflow_error("overflow in multiplication");
-      }
-    } else if (rhs < std::numeric_limits<T>::min() / lhs) {
-      throw std::overflow_error("overflow in multiplication");
-    }
-  } else if (lhs < 0) {
-    if (rhs > 0) {
-      if (lhs < std::numeric_limits<T>::min() / rhs) {
-        throw std::overflow_error("overflow in multiplication");
-      }
-    } else if (rhs < std::numeric_limits<T>::max() / lhs) {
-      throw std::overflow_error("overflow in multiplication");
-    }
-  }
-  return lhs * rhs;
-}
 
 ConfigParser::ConfigParser(const char *filepath)
     : file_content_(LoadFile(filepath)), it_(file_content_.begin()) {
@@ -379,7 +339,7 @@ void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
   // getaddrinfo()を使って ドメイン名 or IPアドレス 及びポート番号のチェック
   struct addrinfo hints, *res;
   int err;
-  memset(&hints, 0, sizeof(hints));
+  ws_memset(&hints, 0, sizeof(hints));
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_family = AF_INET;
   if ((err = getaddrinfo(host_str.c_str(), port_str.c_str(), &hints, &res)) !=
@@ -389,7 +349,7 @@ void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
   if (res->ai_family != AF_INET) {
     throw ParserException(ERR_MSG, "not AF_INET");
   }
-  memcpy(&dest_listen, res->ai_addr, sizeof(struct sockaddr_in));
+  ws_memcpy(&dest_listen, res->ai_addr, sizeof(struct sockaddr_in));
   freeaddrinfo(res);
   return;
 }

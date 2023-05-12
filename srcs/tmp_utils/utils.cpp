@@ -45,3 +45,20 @@ bool ws_inet_addr(uint32_t &dst, std::string ip) {
   dst = res;
   return true;
 }
+
+void *ws_memset(void *s, int c, size_t n) {
+  unsigned char *p = (unsigned char *)s;
+  while (n--) {
+    *p++ = (unsigned char)c;
+  }
+  return s;
+}
+
+void *ws_memcpy(void *dest, const void *src, size_t n) {
+  unsigned char *d = (unsigned char *)dest;
+  const unsigned char *s = (const unsigned char *)src;
+  while (n--) {
+    *d++ = *s++;
+  }
+  return dest;
+}
