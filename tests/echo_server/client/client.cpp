@@ -214,35 +214,40 @@ int test1() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/404.txt";
-  return test_basic(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test2() {
   std::string host = "webserv";
   std::string port = "8000";
   std::string path = "./request/404.txt";
-  return test_basic(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test3() {
   std::string host = "webserv";
   std::string port = "9090";
   std::string path = "./request/404.txt";
-  return test_basic(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test4() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  return test_basic(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test5() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len3072.txt";
-  return test_basic(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 // test when shutdown client socket
@@ -250,21 +255,24 @@ int test6() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/404.txt";
-  return test_basic(host, port, path, true);
+  bool shut_ = true;
+  return test_basic(host, port, path, shut_);
 }
 
 int test7() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  return test_basic(host, port, path, true);
+  bool shut_ = true;
+  return test_basic(host, port, path, shut_);
 }
 
 int test8() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len3072.txt";
-  return test_basic(host, port, path, true);
+  bool shut_ = true;
+  return test_basic(host, port, path, shut_);
 }
 
 // test when client send many requests
