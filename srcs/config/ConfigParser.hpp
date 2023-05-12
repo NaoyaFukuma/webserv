@@ -1,7 +1,7 @@
 #ifndef CONFIG_PARSER_HPP_
 #define CONFIG_PARSER_HPP_
 
-#include "Config.hpp"
+#include "config.hpp"
 
 class ConfigParser {
 public:

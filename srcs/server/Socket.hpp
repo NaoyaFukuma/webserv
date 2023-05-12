@@ -1,8 +1,8 @@
 #ifndef SOCKET_HPP_
 #define SOCKET_HPP_
 
-#include "Config.hpp"
 #include "SocketBuff.hpp"
+#include "config.hpp"
 #include <deque>
 #include <netinet/in.h>
 #include <time.h>

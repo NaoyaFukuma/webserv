@@ -1,8 +1,8 @@
 #ifndef EPOLL_HPP_
 #define EPOLL_HPP_
 
-#include "../config/Config.hpp"
 #include "Socket.hpp"
+#include "config.hpp"
 #include <map>
 
 class ASocket; // 相互参照
