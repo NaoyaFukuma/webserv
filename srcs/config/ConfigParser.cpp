@@ -640,7 +640,7 @@ void ConfigParser::Expect(const char c) {
 // 引数をtrueにすると、改行文字をスキップしない
 // ディレクティブとそのパラメータの間、ディレクティブの終了のセミコロンの間には改行が許容されないので、
 // そのような箇所では改行をスキップしないようにtrueを渡して呼び出す
-void ConfigParser::SkipSpaces(bool skip_newline = true) {
+void ConfigParser::SkipSpaces(bool skip_newline) {
   if (skip_newline) {
     while (!this->IsEof() && ws_isspace(*it_)) {
       it_++;
@@ -705,8 +705,7 @@ bool ConfigParser::IsDelim() {
 
 // parse error時に、例外をスローする.
 // 第二引数がtrueの場合は、行、列、行の内容も出力する
-void ConfigParser::ThrowParseError(const char *msg,
-                                   bool add_err_point_flag = false) {
+void ConfigParser::ThrowParseError(const char *msg, bool add_err_point_flag) {
   if (add_err_point_flag) {
     int row;
     int col;
