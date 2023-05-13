@@ -467,7 +467,7 @@ void ConfigParser::AssertClientMaxBodySize(uint64_t &dest_size,
   }
 }
 
-bool AssertPath(const std::string &path) {
+bool isValidPath(const std::string &path) {
   // Linux ファイルシステムの制約に従う
   for (size_t i = 0; i < path.length(); i++) {
     char c = path[i];
@@ -492,7 +492,7 @@ void ConfigParser::AssertRoot(const std::string &root) {
   }
 
   // Linux ファイルシステムの制約に従う
-  if (!AssertPath(root)) {
+  if (!isValidPath(root)) {
     throw ParserException(
         ERR_MSG,
         (root + " is Invalid root path. use Invalid character.").c_str());
@@ -504,7 +504,7 @@ void ConfigParser::AssertIndex(const std::string &index) {
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
-  if (!AssertPath(index)) {
+  if (!isValidPath(index)) {
     throw ParserException(
         ERR_MSG,
         (index + " is Invalid index path. use Invalid character.").c_str());
@@ -526,7 +526,7 @@ void ConfigParser::AssertCgiPath(const std::string &cgi_path) {
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
-  if (!AssertPath(cgi_path)) {
+  if (!isValidPath(cgi_path)) {
     throw ParserException(
         ERR_MSG,
         (cgi_path + " is Invalid cgi path. use Invalid character.").c_str());
@@ -550,7 +550,7 @@ void ConfigParser::AssertErrorPages(
   if (error_page_str.empty()) {
     throw ParserException(ERR_MSG, "Empty error page");
   }
-  if (!AssertPath(error_page_str)) {
+  if (!isValidPath(error_page_str)) {
     throw ParserException(
         ERR_MSG,
         (error_page_str + " is Invalid error page path. use Invalid character.")
