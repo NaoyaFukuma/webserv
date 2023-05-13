@@ -68,16 +68,12 @@ BOOST_AUTO_TEST_CASE(InvalidExtension) {
 #define MULTI_ROUTE "../../../unit-test/config/test_config_files/valid/MultipleRoute.conf"
 #define COMPLEX "../../../unit-test/config/test_config_files/valid/Complex.conf"
 #define MULTI_PORT "../../../unit-test/config/test_config_files/valid/MultiplePort.conf"
+#define MULTI_HOST "../../../unit-test/config/test_config_files/valid/MultipleHost.conf"
 
 // 通常のconfファイル
 BOOST_AUTO_TEST_CASE(Normal) {
   Config conf;
   BOOST_CHECK_NO_THROW(conf.ParseConfig(SIMPLE));
-//  try {
-//    conf.ParseConfig(NORMAL);
-//  } catch (ConfigParser::ParserException &e) {
-//    std::cout << RED << e.what() << RESET << std::endl;
-//  }
 }
 
 //portが複数ある場合
@@ -130,129 +126,212 @@ BOOST_AUTO_TEST_CASE(MultiRoute) {
   config.ParseConfig(MULTI_ROUTE); // Replace with actual path of your config file
 
   std::vector<Vserver> servers = config.GetServerVec();
-  Vserver server = servers[0]; // Assuming there is only one server in the config file
 
+  BOOST_REQUIRE_EQUAL(servers.size(), 1);
+
+  Vserver server = servers[0];
+
+  // Check server
   BOOST_CHECK_EQUAL(server.listen_.sin_port, htons(4242));
   BOOST_REQUIRE_EQUAL(server.server_names_.size(), 1);
   BOOST_CHECK_EQUAL(server.server_names_[0], "localhost");
-
   BOOST_REQUIRE_EQUAL(server.locations_.size(), 2);
-  Location locationA = server.locations_[0];
-  Location locationB = server.locations_[1];
+  BOOST_CHECK_EQUAL(server.is_default_server_, true);
 
-  BOOST_CHECK_EQUAL(locationA.path_, "/a/");
-  BOOST_CHECK_EQUAL(locationA.root_, "/var/www/html");
-  BOOST_REQUIRE_EQUAL(locationA.allow_methods_.size(), 1);
-  BOOST_CHECK(locationA.allow_methods_.count(GET) == 1);
+  // Check location /a/
+  Location location1 = server.locations_[0];
+  BOOST_CHECK_EQUAL(location1.path_, "/a/");
+  BOOST_CHECK_EQUAL(location1.root_, "/var/www/html");
+  BOOST_REQUIRE_EQUAL(location1.allow_methods_.size(), 1);
+  BOOST_CHECK_EQUAL(location1.allow_methods_.count(GET), 1); // Only GET method is allowed
 
-  BOOST_CHECK_EQUAL(locationB.path_, "/b/");
-  BOOST_CHECK_EQUAL(locationB.root_, "/var/www/html");
-  BOOST_REQUIRE_EQUAL(locationB.allow_methods_.size(), 2);
-  BOOST_CHECK(locationB.allow_methods_.count(GET) == 1);
-  BOOST_CHECK(locationB.allow_methods_.count(POST) == 1);
+  // Default values for location /a/
+  BOOST_CHECK_EQUAL(location1.client_max_body_size_, 1024 * 1024); // Default max body size is 1MB
+  BOOST_CHECK_EQUAL(location1.autoindex_, false); // Default autoindex is false
+  BOOST_CHECK_EQUAL(location1.is_cgi_, false); // Default is_cgi is false
+  // Add more default checks as necessary
+
+  // Check location /b/
+  Location location2 = server.locations_[1];
+  BOOST_CHECK_EQUAL(location2.path_, "/b/");
+  BOOST_CHECK_EQUAL(location2.root_, "/var/www/html");
+  BOOST_REQUIRE_EQUAL(location2.allow_methods_.size(), 2);
+  BOOST_CHECK_EQUAL(location2.allow_methods_.count(GET), 1); // GET method is allowed
+  BOOST_CHECK_EQUAL(location2.allow_methods_.count(POST), 1); // POST method is allowed
+
+  // Default values for location /b/
+  BOOST_CHECK_EQUAL(location2.client_max_body_size_, 1024 * 1024); // Default max body size is 1MB
+  BOOST_CHECK_EQUAL(location2.autoindex_, false); // Default autoindex is false
+  BOOST_CHECK_EQUAL(location2.is_cgi_, false); // Default is_cgi is false
+  // Add more default checks as necessary
 }
 
-BOOST_AUTO_TEST_CASE(Complex) {
+
+// server_nameが複数ある場合
+BOOST_AUTO_TEST_CASE(MultiHost) {
   Config config;
-  config.ParseConfig(COMPLEX);
+  config.ParseConfig(MULTI_HOST); // Replace with actual path of your config file
 
   std::vector<Vserver> servers = config.GetServerVec();
 
-  BOOST_REQUIRE_EQUAL(servers.size(), 1);
-  BOOST_CHECK_EQUAL(servers[0].server_names_[0], "example.com");
-  BOOST_CHECK_EQUAL(servers[0].timeout_, 60);
-  BOOST_CHECK(!servers[0].is_default_server_);
+  BOOST_REQUIRE_EQUAL(servers.size(), 2);
 
-  std::vector<Location> locations = servers[0].locations_;
-  BOOST_REQUIRE_EQUAL(locations.size(), 3);
+  Vserver server1 = servers[0];
+  Vserver server2 = servers[1];
 
-  // Test / location
-  /*
-        location / {
-        root /usr/share/nginx/html;
-        index index.html;
-        autoindex on;
-        client_max_body_size 2048;
-        allow_methods GET POST DELETE;
-        match_type PREFIX;
-        return 200;
-    }
-   */
-  BOOST_CHECK_EQUAL(locations[0].path_, "/");
-  BOOST_CHECK_EQUAL(locations[0].match_, PREFIX);
-  BOOST_CHECK(locations[0].allow_methods_.find(GET) != locations[0].allow_methods_.end());
-  BOOST_CHECK(locations[0].allow_methods_.find(POST) != locations[0].allow_methods_.end());
-  BOOST_CHECK(locations[0].allow_methods_.find(DELETE) != locations[0].allow_methods_.end());
-  BOOST_CHECK_EQUAL(locations[0].client_max_body_size_, 2048);
-  BOOST_CHECK_EQUAL(locations[0].root_, "/usr/share/nginx/html");
-  BOOST_CHECK_EQUAL(locations[0].index_, "index.html");
-  BOOST_CHECK(locations[0].autoindex_);
-  BOOST_CHECK(!locations[0].is_cgi_);
-  BOOST_CHECK_EQUAL(locations[0].return_.status_code_, 200);
-  BOOST_CHECK_EQUAL(locations[0].return_.return_type_, RETURN_ONLY_STATUS_CODE);
+  // Check server 1
+  BOOST_CHECK_EQUAL(server1.listen_.sin_port, htons(80));
+  BOOST_REQUIRE_EQUAL(server1.server_names_.size(), 1);
+  BOOST_CHECK_EQUAL(server1.server_names_[0], "example.com");
+  BOOST_REQUIRE_EQUAL(server1.locations_.size(), 1);
+  BOOST_CHECK_EQUAL(server1.locations_[0].path_, "/");
+  BOOST_CHECK_EQUAL(server1.locations_[0].root_, "/docs/");
+  // Default values
+  BOOST_CHECK_EQUAL(server1.timeout_, 60); // Default timeout is 60
+  BOOST_CHECK_EQUAL(server1.is_default_server_, true); // Default server is false
+  BOOST_CHECK_EQUAL(server1.locations_[0].client_max_body_size_, 1024 * 1024); // Default max body size is 1MB
+  BOOST_CHECK_EQUAL(server1.locations_[0].autoindex_, false); // Default autoindex is false
+  BOOST_CHECK_EQUAL(server1.locations_[0].is_cgi_, false); // Default is_cgi is false
+  // Add more default checks as necessary
 
-  // Test /cgi-bin/ location
-  /*
-        location /cgi-bin/ {
-        root /usr/share/nginx/cgi-bin;
-        index index.cgi;
-        autoindex off;
-        client_max_body_size 0;
-        allow_methods GET POST;
-        match_type SUFFIX;
-        is_cgi true;
-        cgi_path /usr/lib/cgi-bin;
-        return 200;
-    }
-   */
-    BOOST_CHECK_EQUAL(locations[1].path_, "/cgi-bin/");
-    BOOST_CHECK_EQUAL(locations[1].match_, SUFFIX);
-    BOOST_CHECK(locations[1].allow_methods_.find(GET) != locations[1].allow_methods_.end());
-    BOOST_CHECK(locations[1].allow_methods_.find(POST) != locations[1].allow_methods_.end());
-    BOOST_CHECK_EQUAL(locations[1].client_max_body_size_, 0);
-    BOOST_CHECK_EQUAL(locations[1].root_, "/usr/share/nginx/cgi-bin");
-    BOOST_CHECK_EQUAL(locations[1].index_, "index.cgi");
-    BOOST_CHECK(!locations[1].autoindex_);
-    BOOST_CHECK(locations[1].is_cgi_);
-    BOOST_CHECK_EQUAL(locations[1].cgi_path_, "/usr/lib/cgi-bin");
-    BOOST_CHECK_EQUAL(locations[1].return_.status_code_, 200);
-    BOOST_CHECK_EQUAL(locations[1].return_.return_type_, RETURN_ONLY_STATUS_CODE);
-
-  // Test /error/ location
-  /*
-        location /error/ {
-        root /usr/share/nginx/error;
-        index index.html;
-        autoindex off;
-        client_max_body_size 2048;
-        allow_methods GET;
-        match_type PREFIX;
-        error_pages 404 /404.html;
-        error_pages 500 /500.html;
-        return 404;
-    }
-   */
-    BOOST_CHECK_EQUAL(locations[2].path_, "/error/");
-    BOOST_CHECK_EQUAL(locations[2].match_, PREFIX);
-    BOOST_CHECK(locations[2].allow_methods_.find(GET) != locations[2].allow_methods_.end());
-    BOOST_CHECK_EQUAL(locations[2].client_max_body_size_, 2048);
-    BOOST_CHECK_EQUAL(locations[2].root_, "/usr/share/nginx/error");
-    BOOST_CHECK_EQUAL(locations[2].index_, "index.html");
-    BOOST_CHECK(!locations[2].autoindex_);
-    BOOST_CHECK(!locations[2].is_cgi_);
-    BOOST_CHECK_EQUAL(locations[2].error_pages_.size(), 2);
-    BOOST_CHECK_EQUAL(locations[2].error_pages_[404], "/404.html");
-    BOOST_CHECK_EQUAL(locations[2].error_pages_[500], "/500.html");
-    BOOST_CHECK_EQUAL(locations[2].return_.status_code_, 404);
-    BOOST_CHECK_EQUAL(locations[2].return_.return_type_, RETURN_ONLY_STATUS_CODE);
+  // Check server 2
+  BOOST_CHECK_EQUAL(server2.listen_.sin_port, htons(80));
+  BOOST_REQUIRE_EQUAL(server2.server_names_.size(), 1);
+  BOOST_CHECK_EQUAL(server2.server_names_[0], "webserv.com");
+  BOOST_REQUIRE_EQUAL(server2.locations_.size(), 1);
+  BOOST_CHECK_EQUAL(server2.locations_[0].path_, "/");
+  BOOST_CHECK_EQUAL(server2.locations_[0].root_, "/var/www/html");
+  // Default values
+  BOOST_CHECK_EQUAL(server2.timeout_, 60); // Default timeout is 60
+  BOOST_CHECK_EQUAL(server2.is_default_server_, false); // Default server is false
+  BOOST_CHECK_EQUAL(server2.locations_[0].client_max_body_size_, 1024 * 1024); // Default max body size is 1MB
+  BOOST_CHECK_EQUAL(server2.locations_[0].autoindex_, false); // Default autoindex is false
+  BOOST_CHECK_EQUAL(server2.locations_[0].is_cgi_, false); // Default is_cgi is false
+  // Add more default checks as necessary
 }
 
-//BOOST_AUTO_TEST_CASE(ConfigToMapTest) {
-//  Config config;
-//  config.ParseConfig("TestVServer.conf");
-//
-//  ConfigMap configMap = ConfigToMap(config);
-//
-//  BOOST_REQUIRE_EQUAL(configMap.size(), 1);
-//  // ... 同様に続ける ...
-//}
+// 色々なのが混ざったテスト
+BOOST_AUTO_TEST_CASE(Complex) {
+  Config config;
+  try {
+    config.ParseConfig(COMPLEX); // Replace with actual path of your config file
+  } catch (ConfigParser::ParserException &e) {
+    std::cerr << e.what() << std::endl;
+  }
+
+  std::vector<Vserver> servers = config.GetServerVec();
+
+  BOOST_REQUIRE_EQUAL(servers.size(), 3);
+
+  Vserver server1 = servers[0];
+  Vserver server2 = servers[1];
+  Vserver server3 = servers[2];
+
+  // Check server 1
+  // Check server 1
+  BOOST_CHECK_EQUAL(server1.listen_.sin_port, htons(80));
+  BOOST_REQUIRE_EQUAL(server1.server_names_.size(), 1);
+  BOOST_CHECK_EQUAL(server1.server_names_[0], "www.example.com");
+  BOOST_REQUIRE_EQUAL(server1.timeout_, 60);
+  BOOST_REQUIRE_EQUAL(server1.locations_.size(), 3);
+
+// Check each location of server 1
+// Location 1
+  BOOST_CHECK_EQUAL(server1.locations_[0].path_, "/");
+  BOOST_CHECK_EQUAL(server1.locations_[0].root_, "/var/www/html");
+  BOOST_CHECK_EQUAL(server1.locations_[0].index_, "index.html");
+  BOOST_CHECK(server1.locations_[0].allow_methods_.count(GET));
+  BOOST_CHECK(server1.locations_[0].allow_methods_.count(POST));
+  BOOST_CHECK_EQUAL(server1.locations_[0].client_max_body_size_, 10 * 1024 * 1024);
+  BOOST_CHECK_EQUAL(server1.locations_[0].autoindex_, false);
+  BOOST_CHECK_EQUAL(server1.locations_[0].is_cgi_, false);
+
+// Location 2
+  BOOST_CHECK_EQUAL(server1.locations_[1].path_, "/images/");
+  BOOST_CHECK_EQUAL(server1.locations_[1].root_, "/var/www/html");
+  BOOST_CHECK_EQUAL(server1.locations_[1].index_, "index.html");
+  BOOST_CHECK(server1.locations_[1].allow_methods_.count(GET));
+  BOOST_CHECK_EQUAL(server1.locations_[1].client_max_body_size_, 0);
+  BOOST_CHECK_EQUAL(server1.locations_[1].autoindex_, true);
+  BOOST_CHECK_EQUAL(server1.locations_[1].is_cgi_, false);
+
+// Location 3
+  BOOST_CHECK_EQUAL(server1.locations_[2].path_, "/api/");
+  BOOST_CHECK_EQUAL(server1.locations_[2].root_, "/var/www/html");
+  BOOST_CHECK_EQUAL(server1.locations_[2].index_, "index.html");
+  BOOST_CHECK(server1.locations_[2].allow_methods_.count(GET));
+  BOOST_CHECK(server1.locations_[2].allow_methods_.count(POST));
+  BOOST_CHECK(server1.locations_[2].allow_methods_.count(DELETE));
+  BOOST_CHECK_EQUAL(server1.locations_[2].client_max_body_size_, 0);
+  BOOST_CHECK_EQUAL(server1.locations_[2].autoindex_, false);
+  BOOST_CHECK_EQUAL(server1.locations_[2].is_cgi_, true);
+  BOOST_CHECK_EQUAL(server1.locations_[2].cgi_path_, "/path/to/cgi/script");
+
+
+  // Check server 2
+  BOOST_CHECK_EQUAL(server2.listen_.sin_port, htons(8080));
+  BOOST_REQUIRE_EQUAL(server2.server_names_.size(), 1);
+  BOOST_CHECK_EQUAL(server2.server_names_[0], "www.webserv.com");
+  BOOST_REQUIRE_EQUAL(server2.timeout_, 120);
+  BOOST_REQUIRE_EQUAL(server2.locations_.size(), 3);
+
+// Check each location of server 2
+// Location 1
+  BOOST_CHECK_EQUAL(server2.locations_[0].path_, "/");
+  BOOST_CHECK_EQUAL(server2.locations_[0].root_, "/var/www/html");
+  BOOST_CHECK_EQUAL(server2.locations_[0].index_, "index.html");
+  BOOST_CHECK(server2.locations_[0].allow_methods_.count(GET));
+  BOOST_CHECK(server2.locations_[0].allow_methods_.count(POST));
+  BOOST_CHECK(server2.locations_[0].allow_methods_.count(DELETE));
+  BOOST_CHECK_EQUAL(server2.locations_[0].client_max_body_size_, 0);
+  BOOST_CHECK_EQUAL(server2.locations_[0].autoindex_, false);
+  BOOST_CHECK_EQUAL(server2.locations_[0].is_cgi_, false);
+
+// Location 2
+  BOOST_CHECK_EQUAL(server2.locations_[1].path_, "/docs/");
+  BOOST_CHECK_EQUAL(server2.locations_[1].root_, "/var/www/docs");
+  BOOST_CHECK_EQUAL(server2.locations_[1].index_, "index.html");
+  BOOST_CHECK(server2.locations_[1].allow_methods_.count(GET));
+  BOOST_CHECK_EQUAL(server2.locations_[1].client_max_body_size_, 0);
+  BOOST_CHECK_EQUAL(server2.locations_[1].autoindex_, true);
+  BOOST_CHECK_EQUAL(server2.locations_[1].is_cgi_, false);
+
+// Location 3
+  BOOST_CHECK_EQUAL(server2.locations_[2].path_, "/api/");
+  BOOST_CHECK_EQUAL(server2.locations_[2].root_, "/var/www/html");
+  BOOST_CHECK_EQUAL(server2.locations_[2].index_, "index.html");
+  BOOST_CHECK(server2.locations_[2].allow_methods_.count(GET));
+  BOOST_CHECK(server2.locations_[2].allow_methods_.count(POST));
+  BOOST_CHECK(server2.locations_[2].allow_methods_.count(DELETE));
+  BOOST_CHECK_EQUAL(server2.locations_[2].client_max_body_size_, 0);
+  BOOST_CHECK_EQUAL(server2.locations_[2].autoindex_, false);
+  BOOST_CHECK_EQUAL(server2.locations_[2].is_cgi_, true);
+  BOOST_CHECK_EQUAL(server2.locations_[2].cgi_path_, "/path/to/cgi/script");
+
+// Check server 3
+  BOOST_CHECK_EQUAL(server3.listen_.sin_port, htons(4242));
+  BOOST_REQUIRE_EQUAL(server3.server_names_.size(), 1);
+  BOOST_CHECK_EQUAL(server3.server_names_[0], "localhost");
+  BOOST_REQUIRE_EQUAL(server3.timeout_, 30);
+  BOOST_REQUIRE_EQUAL(server3.locations_.size(), 2);
+
+// Check each location of server 3
+// Location 1
+  BOOST_CHECK_EQUAL(server3.locations_[0].path_, "/");
+  BOOST_CHECK_EQUAL(server3.locations_[0].root_, "/var/www/html");
+  BOOST_CHECK_EQUAL(server3.locations_[0].index_, "index.html");
+  BOOST_CHECK(server3.locations_[0].allow_methods_.count(GET));
+  BOOST_CHECK(server3.locations_[0].allow_methods_.count(POST));
+  BOOST_CHECK_EQUAL(server3.locations_[0].client_max_body_size_, 10 * 1024 * 1024);
+  BOOST_CHECK_EQUAL(server3.locations_[0].autoindex_, true);
+  BOOST_CHECK_EQUAL(server3.locations_[0].is_cgi_, false);
+
+// Location 2
+  BOOST_CHECK_EQUAL(server3.locations_[1].path_, "/files/");
+  BOOST_CHECK_EQUAL(server3.locations_[1].root_, "/var/www/files");
+  BOOST_CHECK_EQUAL(server3.locations_[1].index_, "index.html");
+  BOOST_CHECK(server3.locations_[1].allow_methods_.count(GET));
+  BOOST_CHECK_EQUAL(server3.locations_[1].client_max_body_size_, 0);
+  BOOST_CHECK_EQUAL(server3.locations_[1].autoindex_, true);
+  BOOST_CHECK_EQUAL(server3.locations_[1].is_cgi_, false);
+}
