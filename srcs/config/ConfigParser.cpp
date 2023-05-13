@@ -345,31 +345,6 @@ void ConfigParser::AssertServerName(const std::string &server_name) {
   }
 }
 
-// 各ラベルの長さが1~63文字であり、ハイフンと英数字のみを含む(先頭、末尾はハイフン以外)ことを確認
-bool ConfigParser::IsValidLabel(const std::string &server_name,
-                                std::string::const_iterator &it) {
-  std::string::const_iterator start = it;
-  while (it < server_name.end() && *it != '.') {
-    if (!(isdigit(*it) || isalpha(*it) || *it == '-')) {
-      return false;
-    }
-    if (*it == '-' && (it == start || it + 1 == server_name.end())) {
-      return false;
-    }
-    it++;
-  }
-  if (it - start == 0 || it - start > kMaxDomainLabelLength) {
-    return false;
-  }
-  if (it < server_name.end() && *it == '.') {
-    it++;
-    if (it == server_name.end()) {
-      return false;
-    }
-  }
-  return true;
-}
-
 void ConfigParser::AssertTimeOut(int &dest_timeout,
                                  const std::string &timeout_str) {
   if (!ws_strtoi<int>(&dest_timeout, timeout_str)) {
@@ -467,23 +442,6 @@ void ConfigParser::AssertClientMaxBodySize(uint64_t &dest_size,
   }
 }
 
-bool isValidPath(const std::string &path) {
-  // Linux ファイルシステムの制約に従う
-  for (size_t i = 0; i < path.length(); i++) {
-    char c = path[i];
-    if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
-          c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||
-          c == '&' || c == ',' || c == ';' || c == '=' || c == ':' ||
-          c == '|' || c == '^' || c == '!' || c == '*' || c == '`' ||
-          c == '(' || c == ')' || c == '{' || c == '}' || c == '<' ||
-          c == '>' || c == '?' || c == '[' || c == ']' || c == '\'' ||
-          c == '"' || c == '\\' || c == '/')) {
-      return false;
-    }
-  }
-  return true;
-}
-
 void ConfigParser::AssertRoot(const std::string &root) {
   // root が空文字列、または '/' で始まっていない場合はエラー
   if (root.empty() || root[0] != '/') {
@@ -492,7 +450,7 @@ void ConfigParser::AssertRoot(const std::string &root) {
   }
 
   // Linux ファイルシステムの制約に従う
-  if (!isValidPath(root)) {
+  if (!IsValidPath(root)) {
     throw ParserException(
         ERR_MSG,
         (root + " is Invalid root path. use Invalid character.").c_str());
@@ -504,7 +462,7 @@ void ConfigParser::AssertIndex(const std::string &index) {
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
-  if (!isValidPath(index)) {
+  if (!IsValidPath(index)) {
     throw ParserException(
         ERR_MSG,
         (index + " is Invalid index path. use Invalid character.").c_str());
@@ -526,7 +484,7 @@ void ConfigParser::AssertCgiPath(const std::string &cgi_path) {
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
-  if (!isValidPath(cgi_path)) {
+  if (!IsValidPath(cgi_path)) {
     throw ParserException(
         ERR_MSG,
         (cgi_path + " is Invalid cgi path. use Invalid character.").c_str());
@@ -550,7 +508,7 @@ void ConfigParser::AssertErrorPages(
   if (error_page_str.empty()) {
     throw ParserException(ERR_MSG, "Empty error page");
   }
-  if (!isValidPath(error_page_str)) {
+  if (!IsValidPath(error_page_str)) {
     throw ParserException(
         ERR_MSG,
         (error_page_str + " is Invalid error page path. use Invalid character.")
@@ -563,24 +521,6 @@ void ConfigParser::AssertErrorPages(
     }
     dest_error_pages[*it] = error_page_str;
   }
-}
-
-bool ConfigParser::isValidUrl(const std::string &url) {
-  // URL should start with http:// or https://
-  if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
-    return false;
-  }
-
-  // URL should have a valid domain name after http:// or https://
-  // URLからドメイン名だけを抽出
-  size_t start = url.find_first_of(':') + 3;
-  size_t end = url.find_first_of('/', start);
-  if (end == std::string::npos) {
-    end = url.length();
-  }
-  std::string domain = url.substr(start, end - start);
-  AssertServerName(domain);
-  return true;
 }
 
 void ConfigParser::AssertReturn(struct Return &return_directive) {
@@ -598,12 +538,74 @@ void ConfigParser::AssertReturn(struct Return &return_directive) {
                           return_directive.status_code_);
   }
   if (return_directive.return_type_ == RETURN_URL &&
-      !isValidUrl(return_directive.return_url_)) {
+      !IsValidUrl(return_directive.return_url_)) {
     throw ParserException(ERR_MSG,
                           (return_directive.return_url_ +
                            " is Invalid return url. use Invalid character.")
                               .c_str());
   }
+}
+
+// is
+
+// 各ラベルの長さが1~63文字であり、ハイフンと英数字のみを含む(先頭、末尾はハイフン以外)ことを確認
+bool ConfigParser::IsValidLabel(const std::string &server_name,
+                                std::string::const_iterator &it) {
+  std::string::const_iterator start = it;
+  while (it < server_name.end() && *it != '.') {
+    if (!(isdigit(*it) || isalpha(*it) || *it == '-')) {
+      return false;
+    }
+    if (*it == '-' && (it == start || it + 1 == server_name.end())) {
+      return false;
+    }
+    it++;
+  }
+  if (it - start == 0 || it - start > kMaxDomainLabelLength) {
+    return false;
+  }
+  if (it < server_name.end() && *it == '.') {
+    it++;
+    if (it == server_name.end()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ConfigParser::IsValidUrl(const std::string &url) {
+  // URL should start with http:// or https://
+  if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
+    return false;
+  }
+
+  // URL should have a valid domain name after http:// or https://
+  // URLからドメイン名だけを抽出
+  size_t start = url.find_first_of(':') + 3;
+  size_t end = url.find_first_of('/', start);
+  if (end == std::string::npos) {
+    end = url.length();
+  }
+  std::string domain = url.substr(start, end - start);
+  AssertServerName(domain);
+  return true;
+}
+
+bool ConfigParser::IsValidPath(const std::string &path) {
+  // Linux ファイルシステムの制約に従う
+  for (size_t i = 0; i < path.length(); i++) {
+    char c = path[i];
+    if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
+          c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||
+          c == '&' || c == ',' || c == ';' || c == '=' || c == ':' ||
+          c == '|' || c == '^' || c == '!' || c == '*' || c == '`' ||
+          c == '(' || c == ')' || c == '{' || c == '}' || c == '<' ||
+          c == '>' || c == '?' || c == '[' || c == ']' || c == '\'' ||
+          c == '"' || c == '\\' || c == '/')) {
+      return false;
+    }
+  }
+  return true;
 }
 
 // utils
