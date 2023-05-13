@@ -33,21 +33,6 @@ std::string ConfigParser::LoadFile(const char *filepath) {
   return dest;
 }
 
-// parse error時に、例外をスローする.
-// 第二引数がtrueの場合は、行、列、行の内容も出力する
-void ConfigParser::ThrowParseError(const char *msg,
-                                   bool add_err_point_flag = false) {
-  if (add_err_point_flag) {
-    int row;
-    int col;
-    std::string line;
-    this->GetErrorPoint(row, col, line);
-    throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(), msg);
-  } else {
-    throw ParserException(ERR_MSG, msg);
-  }
-}
-
 // parser
 void ConfigParser::Parse(Config &config) {
   while (!this->IsEof()) {
@@ -84,12 +69,7 @@ void ConfigParser::Parse(Config &config) {
     } else if (token == "location") {
       this->ParseLocation(server);
     } else {
-      int row;
-      int col;
-      std::string line;
-      this->GetErrorPoint(row, col, line);
-      throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(),
-                            "Unexpected token");
+      this->ThrowParseError("Unexpected token", true);
     }
     this->SkipSpaces();
   }
@@ -161,12 +141,7 @@ void ConfigParser::ParseLocation(Vserver &server) {
     } else if (token == "return") {
       ParseReturn(location);
     } else {
-      int row;
-      int col;
-      std::string line;
-      this->GetErrorPoint(row, col, line);
-      throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(),
-                            "Unexpected token");
+      this->ThrowParseError("Unexpected token", true);
     }
     this->SkipSpaces();
   }
@@ -718,6 +693,21 @@ bool ConfigParser::IsEof() { return it_ == file_content_.end(); }
 
 bool ConfigParser::IsDelim() {
   return *it_ == ';' || *it_ == '{' || *it_ == '}';
+}
+
+// parse error時に、例外をスローする.
+// 第二引数がtrueの場合は、行、列、行の内容も出力する
+void ConfigParser::ThrowParseError(const char *msg,
+                                   bool add_err_point_flag = false) {
+  if (add_err_point_flag) {
+    int row;
+    int col;
+    std::string line;
+    this->GetErrorPoint(row, col, line);
+    throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(), msg);
+  } else {
+    throw ParserException(ERR_MSG, msg);
+  }
 }
 
 // ParserException
