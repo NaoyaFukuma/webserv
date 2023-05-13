@@ -77,9 +77,9 @@ void ConfigParser::ParseServer(Config &config) {
 }
 
 void ConfigParser::ParseListen(Vserver &server) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string listen_str = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   this->AssertListen(server.listen_, listen_str);
 }
@@ -88,9 +88,9 @@ void ConfigParser::ParseServerName(Vserver &server) {
   std::vector<std::string> new_server_names;
 
   while (!this->IsEof() && *it_ != ';') {
-    this->SkipSpaces();
+    this->SkipSpaces(true);
     std::string server_name = GetWord();
-    this->SkipSpaces();
+    this->SkipSpaces(true);
     AssertServerName(server_name);
     new_server_names.push_back(server_name);
   }
@@ -99,9 +99,9 @@ void ConfigParser::ParseServerName(Vserver &server) {
 }
 
 void ConfigParser::ParseTimeOut(Vserver &server) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string timeout_str = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertTimeOut(server.timeout_, timeout_str);
 }
@@ -111,9 +111,9 @@ void ConfigParser::ParseLocation(Vserver &server) {
   Location location;
   SetLocationDefault(location);
 
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   location.path_ = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect('{');
   while (!this->IsEof() && *it_ != '}') {
     this->SkipSpaces();
@@ -160,9 +160,9 @@ void ConfigParser::SetLocationDefault(Location &location) {
 }
 
 void ConfigParser::ParseMatch(Location &location) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string match_str = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertMatch(location.match_, match_str);
 }
@@ -170,9 +170,9 @@ void ConfigParser::ParseMatch(Location &location) {
 void ConfigParser::ParseAllowMethod(Location &location) {
   location.allow_methods_.clear();
   while (!this->IsEof() && *it_ != ';') {
-    this->SkipSpaces();
+    this->SkipSpaces(true);
     std::string method_str = GetWord();
-    this->SkipSpaces();
+    this->SkipSpaces(true);
     AssertAllowMethod(location.allow_methods_, method_str);
   }
   this->Expect(';');
@@ -180,42 +180,41 @@ void ConfigParser::ParseAllowMethod(Location &location) {
 }
 
 void ConfigParser::ParseClientMaxBodySize(Location &location) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string size_str = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertClientMaxBodySize(location.client_max_body_size_, size_str);
 }
 
 void ConfigParser::ParseRoot(Location &location) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   location.root_ = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertRoot(location.root_);
 }
 
 void ConfigParser::ParseIndex(Location &location) {
-
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   location.index_ = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   AssertIndex(location.index_);
   this->Expect(';');
 }
 
 void ConfigParser::ParseIsCgi(Location &location) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string is_cgi_str = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertBool(location.is_cgi_, is_cgi_str);
 }
 
 void ConfigParser::ParseCgiPath(Location &location) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   location.cgi_path_ = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertCgiPath(location.cgi_path_);
 }
@@ -226,9 +225,9 @@ void ConfigParser::ParseErrorPages(Location &location) {
     std::string error_page_str;
     while (true) {
       int error_code;
-      this->SkipSpaces();
+      this->SkipSpaces(true);
       error_page_str = GetWord();
-      this->SkipSpaces();
+      this->SkipSpaces(true);
       if (!ws_strtoi(&error_code, error_page_str)) {
         break;
       }
@@ -240,9 +239,9 @@ void ConfigParser::ParseErrorPages(Location &location) {
 }
 
 void ConfigParser::ParseAutoIndex(Location &location) {
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string autoindex_str = GetWord();
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertBool(location.autoindex_, autoindex_str);
 }
@@ -256,7 +255,7 @@ void ConfigParser::ParseReturn(Location &location) {
     return;
   }
 
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   std::string tmp_str = GetWord();
 
   // １つ目のワードが、status_codeかURLorTextかを判定
@@ -264,7 +263,7 @@ void ConfigParser::ParseReturn(Location &location) {
     // status codeが設定されたので、URLかtextかを判定
     // textはシングルクォーテーションで囲まれている
     // URLはシングルクォーテーションで囲まれていない
-    this->SkipSpaces();
+    this->SkipSpaces(true);
     if (*it_ == ';') { // status codeのみ指定された場合
       location.return_.return_type_ = RETURN_ONLY_STATUS_CODE;
     } else {
@@ -285,7 +284,7 @@ void ConfigParser::ParseReturn(Location &location) {
     location.return_.return_type_ = RETURN_URL;
     location.return_.return_url_ = tmp_str;
   }
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect(';');
   AssertReturn(location.return_);
 }
