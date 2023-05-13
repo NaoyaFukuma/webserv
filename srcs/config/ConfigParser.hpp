@@ -84,7 +84,7 @@ private:
 
   // utils
   void Expect(const char c);
-  void SkipSpaces(bool skip_newline = true)
+  void SkipSpaces(bool skip_newline = true);
   std::string GetWord();
   void GetErrorPoint(int &row, int &column, std::string &line);
   void ThrowParseError(const char *msg, bool err_msg_only = true);
