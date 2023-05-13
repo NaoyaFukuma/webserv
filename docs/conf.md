@@ -60,7 +60,7 @@ webservで用いる設定ファイルについての解説。
 - Multiple: false
 - Syntax: `'listen' ((DOMAIN_NAME | IP_ADDR) ':')? (PORT) END_DIRECTIVE`
 - 概要: 仮想サーバーが待ち受けるドメイン名またはIPアドレスとポートを指定します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がない場合、”0.0.0.0:80”をlistenします。
 
 ### timeout_directive
@@ -68,7 +68,7 @@ webservで用いる設定ファイルについての解説。
 - Multiple: false
 - Syntax: `'timeout' NUMBER END_DIRECTIVE`
 - 概要: 秒単位での設定。clientと一定時間通信が発生しない場合、そのclientとの接続を切断する機能があり、この”一定時間”を指定するための項目です。また、”通信”とは、接続確立、リクエストの受信、レスポンスの送信を指します。”一定時間”の起算点の注意点として、送信時に送信バッファの制限により複数回に分かれる場合は、途中までの送信時刻と、リクエスト受信の時刻を別に管理しています。従って、送信バッファの制限によりレスポンスの送信が完了しない状態が続いた場合、例えリクエスト受信によるアクティビティが発生してもタイムアウトにより接続を切断する場合があります。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がない場合、60秒をデフォルト設定として採用。
 
 ### servername_directive
@@ -76,7 +76,7 @@ webservで用いる設定ファイルについての解説。
 - Multiple: false
 - Syntax: `'server_name' (DOMAIN_NAME | IP_ADDR)+ END_DIRECTIVE`
 - 概要: サーバーに関連付けられたドメイン名またはIPアドレスを指定します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 
 ### location_directive
 - Required: true
@@ -109,7 +109,7 @@ webservで用いる設定ファイルについての解説。
 - Multiple: false
 - Syntax: `match_directive: 'match' ('prefix' | 'suffix') END_DIRECTIVE;`
 - 概要: パスのマッチング方法を指定します。`prefix`は接頭辞マッチング、`suffix`は接尾辞マッチングです。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がない場合、prefixをデフォルト設定として採用。
 
 ### allow_method_directive
@@ -117,7 +117,7 @@ webservで用いる設定ファイルについての解説。
 - Multiple: false
 - Syntax: `allow_method_directive: 'allow_method' METHOD+ END_DIRECTIVE`
 - 概要: 許可されるHTTPメソッドを指定します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がない場合は、GET, POST, DELETEをデフォルト設定として採用。
 
 ### client_max_body_size_directive
@@ -125,7 +125,7 @@ webservで用いる設定ファイルについての解説。
 - Multiple: false
 - Syntax: `client_max_body_size_directive: 'client_max_body_size' NUMBER ('B' | 'K' |'M' |'G')?  END_DIRECTIVE`
 - 概要: 受信できるリクエストバディの上限。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がない場合、１Mをデフォルト設定として採用。
 単位の指定がない場合は、B（バイト）単位として解釈。
 
@@ -138,14 +138,14 @@ webservで用いる設定ファイルについての解説。
 location /images/,  root /data
 リクエスト'/images/cat.jpg' -> '/data/imeges/cat.jpg'
 サーバーが稼働している環境のファイルシステムの絶対パスが完成する。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 
 ### index_directive
 - Required: false
 - Multiple: false
 - Syntax: `index_directive: 'index' PATH END_DIRECTIVE`
 - 概要: ディレクトリインデックスとして使用されるファイルを指定します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 相対パスを指定し、rootディレクティブのPATHを起点にします。
 
 ### is_cgi_directive
@@ -153,7 +153,7 @@ location /images/,  root /data
 - Multiple: false
 - Syntax: `is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE`
 - 概要: ONの場合、このlocation に入ってきたリクエストはCGIへのリクエストと解釈します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定が無い場合、OFFICEをデフォルトの設定として採用。
 
 ### cgi_path_directive
@@ -161,14 +161,14 @@ location /images/,  root /data
 - Multiple: false
 - Syntax: `is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE`
 - 概要: cgiで実行するアプリケーション（execveなどの第一引数）。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 
 ### autoindex_directive
 - Required: false
 - Multiple: false
 - Syntax: `autoindex_directive: 'autoindex' ON_OFF END_DIRECTIVE`
 - 概要: ディレクトリリスティングの自動生成を有効化または無効化します。
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がなければOFFをデフォルトの設定として採用。
 
 ### error_page_directive
@@ -176,7 +176,7 @@ location /images/,  root /data
 - Multiple: false
 - Syntax: `error_page_directive: 'error_page' STATUS_CODE+ PATH END_DIRECTIVE`
 - 概要:
-注）複数指定された場合、エラー検出できず、最後に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 指定がなければデフォルトのエラーコードとメッセージを出力します。
 
 ### return_directive
@@ -184,7 +184,7 @@ location /images/,  root /data
 - Multiple: false
 - Syntax: `return_directive: 'return' STATUS_CODE? (URL | TEXT)? END_DIRECTIVE`
 - 概要: 指定されたURLにリダイレクトします。
-注）複数指定された場合、エラー検出できず、最初に現れた項目の値が採用されます。
+注）複数指定された場合、エラーとして扱わず、最初に現れた項目の値を採用します。
 以下のパターンを許容します。
 ```
   return CODE URL
