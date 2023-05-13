@@ -35,6 +35,7 @@ struct Return {
 };
 
 struct Location {
+  Location();
   std::string path_; // locationのパス
   match_type match_; // 後方一致は、CGIの場合のみ使用可能
   std::set<method_type> allow_methods_; // GET POST DELETE から１個以上指定
@@ -54,6 +55,7 @@ struct Location {
   // 任意 単一 ステータスコードと、その時に返すファイルのパス(emptyを許容する)
 };
 struct Vserver { // 各バーチャルサーバーの設定を格納する
+  Vserver();
   struct sockaddr_in listen_;
   // 必須 単一 複数指定された場合は最後の一つだけ保持
 

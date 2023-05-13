@@ -49,10 +49,6 @@ void ConfigParser::Parse(Config &config) {
 void ConfigParser::ParseServer(Config &config) {
   Vserver server;
 
-  server.timeout_ = 60;                // default timeout
-  server.listen_.sin_family = AF_INET; // IPv4 default
-  server.listen_.sin_port = htons(80); // default port
-
   this->SkipSpaces();
   this->Expect('{');
   while (!this->IsEof() && *it_ != '}') {
@@ -109,7 +105,6 @@ void ConfigParser::ParseTimeOut(Vserver &server) {
 void ConfigParser::ParseLocation(Vserver &server) {
 
   Location location;
-  SetLocationDefault(location);
 
   this->SkipSpaces(true);
   location.path_ = GetWord();
@@ -146,17 +141,6 @@ void ConfigParser::ParseLocation(Vserver &server) {
   this->Expect('}');
   AssertLocation(location);
   server.locations_.push_back(location);
-}
-
-void ConfigParser::SetLocationDefault(Location &location) {
-  location.match_ = PREFIX;
-  location.allow_methods_.insert(GET);
-  location.allow_methods_.insert(POST);
-  location.allow_methods_.insert(DELETE);
-  location.client_max_body_size_ = 1024 * 1024; // 1MB
-  location.autoindex_ = false;
-  location.is_cgi_ = false;
-  location.return_.return_type_ = RETURN_EMPTY;
 }
 
 void ConfigParser::ParseMatch(Location &location) {

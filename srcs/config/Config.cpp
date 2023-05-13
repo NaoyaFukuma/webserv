@@ -7,6 +7,27 @@
 Config::Config() {}
 Config::~Config() {}
 
+// serverディレクティブの設定項目の初期化
+Vserver::Vserver() {
+  this->timeout_ = 60;
+  this->is_default_server_ = false;
+  this->listen_.sin_family = AF_INET;
+  this->listen_.sin_addr.s_addr = INADDR_ANY;
+  this->listen_.sin_port = htons(80);
+}
+
+// locationディレクティブの設定項目の初期化
+Location::Location() {
+  this->match_ = PREFIX;
+  this->allow_methods_.insert(GET);
+  this->allow_methods_.insert(POST);
+  this->allow_methods_.insert(DELETE);
+  this->client_max_body_size_ = 1 * 1024 * 1024; // 1MB
+  this->is_cgi_ = false;
+  this->autoindex_ = false;
+  this->return_.return_type_ = RETURN_EMPTY;
+}
+
 void Config::ParseConfig(const char *src_file) {
   ConfigParser parser(src_file); // Load file
   parser.Parse(*this);

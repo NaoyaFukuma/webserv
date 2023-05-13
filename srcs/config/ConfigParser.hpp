@@ -42,7 +42,6 @@ private:
   void ParseServerName(Vserver &server);
   void ParseTimeOut(Vserver &server);
   void ParseLocation(Vserver &server);
-  void SetLocationDefault(Location &location);
 
   void ParseMatch(Location &location);
   void ParseAllowMethod(Location &location);
