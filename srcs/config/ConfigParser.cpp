@@ -326,15 +326,21 @@ void ConfigParser::AssertServerName(const std::string &server_name) {
   if (server_name.empty()) {
     throw ParserException(ERR_MSG, "Empty server name");
   }
-  if (server_name.size() > kMaxDomainLength) {
-    throw ParserException(
-        ERR_MSG, (server_name + " is Invalid too long server name").c_str());
-  }
-  for (std::string::const_iterator it = server_name.begin();
-       it < server_name.end();) {
-    if (!IsValidLabel(server_name, it)) {
+  uint32_t ip_addr; // dummy
+  if (ws_inet_addr(ip_addr, server_name.c_str())) {
+    // IPアドレスに変換できた場合はIPアドレスとして扱う
+  } else {
+    // IPアドレスに変換できなかった場合はドメイン名としてValidationする
+    if (server_name.size() > kMaxDomainLength) {
       throw ParserException(
-          ERR_MSG, (server_name + " is Invalid labal server name").c_str());
+          ERR_MSG, (server_name + " is Invalid too long server name").c_str());
+    }
+    for (std::string::const_iterator it = server_name.begin();
+         it < server_name.end();) {
+      if (!IsValidLabel(server_name, it)) {
+        throw ParserException(
+            ERR_MSG, (server_name + " is Invalid labal server name").c_str());
+      }
     }
   }
 }
