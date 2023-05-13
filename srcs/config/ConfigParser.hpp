@@ -87,6 +87,7 @@ private:
   void SkipSpaces();
   std::string GetWord();
   void GetErrorPoint(int &row, int &column, std::string &line);
+  void ThrowParseError(const char *msg, bool err_msg_only = true);
 
   bool IsEof();
   bool IsDelim();

@@ -33,25 +33,37 @@ std::string ConfigParser::LoadFile(const char *filepath) {
   return dest;
 }
 
+// parse error時に、例外をスローする.
+// 第二引数がtrueの場合は、行、列、行の内容も出力する
+void ConfigParser::ThrowParseError(const char *msg,
+                                   bool add_err_point_flag = false) {
+  if (add_err_point_flag) {
+    int row;
+    int col;
+    std::string line;
+    this->GetErrorPoint(row, col, line);
+    throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(), msg);
+  } else {
+    throw ParserException(ERR_MSG, msg);
+  }
+}
+
 // parser
 void ConfigParser::Parse(Config &config) {
   while (!this->IsEof()) {
     this->SkipSpaces();
     if (this->GetWord() != "server") {
-      int row;
-      int col;
-      std::string line;
-      this->GetErrorPoint(row, col, line);
-      throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(),
-                            "Expected 'server'");
+      this->ThrowParseError("Expected 'server'", true);
     }
     this->ParseServer(config);
     this->SkipSpaces();
   }
   AssertConfig(config);
 }
+˝
 
-void ConfigParser::ParseServer(Config &config) {
+    void
+    ConfigParser::ParseServer(Config &config) {
   Vserver server;
 
   server.timeout_ = 60;                // default timeout
