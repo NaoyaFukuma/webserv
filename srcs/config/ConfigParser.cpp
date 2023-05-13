@@ -45,10 +45,8 @@ void ConfigParser::Parse(Config &config) {
   }
   AssertConfig(config);
 }
-˝
 
-    void
-    ConfigParser::ParseServer(Config &config) {
+void ConfigParser::ParseServer(Config &config) {
   Vserver server;
 
   server.timeout_ = 60;                // default timeout
@@ -638,9 +636,19 @@ void ConfigParser::Expect(const char c) {
   it_++;
 }
 
-void ConfigParser::SkipSpaces() {
-  while (!this->IsEof() && isspace(*it_)) {
-    it_++;
+// デフォルトでは、空白文字と改行文字をスキップする
+// 引数をtrueにすると、改行文字をスキップしない
+// ディレクティブとそのパラメータの間、ディレクティブの終了のセミコロンの間には改行が許容されないので、
+// そのような箇所では改行をスキップしないようにtrueを渡して呼び出す
+void ConfigParser::SkipSpaces(bool skip_newline = true) {
+  if (skip_newline) {
+    while (!this->IsEof() && ws_isspace(*it_)) {
+      it_++;
+    }
+  } else {
+    while (!this->IsEof() && *it_ != ' ' && *it_ != '\t') {
+      it_++;
+    }
   }
 }
 
@@ -702,7 +710,7 @@ void ConfigParser::ThrowParseError(const char *msg,
   if (add_err_point_flag) {
     int row;
     int col;
-    std::string line;
+    std::string line; // エラー箇所の行の内容を表示するために使う
     this->GetErrorPoint(row, col, line);
     throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(), msg);
   } else {
