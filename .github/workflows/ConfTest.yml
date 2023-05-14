@@ -1,6 +1,6 @@
 name: CMake Build and Test
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   build-and-test:
@@ -10,13 +10,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v1.7
-
       - name: Setup GCC
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
+
+      - name: Install CMake
+        run: sudo apt-get install cmake
+
 
       - name: Configure CMake
         run: |
