@@ -465,7 +465,6 @@ void ConfigParser::AssertRoot(const std::string &root) {
 }
 
 void ConfigParser::AssertIndex(const std::string &index) {
-  // indexディレクティブは、rootディレクティブが設定されている場合のみ有効
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
