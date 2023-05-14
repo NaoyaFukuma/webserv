@@ -8,4 +8,5 @@ add_library(MyServer ${SERVER_SOURCE_FILES})
 target_link_libraries(MyServer MyUtils)
 
 # server/CMakeLists.txt
-target_include_directories(MyServer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(MyServer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../config)
+target_include_directories(MyServer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../tmp_utils)
