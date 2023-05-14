@@ -6,9 +6,9 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define NO_SERVER "../unit-test/config/invalid/NoServer.conf"
-#define NO_READ_PERMISSION "../unit-test/config/invalid/NoReadPermission.conf"
-#define INVALID_EXTENSION "../unit-test/config/invalid/InvalidExtension"
+#define NO_SERVER "../../../unit-test/config/invalid/NoServer.conf"
+#define NO_READ_PERMISSION "../../../unit-test/config/invalid/NoReadPermission.conf"
+#define INVALID_EXTENSION "../../../unit-test/config/invalid/InvalidExtension"
 
 #define RED "\x1b[31m"
 #define GREEN "\x1b[32m"
@@ -64,11 +64,11 @@ BOOST_AUTO_TEST_CASE(InvalidExtension) {
 
 /* ------------------------------ OK ------------------------------ */
 
-#define SIMPLE "../unit-test/config/test_config_files/valid/Simple.conf"
-#define MULTI_ROUTE "../unit-test/config/test_config_files/valid/MultipleRoute.conf"
-#define COMPLEX_TEST "../unit-test/config/test_config_files/valid/Complex.conf"
-#define MULTI_PORT "../unit-test/config/test_config_files/valid/MultiplePort.conf"
-#define MULTI_HOST "../unit-test/config/test_config_files/valid/MultipleHost.conf"
+#define SIMPLE "../../../unit-test/config/test_config_files/valid/Simple.conf"
+#define MULTI_ROUTE "../../../unit-test/config/test_config_files/valid/MultipleRoute.conf"
+#define COMPLEX_TEST "../../../unit-test/config/test_config_files/valid/Complex.conf"
+#define MULTI_PORT "../../../unit-test/config/test_config_files/valid/MultiplePort.conf"
+#define MULTI_HOST "../../../unit-test/config/test_config_files/valid/MultipleHost.conf"
 
 // 通常のconfファイル
 BOOST_AUTO_TEST_CASE(Normal) {
