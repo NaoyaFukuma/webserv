@@ -16,9 +16,9 @@ jobs:
           python-version: '3.x'
 
       - name: Install CMake and Boost
-          run: |
-            sudo apt-get update
-            sudo apt-get install cmake libboost-all-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install cmake libboost-all-dev
 
 
       - name: Configure CMake
