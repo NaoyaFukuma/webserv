@@ -6,4 +6,6 @@ add_library(MyServer ${SERVER_SOURCE_FILES})
 
 # インクルードディレクトリを指定
 target_link_libraries(MyServer MyUtils)
-target_link_libraries(MyServer MyConfig)
+
+# server/CMakeLists.txt
+target_include_directories(MyServer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
