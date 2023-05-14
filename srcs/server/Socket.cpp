@@ -64,7 +64,9 @@ int ConnSocket::OnReadable(Epoll *epoll) {
   send_buffer_.AddString(recv_buffer_.GetString());
   recv_buffer_.ClearBuff();
   epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-  last_event_.out_time = time(NULL);
+  if (last_event_.out_time == -1) {
+    last_event_.out_time = time(NULL);
+  }
   return SUCCESS;
 
   // Todo: requestのparse
