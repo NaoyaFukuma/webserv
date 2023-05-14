@@ -11,7 +11,7 @@
 
 /* ================================== CASE2 ================================== */
 
-#define BOOST_TEST_MODULE TestCzase2
+#define BOOST_TEST_MODULE TestCase2
 #include <boost/test/included/unit_test.hpp>
 
 BOOST_AUTO_TEST_CASE(Case2) {
