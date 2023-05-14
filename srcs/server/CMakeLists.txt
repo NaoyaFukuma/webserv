@@ -6,3 +6,4 @@ add_library(MyServer ${SERVER_SOURCE_FILES})
 
 # インクルードディレクトリを指定
 target_link_libraries(MyServer MyUtils)
+target_link_libraries(MyServer MyCongig)
