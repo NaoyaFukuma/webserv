@@ -354,6 +354,13 @@ void ConfigParser::AssertTimeOut(int &dest_timeout,
 }
 
 void ConfigParser::AssertLocation(const Location &location) {
+  // location path 有効かチェック
+  if (this->IsValidPath(location.path_)) {
+    throw ParserException(ERR_MSG, "location path is invalid");
+  }
+  if (location.match_ == PREFIX && location.path_.back() != '/') {
+    throw ParserException(ERR_MSG, "location path is not end with /");
+  }
   // root ディレクティブが無いとエラー
   if (location.root_.empty()) {
     throw ParserException(ERR_MSG, "root is not set");
