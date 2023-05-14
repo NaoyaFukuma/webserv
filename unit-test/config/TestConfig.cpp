@@ -6,9 +6,9 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define NO_SERVER "../../../unit-test/config/invalid/NoServer.conf"
-#define NO_READ_PERMISSION "../../../unit-test/config/invalid/NoReadPermission.conf"
-#define INVALID_EXTENSION "../../../unit-test/config/invalid/InvalidExtension"
+#define NO_SERVER "../unit-test/config/invalid/NoServer.conf"
+#define NO_READ_PERMISSION "../unit-test/config/invalid/NoReadPermission.conf"
+#define INVALID_EXTENSION "../unit-test/config/invalid/InvalidExtension"
 
 #define RED "\x1b[31m"
 #define GREEN "\x1b[32m"
