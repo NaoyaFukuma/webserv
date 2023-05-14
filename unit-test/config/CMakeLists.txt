@@ -2,11 +2,15 @@ set(TEST_INVALID_FILES TestInvalidConf.cpp)
 
 add_executable(test_invalid_configs ${TEST_INVALID_FILES})
 
-# test_invalid_configs
+# =================================== test_invalid_configs =================================== #
+
 target_link_libraries(test_invalid_configs PRIVATE MyConfig Boost::unit_test_framework)
 target_include_directories(test_invalid_configs PRIVATE ${PROJECT_SOURCE_DIR}/srcs/config)
 add_test(NAME test_invalid_configs COMMAND test_invalid_configs)
 enable_testing()
+
+
+# ==================================== test_valid_configs ==================================== #
 
 # Simple_config
 add_executable(simple_config TestValidConfig.cpp)
@@ -50,8 +54,18 @@ target_link_libraries(oneline_config PRIVATE MyConfig Boost::unit_test_framework
 target_include_directories(oneline_config PRIVATE ${PROJECT_SOURCE_DIR}/srcs/config)
 add_test(NAME oneline_config COMMAND oneline_config)
 
-# 変更前
-#target_link_libraries(test_config PRIVATE MyConfig Boost::unit_test_framework)
-#target_include_directories(test_config PRIVATE ${PROJECT_SOURCE_DIR}/srcs/config)
-#add_test(NAME test_config COMMAND test_config)
-#enable_testing()
+# ==================================== test_custom_configs ==================================== #
+
+# case1
+add_executable(case1 TestCase1.cpp)
+target_compile_definitions(case1 PRIVATE BOOST_TEST_MODULE=TestCase1)
+target_link_libraries(case1 PRIVATE MyConfig Boost::unit_test_framework)
+target_include_directories(case1 PRIVATE ${PROJECT_SOURCE_DIR}/srcs/config)
+add_test(NAME case1 COMMAND case1)
+
+# case2
+add_executable(case2 TestCase2.cpp)
+target_compile_definitions(case2 PRIVATE BOOST_TEST_MODULE=TestCase2)
+target_link_libraries(case2 PRIVATE MyConfig Boost::unit_test_framework)
+target_include_directories(case2 PRIVATE ${PROJECT_SOURCE_DIR}/srcs/config)
+add_test(NAME case2 COMMAND case2)
