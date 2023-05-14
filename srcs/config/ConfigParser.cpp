@@ -252,7 +252,7 @@ void ConfigParser::ParseReturn(Location &location) {
       location.return_.return_type_ = RETURN_ONLY_STATUS_CODE;
     } else {
       tmp_str = GetWord();
-      if (tmp_str[0] == '\'') {
+      if (tmp_str[0] == '\'' && tmp_str[tmp_str.size() - 1] == '\'') {
         // text
         location.return_.return_type_ = RETURN_TEXT;
         location.return_.return_text_ = tmp_str.substr(1, tmp_str.size() - 2);
