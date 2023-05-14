@@ -40,4 +40,7 @@ jobs:
       - name: Test
         run: |
           cd build
-          ctest
+          ctest -E "case"
+          for test in $(ctest -N | grep case | awk '{print $3}'); do
+            ctest -V -R $test
+          done
