@@ -17,20 +17,25 @@ jobs:
 
       - name: Install CMake and Boost
         run: |
+          echo "::group::Installing CMake and Boost"
           sudo apt-get update
           sudo apt-get install cmake libboost-all-dev
-
+          echo "::endgroup::"
 
       - name: Configure CMake
         run: |
+          echo "::group::Configuring CMake"
           mkdir build
           cd build
           cmake ..
+          echo "::endgroup::"
 
       - name: Build
         run: |
+          echo "::group::Building"
           cd build
           make
+          echo "::endgroup::"
 
       - name: Test
         run: |
