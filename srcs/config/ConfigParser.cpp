@@ -422,23 +422,30 @@ void ConfigParser::AssertClientMaxBodySize(uint64_t &dest_size,
     throw ParserException(
         ERR_MSG, (size_str + " is Invalid client_max_body_size").c_str());
   }
-  switch (unit) {
-  case 'B':
-    break;
-  case 'K':
-    dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024);
-    break;
-  case 'M':
-    dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024);
-    break;
-  case 'G':
-    dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024 * 1024);
-    break;
-  default:
-    char unit_str[4] = {'\'', unit, '\'', '\0'};
-    throw ParserException(ERR_MSG, (std::string(unit_str) +
-                                    " is Invalid client_max_body_size unit")
-                                       .c_str());
+  try {
+    switch (unit) {
+    case 'B':
+      break;
+    case 'K':
+      dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024);
+      break;
+    case 'M':
+      dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024);
+      break;
+    case 'G':
+      dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024 * 1024);
+      break;
+    default:
+      char unit_str[4] = {'\'', unit, '\'', '\0'};
+      throw ParserException(ERR_MSG, (std::string(unit_str) +
+                                      " is Invalid client_max_body_size unit")
+                                         .c_str());
+    }
+  } catch (const std::overflow_error &e) {
+    throw ParserException(
+        ERR_MSG, (std::string(size_str) +
+                  " is Invalid 'uint64_t' overflow client_max_body_size")
+                     .c_str());
   }
 }
 
