@@ -1,8 +1,0 @@
-option(BUILD_CONF_UNIT_TESTS "Build the unit tests" OFF)
-if(NOT DEFINED BUILD_CONF_UNIT_TESTS)
-    add_subdirectory(server)
-else()
-    message(STATUS "Skipping server directory for unit test build")
-endif()
-add_subdirectory(config)
-add_subdirectory(tmp_utils)
