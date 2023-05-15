@@ -27,7 +27,7 @@ jobs:
           echo "::group::Configuring CMake"
           mkdir build
           cd build
-          cmake ..
+          cmake ../unit-test -DBUILD_CONF_UNIT_TESTS=ON
           echo "::endgroup::"
 
       - name: Build
