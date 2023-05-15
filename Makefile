@@ -49,6 +49,9 @@ unit-test:
 	cd unit-test/build && \
 	cmake .. -DBUILD_CONF_UNIT_TESTS=ON && \
 	make 2> /dev/null && \
-	ctest)
+	ctest -E "case" && \
+	for test in $$(ctest -N | grep case | awk '{print $$3}'); do \
+    		ctest -V -R $$test; \
+      done)
 
 .PHONY: docker test_echo unit-test
