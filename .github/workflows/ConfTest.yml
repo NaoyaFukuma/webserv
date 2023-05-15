@@ -25,21 +25,21 @@ jobs:
       - name: Configure CMake
         run: |
           echo "::group::Configuring CMake"
-          mkdir build
-          cd build
-          cmake ../unit-test -DBUILD_CONF_UNIT_TESTS=ON
+          mkdir unit-test/build
+          cd unit-test/build
+          cmake .. -DBUILD_CONF_UNIT_TESTS=ON
           echo "::endgroup::"
 
       - name: Build
         run: |
           echo "::group::Building"
-          cd build
+          cd unit-test/build
           make
           echo "::endgroup::"
 
       - name: Test
         run: |
-          cd build
+          cd unit-test/build
           ctest -E "case"
           for test in $(ctest -N | grep case | awk '{print $3}'); do
             ctest -V -R $test
