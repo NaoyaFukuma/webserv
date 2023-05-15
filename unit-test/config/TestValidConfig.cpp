@@ -7,11 +7,11 @@
 
 /* ------------------------------ OK ------------------------------ */
 
-#define SIMPLE "../../../unit-test/config/test_config_files/valid/Simple.conf"
-#define MULTI_ROUTE "../../../unit-test/config/test_config_files/valid/MultipleRoute.conf"
-#define COMPLEX_TEST "../../../unit-test/config/test_config_files/valid/Complex.conf"
-#define MULTI_PORT "../../../unit-test/config/test_config_files/valid/MultiplePort.conf"
-#define MULTI_HOST "../../../unit-test/config/test_config_files/valid/MultipleHost.conf"
+#define SIMPLE "../../unit-test/config/test_config_files/valid/Simple.conf"
+#define MULTI_ROUTE "../../unit-test/config/test_config_files/valid/MultipleRoute.conf"
+#define COMPLEX_TEST "../../unit-test/config/test_config_files/valid/Complex.conf"
+#define MULTI_PORT "../../unit-test/config/test_config_files/valid/MultiplePort.conf"
+#define MULTI_HOST "../../unit-test/config/test_config_files/valid/MultipleHost.conf"
 
 #define BOOST_TEST_MODULE TestSimple
 #include <boost/test/included/unit_test.hpp>
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(Complex) {
 #define BOOST_TEST_MODULE TestOneLine
 #include <boost/test/included/unit_test.hpp>
 
-#define ONE_LINE "../../../unit-test/config/test_config_files/valid/OneLine.conf"
+#define ONE_LINE "../../unit-test/config/test_config_files/valid/OneLine.conf"
 
 BOOST_AUTO_TEST_CASE(OneLine) {
   Config config;
