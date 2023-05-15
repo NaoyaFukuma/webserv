@@ -23,7 +23,7 @@ $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	$(RM) -r $(OBJS_DIR)
+	$(RM) -r $(OBJS_DIR) unit-test/build
 
 fclean: clean
 	$(RM) $(NAME)
@@ -44,4 +44,11 @@ test_echo:
 # 必要に応じて以下を追加
 # docker-compose logs webserv &&
 
-.PHONY: docker
+unit-test:
+	(mkdir -p unit-test/build && \
+	cd unit-test/build && \
+	cmake .. -DBUILD_CONF_UNIT_TESTS=ON && \
+	make 2> /dev/null && \
+	ctest)
+
+.PHONY: docker test_echo unit-test

@@ -9,9 +9,9 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define NO_SERVER "../../unit-test/config/invalid/NoServer.conf"
-#define NO_READ_PERMISSION "../../unit-test/config/invalid/NoReadPermission.conf"
-#define INVALID_EXTENSION "../../unit-test/config/invalid/InvalidExtension"
+#define NO_SERVER "../../config/test_config_files/invalid/NoServer.conf"
+#define NO_READ_PERMISSION "../../config/test_config_files/invalid/NoReadPermission.conf"
+#define INVALID_EXTENSION "../../config/test_config_files/invalid/InvalidExtension"
 
 /* ------------------------------ NG ------------------------------ */
 // confファイルが存在しない場合
