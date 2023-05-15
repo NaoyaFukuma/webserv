@@ -61,7 +61,11 @@ int ConnSocket::OnReadable(Epoll *epoll) {
   if (recv_buffer_.ReadSocket(fd_) == FAILURE) {
     rdhup_ = true;
   }
+  size_t before_sum =
+      recv_buffer_.GetString().size() + send_buffer_.GetString().size();
   send_buffer_.AddString(recv_buffer_.GetString());
+  std::cout << time(NULL) << " after_addstring: "
+            << (before_sum - send_buffer_.GetString().size()) << std::endl;
   recv_buffer_.ClearBuff();
   epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
   if (last_event_.out_time == -1) {
