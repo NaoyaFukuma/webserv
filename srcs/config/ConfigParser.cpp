@@ -27,7 +27,7 @@ std::string GetFileExt(const char *filepath) {
   if (idx == std::string::npos) {
     return "";
   }
-  return path.substr(idx + 1);
+  return path.substr(idx + 1); // substr()の第1引数は pos <= size() を許容する
 }
 
 // コンストラクタ内で使用
