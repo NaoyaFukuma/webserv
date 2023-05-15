@@ -359,7 +359,8 @@ void ConfigParser::AssertLocation(const Location &location) {
   if (this->IsValidPath(location.path_)) {
     throw ParserException(ERR_MSG, "location path is invalid");
   }
-  if (location.match_ == PREFIX && location.path_.back() != '/') {
+  if (location.match_ == PREFIX &&
+      location.path_[location.path_.size() - 1] != '/') {
     throw ParserException(ERR_MSG, "location path is not end with /");
   }
   // root ディレクティブが無いとエラー
