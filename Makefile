@@ -49,9 +49,16 @@ unit-test:
 	cd unit-test/build && \
 	cmake .. -DBUILD_CONF_UNIT_TESTS=ON && \
 	make 2> /dev/null && \
-	ctest -E "case" && \
-	for test in $$(ctest -N | grep case | awk '{print $$3}'); do \
-    		ctest -V -R $$test; \
-      done)
+	if [ "$(TEST_CASE)" != "" ]; then \
+		ctest -V -R $(TEST_CASE); \
+	else \
+		ctest -E "case" && \
+		for test in $$(ctest -N | grep case | awk '{print $$3}'); do \
+			ctest -V -R $$test; \
+		done \
+	fi)
+
+# unit-testのみで実行すると全てのテストが走ります
+# TEST_CASEにテストケース名を指定するとそのテストのみ実行されます
 
 .PHONY: docker test_echo unit-test
