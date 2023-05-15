@@ -20,7 +20,25 @@ ConfigParser::ConfigParser(const char *filepath)
 
 ConfigParser::~ConfigParser() {}
 
+// コンストラクタ内で使用
+std::string GetFileExt(const char *filepath) {
+  std::string path(filepath);
+  std::string::size_type idx = path.rfind('.');
+  if (idx == std::string::npos) {
+    return "";
+  }
+  return path.substr(idx + 1); // substr()の第1引数は pos <= size() を許容する
+}
+
+// コンストラクタ内で使用
 std::string ConfigParser::LoadFile(const char *filepath) {
+  // filepathの拡張子を確認
+  std::string ext = GetFileExt(filepath);
+  if (ext != "conf") {
+    throw ParserException("Config Error: invalid file extension: %s", ext);
+  }
+
+  // ファイルを読み込み、stringに変換
   std::string dest;
   std::ifstream ifs(filepath);
   std::stringstream buffer;
@@ -49,11 +67,7 @@ void ConfigParser::Parse(Config &config) {
 void ConfigParser::ParseServer(Config &config) {
   Vserver server;
 
-  server.timeout_ = 60;                // default timeout
-  server.listen_.sin_family = AF_INET; // IPv4 default
-  server.listen_.sin_port = htons(80); // default port
-
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect('{');
   while (!this->IsEof() && *it_ != '}') {
     this->SkipSpaces();
@@ -109,7 +123,6 @@ void ConfigParser::ParseTimeOut(Vserver &server) {
 void ConfigParser::ParseLocation(Vserver &server) {
 
   Location location;
-  SetLocationDefault(location);
 
   this->SkipSpaces(true);
   location.path_ = GetWord();
@@ -146,17 +159,6 @@ void ConfigParser::ParseLocation(Vserver &server) {
   this->Expect('}');
   AssertLocation(location);
   server.locations_.push_back(location);
-}
-
-void ConfigParser::SetLocationDefault(Location &location) {
-  location.match_ = PREFIX;
-  location.allow_methods_.insert(GET);
-  location.allow_methods_.insert(POST);
-  location.allow_methods_.insert(DELETE);
-  location.client_max_body_size_ = 1024 * 1024; // 1MB
-  location.autoindex_ = false;
-  location.is_cgi_ = false;
-  location.return_.return_type_ = RETURN_EMPTY;
 }
 
 void ConfigParser::ParseMatch(Location &location) {
@@ -268,7 +270,8 @@ void ConfigParser::ParseReturn(Location &location) {
       location.return_.return_type_ = RETURN_ONLY_STATUS_CODE;
     } else {
       tmp_str = GetWord();
-      if (tmp_str[0] == '\'') {
+      if (tmp_str.size() >= 2 && tmp_str[0] == '\'' &&
+          tmp_str[tmp_str.size() - 1] == '\'') {
         // text
         location.return_.return_type_ = RETURN_TEXT;
         location.return_.return_text_ = tmp_str.substr(1, tmp_str.size() - 2);
@@ -342,42 +345,23 @@ void ConfigParser::AssertServerName(const std::string &server_name) {
   if (server_name.empty()) {
     throw ParserException(ERR_MSG, "Empty server name");
   }
-  if (server_name.size() > kMaxDomainLength) {
-    throw ParserException(
-        ERR_MSG, (server_name + " is Invalid too long server name").c_str());
-  }
-  for (std::string::const_iterator it = server_name.begin();
-       it < server_name.end();) {
-    if (!IsValidLabel(server_name, it)) {
+  uint32_t ip_addr; // dummy
+  if (ws_inet_addr(ip_addr, server_name.c_str())) {
+    // IPアドレスに変換できた場合はIPアドレスとして扱う
+  } else {
+    // IPアドレスに変換できなかった場合はドメイン名としてValidationする
+    if (server_name.size() > kMaxDomainLength) {
       throw ParserException(
-          ERR_MSG, (server_name + " is Invalid labal server name").c_str());
+          ERR_MSG, (server_name + " is Invalid too long server name").c_str());
+    }
+    for (std::string::const_iterator it = server_name.begin();
+         it < server_name.end();) {
+      if (!IsValidLabel(server_name, it)) {
+        throw ParserException(
+            ERR_MSG, (server_name + " is Invalid labal server name").c_str());
+      }
     }
   }
-}
-
-// 各ラベルの長さが1~63文字であり、ハイフンと英数字のみを含む(先頭、末尾はハイフン以外)ことを確認
-bool ConfigParser::IsValidLabel(const std::string &server_name,
-                                std::string::const_iterator &it) {
-  std::string::const_iterator start = it;
-  while (it < server_name.end() && *it != '.') {
-    if (!(isdigit(*it) || isalpha(*it) || *it == '-')) {
-      return false;
-    }
-    if (*it == '-' && (it == start || it + 1 == server_name.end())) {
-      return false;
-    }
-    it++;
-  }
-  if (it - start == 0 || it - start > kMaxDomainLabelLength) {
-    return false;
-  }
-  if (it < server_name.end() && *it == '.') {
-    it++;
-    if (it == server_name.end()) {
-      return false;
-    }
-  }
-  return true;
 }
 
 void ConfigParser::AssertTimeOut(int &dest_timeout,
@@ -389,6 +373,14 @@ void ConfigParser::AssertTimeOut(int &dest_timeout,
 }
 
 void ConfigParser::AssertLocation(const Location &location) {
+  // location path 有効かチェック
+  if (this->IsValidPath(location.path_)) {
+    throw ParserException(ERR_MSG, "location path is invalid");
+  }
+  if (location.match_ == PREFIX &&
+      location.path_[location.path_.size() - 1] != '/') {
+    throw ParserException(ERR_MSG, "location path is not end with /");
+  }
   // root ディレクティブが無いとエラー
   if (location.root_.empty()) {
     throw ParserException(ERR_MSG, "root is not set");
@@ -457,41 +449,31 @@ void ConfigParser::AssertClientMaxBodySize(uint64_t &dest_size,
     throw ParserException(
         ERR_MSG, (size_str + " is Invalid client_max_body_size").c_str());
   }
-  switch (unit) {
-  case 'B':
-    break;
-  case 'K':
-    dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024);
-    break;
-  case 'M':
-    dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024);
-    break;
-  case 'G':
-    dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024 * 1024);
-    break;
-  default:
-    char unit_str[4] = {'\'', unit, '\'', '\0'};
-    throw ParserException(ERR_MSG, (std::string(unit_str) +
-                                    " is Invalid client_max_body_size unit")
-                                       .c_str());
-  }
-}
-
-bool AssertPath(const std::string &path) {
-  // Linux ファイルシステムの制約に従う
-  for (size_t i = 0; i < path.length(); i++) {
-    char c = path[i];
-    if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
-          c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||
-          c == '&' || c == ',' || c == ';' || c == '=' || c == ':' ||
-          c == '|' || c == '^' || c == '!' || c == '*' || c == '`' ||
-          c == '(' || c == ')' || c == '{' || c == '}' || c == '<' ||
-          c == '>' || c == '?' || c == '[' || c == ']' || c == '\'' ||
-          c == '"' || c == '\\' || c == '/')) {
-      return false;
+  try {
+    switch (unit) {
+    case 'B':
+      break;
+    case 'K':
+      dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024);
+      break;
+    case 'M':
+      dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024);
+      break;
+    case 'G':
+      dest_size = mul_assert_overflow<uint64_t>(dest_size, 1024 * 1024 * 1024);
+      break;
+    default:
+      char unit_str[4] = {'\'', unit, '\'', '\0'};
+      throw ParserException(ERR_MSG, (std::string(unit_str) +
+                                      " is Invalid client_max_body_size unit")
+                                         .c_str());
     }
+  } catch (const std::overflow_error &e) {
+    throw ParserException(
+        ERR_MSG, (std::string(size_str) +
+                  " is Invalid 'uint64_t' overflow client_max_body_size")
+                     .c_str());
   }
-  return true;
 }
 
 void ConfigParser::AssertRoot(const std::string &root) {
@@ -502,7 +484,7 @@ void ConfigParser::AssertRoot(const std::string &root) {
   }
 
   // Linux ファイルシステムの制約に従う
-  if (!AssertPath(root)) {
+  if (!IsValidPath(root)) {
     throw ParserException(
         ERR_MSG,
         (root + " is Invalid root path. use Invalid character.").c_str());
@@ -510,11 +492,10 @@ void ConfigParser::AssertRoot(const std::string &root) {
 }
 
 void ConfigParser::AssertIndex(const std::string &index) {
-  // indexディレクティブは、rootディレクティブが設定されている場合のみ有効
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
-  if (!AssertPath(index)) {
+  if (!IsValidPath(index)) {
     throw ParserException(
         ERR_MSG,
         (index + " is Invalid index path. use Invalid character.").c_str());
@@ -536,7 +517,7 @@ void ConfigParser::AssertCgiPath(const std::string &cgi_path) {
   // rootディレクティブを起点にした相対パスである必要がある
 
   // Linux ファイルシステムの制約に従う
-  if (!AssertPath(cgi_path)) {
+  if (!IsValidPath(cgi_path)) {
     throw ParserException(
         ERR_MSG,
         (cgi_path + " is Invalid cgi path. use Invalid character.").c_str());
@@ -560,7 +541,7 @@ void ConfigParser::AssertErrorPages(
   if (error_page_str.empty()) {
     throw ParserException(ERR_MSG, "Empty error page");
   }
-  if (!AssertPath(error_page_str)) {
+  if (!IsValidPath(error_page_str)) {
     throw ParserException(
         ERR_MSG,
         (error_page_str + " is Invalid error page path. use Invalid character.")
@@ -573,24 +554,6 @@ void ConfigParser::AssertErrorPages(
     }
     dest_error_pages[*it] = error_page_str;
   }
-}
-
-bool ConfigParser::isValidUrl(const std::string &url) {
-  // URL should start with http:// or https://
-  if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
-    return false;
-  }
-
-  // URL should have a valid domain name after http:// or https://
-  // URLからドメイン名だけを抽出
-  size_t start = url.find_first_of(':') + 3;
-  size_t end = url.find_first_of('/', start);
-  if (end == std::string::npos) {
-    end = url.length();
-  }
-  std::string domain = url.substr(start, end - start);
-  AssertServerName(domain);
-  return true;
 }
 
 void ConfigParser::AssertReturn(struct Return &return_directive) {
@@ -608,12 +571,74 @@ void ConfigParser::AssertReturn(struct Return &return_directive) {
                           return_directive.status_code_);
   }
   if (return_directive.return_type_ == RETURN_URL &&
-      !isValidUrl(return_directive.return_url_)) {
+      !IsValidUrl(return_directive.return_url_)) {
     throw ParserException(ERR_MSG,
                           (return_directive.return_url_ +
                            " is Invalid return url. use Invalid character.")
                               .c_str());
   }
+}
+
+// is
+
+// 各ラベルの長さが1~63文字であり、ハイフンと英数字のみを含む(先頭、末尾はハイフン以外)ことを確認
+bool ConfigParser::IsValidLabel(const std::string &server_name,
+                                std::string::const_iterator &it) {
+  std::string::const_iterator start = it;
+  while (it < server_name.end() && *it != '.') {
+    if (!(isdigit(*it) || isalpha(*it) || *it == '-')) {
+      return false;
+    }
+    if (*it == '-' && (it == start || it + 1 == server_name.end())) {
+      return false;
+    }
+    it++;
+  }
+  if (it - start == 0 || it - start > kMaxDomainLabelLength) {
+    return false;
+  }
+  if (it < server_name.end() && *it == '.') {
+    it++;
+    if (it == server_name.end()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ConfigParser::IsValidUrl(const std::string &url) {
+  // URL should start with http:// or https://
+  if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
+    return false;
+  }
+
+  // URL should have a valid domain name after http:// or https://
+  // URLからドメイン名だけを抽出
+  size_t start = url.find_first_of(':') + 3;
+  size_t end = url.find_first_of('/', start);
+  if (end == std::string::npos) {
+    end = url.length();
+  }
+  std::string domain = url.substr(start, end - start);
+  AssertServerName(domain);
+  return true;
+}
+
+bool ConfigParser::IsValidPath(const std::string &path) {
+  // Linux ファイルシステムの制約に従う
+  for (size_t i = 0; i < path.length(); i++) {
+    char c = path[i];
+    if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
+          c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||
+          c == '&' || c == ',' || c == ';' || c == '=' || c == ':' ||
+          c == '|' || c == '^' || c == '!' || c == '*' || c == '`' ||
+          c == '(' || c == ')' || c == '{' || c == '}' || c == '<' ||
+          c == '>' || c == '?' || c == '[' || c == ']' || c == '\'' ||
+          c == '"' || c == '\\' || c == '/')) {
+      return false;
+    }
+  }
+  return true;
 }
 
 // utils

@@ -37,13 +37,10 @@ private:
 
   // parser
   void ParseServer(Config &config);
-
   void ParseListen(Vserver &server);
   void ParseServerName(Vserver &server);
   void ParseTimeOut(Vserver &server);
   void ParseLocation(Vserver &server);
-  void SetLocationDefault(Location &location);
-
   void ParseMatch(Location &location);
   void ParseAllowMethod(Location &location);
   void ParseClientMaxBodySize(Location &location);
@@ -60,10 +57,7 @@ private:
   void AssertServer(const Vserver &server);
   void AssertListen(struct sockaddr_in &dest_listen,
                     const std::string &listen_str);
-  bool IsValidIp(const std::string &ip_str);
   void AssertServerName(const std::string &server_name);
-  bool IsValidLabel(const std::string &server_name,
-                    std::string::const_iterator &it);
   void AssertTimeOut(int &timeout, const std::string &timeout_str);
   void AssertLocation(const Location &location);
   void AssertMatch(match_type &dest_match, const std::string &match_str);
@@ -79,8 +73,14 @@ private:
                         const std::vector<int> error_codes,
                         const std::string &error_page_str);
   void AssertBool(bool &dest_bool, const std::string &bool_str);
-  bool isValidUrl(const std::string &url);
   void AssertReturn(struct Return &return_directive);
+
+  // is
+  bool IsValidIp(const std::string &ip_str);
+  bool IsValidLabel(const std::string &server_name,
+                    std::string::const_iterator &it);
+  bool IsValidUrl(const std::string &url);
+  bool IsValidPath(const std::string &path);
 
   // utils
   void Expect(const char c);

@@ -154,7 +154,7 @@ location /images/,  root /data
 - Syntax: `is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE`
 - 概要: ONの場合、このlocation に入ってきたリクエストはCGIへのリクエストと解釈します。
 注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
-指定が無い場合、OFFICEをデフォルトの設定として採用。
+指定が無い場合、OFFをデフォルトの設定として採用。
 
 ### cgi_path_directive
 - Required: true ※is_cgiがONなら必須
