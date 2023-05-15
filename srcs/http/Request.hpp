@@ -1,8 +1,7 @@
 #ifndef _REQUEST_HPP_
 #define _REQUEST_HPP_
 
-#include "Header.hpp"
-#include "IOBuff.hpp"
+#include "SocketBuff.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -80,12 +79,11 @@ struct HttpError {
   std::string message;
 
 private:
-  const static std::map<int, std::string> default_error_message =
-      init_default_error_message();
+  const static std::map<int, std::string> kDefaultErrorMessage;
 
   HttpError(int status_code, std::string message)
       : status_code(status_code), message(message) {}
-}
+};
 
 class Request {
 private:
@@ -109,7 +107,7 @@ public:
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
   int GetErrorStatus() const;
-  void Parse(IOBuff &buffer_);
+  void Parse(SocketBuff &buffer_);
   void Clear();
 
 private: // 使用予定なし
@@ -118,6 +116,6 @@ private: // 使用予定なし
 
 std::ostream &operator<<(std::ostream &os, const Request &request);
 
-std::map<int, string> init_default_error_message();
+std::map<int, std::string> init_default_error_message();
 
 #endif

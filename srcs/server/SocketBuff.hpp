@@ -8,6 +8,7 @@
 class SocketBuff {
 private:
   std::stringstream ss_;
+  size_t kBuffSize = 1024;
 
 public:
   SocketBuff(); // デフォルトコンストラクタ
