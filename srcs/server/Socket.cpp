@@ -166,14 +166,9 @@ ListenSocket::~ListenSocket() {}
 
 void ListenSocket::Passive() {
   struct sockaddr_in sockaddr;
-  uint32_t addr;
-  std::string ip = config_[0].listen_.listen_ip_;
-  int port = config_[0].listen_.listen_port_;
-
   sockaddr.sin_family = AF_INET;
-  ws_inet_addr(addr, ip);
-  sockaddr.sin_addr.s_addr = htonl(addr);
-  sockaddr.sin_port = htons(port);
+  sockaddr.sin_addr.s_addr = config_[0].listen_.sin_addr.s_addr;
+  sockaddr.sin_port = config_[0].listen_.sin_port;
   // Bind server socket to address
   if (bind(fd_, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1) {
     // error handling

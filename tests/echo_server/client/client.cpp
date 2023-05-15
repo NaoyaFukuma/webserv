@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <vector>
 
 #define OK "\033[32mOK\033[0m"
 #define NG "\033[31mNG\033[0m"
@@ -82,6 +83,30 @@ std::string read_socket(int fd) {
   return response;
 }
 
+std::string read_socket(int fd, size_t recv_size, std::string &read_buff) {
+  char buf[BUFF_SIZE];
+  int len = 0;
+  while (read_buff.size() < recv_size) {
+    int recv_ = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
+    if (recv_ == -1) {
+      continue;
+    } else if (recv_ == 0) {
+      if (read_buff.size() < recv_size) {
+        std::string response = read_buff;
+        read_buff = "";
+        std::cerr << "recv == 0 before reading all data" << std::endl;
+        return response;
+      }
+      break;
+    }
+    read_buff += std::string(buf, recv_);
+    len += recv_;
+  }
+  std::string response = read_buff.substr(0, recv_size);
+  read_buff = read_buff.substr(recv_size);
+  return response;
+}
+
 int assert_equal(std::string expected, std::string actual) {
   if (expected == actual) {
     std::cout << OK << std::endl;
@@ -96,62 +121,172 @@ int assert_equal(std::string expected, std::string actual) {
   }
 }
 
-int test(std::string host, std::string port, std::string path,
-         bool shut = false) {
+void print_diff(std::string expected, std::string actual) {
+  std::cout << "Expected: " << std::endl;
+  std::cout << expected << std::endl;
+  std::cout << "Actual: " << std::endl;
+  std::cout << actual << std::endl;
+}
+
+int test_basic(std::string host, std::string port, std::string path,
+               bool shut_ = false) {
   int client_fd = connect_to_server(host, port);
-  std::string request;
   if (client_fd == -1) {
     std::cout << NG << std::endl;
     std::cerr << "Failed to connect to server" << std::endl;
     return FAILURE;
   }
+  std::string request;
   if (read_file(request, path) == FAILURE) {
     std::cout << NG << std::endl;
     std::cerr << "Failed to read request" << std::endl;
     return FAILURE;
   }
   ssize_t len = send(client_fd, request.c_str(), request.size(), 0);
-  if (shut) {
+  if (shut_) {
     shutdown(client_fd, SHUT_WR);
   }
   std::string response = read_socket(client_fd);
   close(client_fd);
+
   return assert_equal(request, response);
+}
+
+int test_multiple_request(std::string host, std::string port, std::string path,
+                          size_t send_, bool shut_ = false,
+                          bool read_ = false) {
+  int client_fd = connect_to_server(host, port);
+  std::string read_buff = "";
+  if (client_fd == -1) {
+    std::cout << NG << std::endl;
+    std::cerr << "Failed to connect to server" << std::endl;
+    return FAILURE;
+  }
+  std::string request;
+  if (read_file(request, path) == FAILURE) {
+    std::cout << NG << std::endl;
+    std::cerr << "Failed to read request" << std::endl;
+    return FAILURE;
+  }
+  for (int i = 0; i < send_; i++) {
+    ssize_t len = send(client_fd, request.c_str(), request.size(), 0);
+    if (read_) {
+      std::string response = read_socket(client_fd, request.size(), read_buff);
+      if (response != request) {
+        std::cout << NG << std::endl;
+        // print_diff(request, response);
+        return FAILURE;
+      }
+    }
+  }
+  if (shut_) {
+    shutdown(client_fd, SHUT_WR);
+  }
+  if (read_) {
+    close(client_fd);
+    if (read_buff == "") {
+      std::cout << OK << std::endl;
+      return SUCCESS;
+    } else {
+      std::cout << NG << std::endl;
+      // print_diff("", read_buff);
+      return FAILURE;
+    }
+  } else {
+    std::string response =
+        read_socket(client_fd, request.size() * send_, read_buff);
+    close(client_fd);
+    std::string expected = "";
+    for (int i = 0; i < send_; i++) {
+      expected += request;
+    }
+    if (response == expected && read_buff == "") {
+      std::cout << OK << std::endl;
+      return SUCCESS;
+    } else {
+      std::cout << NG << std::endl;
+      // print_diff(expected, response + read_buff);
+      return FAILURE;
+    }
+  }
+}
+
+int test_multiple_client(std::string host, std::string port, std::string path,
+                         size_t client_, bool shut_ = false) {
+  std::vector<int> client_fds(client_);
+  for (int i = 0; i < client_; i++) {
+    client_fds[i] = connect_to_server(host, port);
+    if (client_fds[i] == -1) {
+      std::cout << NG << std::endl;
+      std::cerr << "Failed to connect to server" << std::endl;
+      return FAILURE;
+    }
+  }
+  std::string request = "";
+  if (read_file(request, path) == FAILURE) {
+    std::cout << NG << std::endl;
+    std::cerr << "Failed to read request" << std::endl;
+    return FAILURE;
+  }
+  for (int i = 0; i < client_; i++) {
+    ssize_t len = send(client_fds[i], request.c_str(), request.size(), 0);
+    if (shut_) {
+      shutdown(client_fds[i], SHUT_WR);
+    }
+  }
+  for (int i = 0; i < client_; i++) {
+    std::string response = "";
+    std::string read_buff = "";
+    response = read_socket(client_fds[i], request.size(), read_buff);
+    close(client_fds[i]);
+    if (response != request || read_buff != "") {
+      std::cout << NG << std::endl;
+      // print_diff(request, response);
+      return FAILURE;
+    }
+  }
+  std::cout << OK << std::endl;
+  return SUCCESS;
 }
 
 int test1() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/404.txt";
-  return test(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test2() {
   std::string host = "webserv";
   std::string port = "8000";
   std::string path = "./request/404.txt";
-  return test(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test3() {
   std::string host = "webserv";
   std::string port = "9090";
   std::string path = "./request/404.txt";
-  return test(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test4() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  return test(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 int test5() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len3072.txt";
-  return test(host, port, path);
+  bool shut_ = false;
+  return test_basic(host, port, path, shut_);
 }
 
 // test when shutdown client socket
@@ -159,21 +294,86 @@ int test6() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/404.txt";
-  return test(host, port, path, true);
+  bool shut_ = true;
+  return test_basic(host, port, path, shut_);
 }
 
 int test7() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  return test(host, port, path, true);
+  bool shut_ = true;
+  return test_basic(host, port, path, shut_);
 }
 
 int test8() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len3072.txt";
-  return test(host, port, path, true);
+  bool shut_ = true;
+  return test_basic(host, port, path, shut_);
+}
+
+// test when client send many requests
+#define SEND 1000
+int test9() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t send_ = SEND;
+  bool shut_ = true;
+  bool read_ = true;
+  return test_multiple_request(host, port, path, send_, shut_, read_);
+}
+
+int test10() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t send_ = SEND;
+  bool shut_ = false;
+  bool read_ = true;
+  return test_multiple_request(host, port, path, send_, shut_, read_);
+}
+
+int test11() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t send_ = SEND;
+  bool shut_ = true;
+  bool read_ = false;
+  return test_multiple_request(host, port, path, send_, shut_, read_);
+}
+
+int test12() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t send_ = SEND;
+  bool shut_ = false;
+  bool read_ = false;
+  return test_multiple_request(host, port, path, send_, shut_, read_);
+}
+
+// test when many clients send requests
+#define CLIENT 1000
+int test13() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t client_ = CLIENT;
+  bool shut_ = true;
+  return test_multiple_client(host, port, path, client_, shut_);
+}
+
+int test14() {
+  std::string host = "webserv";
+  std::string port = "8080";
+  std::string path = "./request/len4096.txt";
+  size_t client_ = CLIENT;
+  bool shut_ = false;
+  return test_multiple_client(host, port, path, client_, shut_);
 }
 
 int main() {
@@ -185,4 +385,10 @@ int main() {
   EXEC_TEST(test6());
   EXEC_TEST(test7());
   EXEC_TEST(test8());
+  EXEC_TEST(test9());
+  EXEC_TEST(test10());
+  EXEC_TEST(test11());
+  EXEC_TEST(test12());
+  EXEC_TEST(test13());
+  EXEC_TEST(test14());
 }

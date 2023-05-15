@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
   try {
     Config config;
     Epoll epoll;
-    ParseConfig(config, argv[1]);
+    config.ParseConfig(argv[1]);
     // std::cout << config << std::endl;
     epoll.RegisterListenSocket(config);
     epoll.EventLoop();

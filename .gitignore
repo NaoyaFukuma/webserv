@@ -7,3 +7,4 @@ CMakeLists.txt
 cmake-build-debug
 webserv
 .vscode
+test_main.cpp

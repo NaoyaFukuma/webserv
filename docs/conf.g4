@@ -71,11 +71,11 @@ is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE;
 
 cgi_path_directive: 'cgi_path' PATH END_DIRECTIVE;
 
-return_directive: 'return' STATUS_CODE? (URL | TEXT) END_DIRECTIVE;
+return_directive: 'return' STATUS_CODE? (URL | TEXT)? END_DIRECTIVE;
 
 ON_OFF: 'on' | 'off';
 METHOD: 'GET' | 'POST' | 'DELETE';
-PATH: ('/' ALPHABET (ALPHABET | NUMBER | '/' | '.' | '_' | '-')*)?;
+PATH: ('/' (ALPHABET | NUMBER | '.' | '_' | '-' | '~' | '+' | '%' | '@' | '#' | '$' | '&' | ',' | ';' | '=' | ':' | '|' | '^' | '!' | '*' | '`' | '(' | ')' | '{' | '}' | '[' | ']' | '<' | '>' | '?')*)?;
 URL: ('http' | 'https') '://' DOMAIN_NAME ('/');
 DOMAIN_NAME: DOMAIN_LABEL ('.' DOMAIN_LABEL)*;
 IP_ADDR: NUMBER+ '.' NUMBER+ '.' NUMBER+ '.' NUMBER+;
