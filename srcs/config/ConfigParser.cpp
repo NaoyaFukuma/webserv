@@ -20,7 +20,25 @@ ConfigParser::ConfigParser(const char *filepath)
 
 ConfigParser::~ConfigParser() {}
 
+// コンストラクタ内で使用
+std::string GetFileExt(const char *filepath) {
+  std::string path(filepath);
+  std::string::size_type idx = path.rfind('.');
+  if (idx == std::string::npos) {
+    return "";
+  }
+  return path.substr(idx + 1);
+}
+
+// コンストラクタ内で使用
 std::string ConfigParser::LoadFile(const char *filepath) {
+  // filepathの拡張子を確認
+  std::string ext = GetFileExt(filepath);
+  if (ext != "conf") {
+    throw ParserException("Config Error: invalid file extension: %s", ext);
+  }
+
+  // ファイルを読み込み、stringに変換
   std::string dest;
   std::ifstream ifs(filepath);
   std::stringstream buffer;
