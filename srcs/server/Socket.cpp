@@ -190,6 +190,11 @@ ConnSocket *ListenSocket::Accept() {
     delete conn_socket;
     return NULL;
   }
+  int yes = 1;
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
+    delete conn_socket;
+    return NULL;
+  }
   conn_socket->SetFd(fd);
   return conn_socket;
 }
