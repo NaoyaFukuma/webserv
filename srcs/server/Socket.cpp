@@ -62,7 +62,7 @@ int ConnSocket::OnReadable(Epoll *epoll) {
     rdhup_ = true;
   }
 
-  while (recv_buffer_.FindString("\r\n\r\n") >= 0) {
+  while (recv_buffer_.FindString("\r\n") >= 0) {
     if (request_.empty() || request_.back().GetStatus() == COMPLETE ||
         request_.back().GetStatus() == ERROR) {
       request_.push_back(Request());
