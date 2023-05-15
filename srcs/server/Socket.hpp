@@ -2,6 +2,7 @@
 #define SOCKET_HPP_
 
 #include "Config.hpp"
+#include "Request.hpp"
 #include "SocketBuff.hpp"
 #include <deque>
 #include <netinet/in.h>
@@ -46,7 +47,7 @@ private:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
   bool rdhup_; // RDHUPが発生したかどうか
-  // std::deque<Request> requests_;
+  std::deque<Request> requests_;
 
 public:
   ConnSocket(std::vector<Vserver> config);

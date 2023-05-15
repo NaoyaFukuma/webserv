@@ -29,7 +29,7 @@ void Request::SetError(int error_status) {
   parse_status_ = ERROR;
 }
 
-void Request::Parse(IOBuff &buffer_) {
+void Request::Parse(SocketBuff &buffer_) {
   std::string line;
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
          buffer_.GetUntilCRLF(line)) {
