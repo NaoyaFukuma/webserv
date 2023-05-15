@@ -47,7 +47,7 @@ test_echo:
 unit-test:
 	(mkdir -p unit-test/build && \
 	cd unit-test/build && \
-	cmake .. -DBUILD_CONF_UNIT_TESTS=ON && \
+	cmake .. -DBUILD_CONF_UNIT_TESTS=OFF && \
 	make 2> /dev/null && \
 	if [ "$(TEST_CASE)" != "" ]; then \
 		ctest -V -R $(TEST_CASE); \

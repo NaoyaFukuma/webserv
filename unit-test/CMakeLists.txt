@@ -32,8 +32,8 @@ set(UTILS_SOURCE_FILES
 # Create libraries
 add_library(MyConfigLib ${CONFIG_SOURCE_FILES})
 # 指定がない場合はインクルードしない
-option(BUILD_CONF_UNIT_TESTS "Build the unit tests" OFF)
-if(NOT DEFINED BUILD_CONF_UNIT_TESTS)
+option(BUILD_CONF_UNIT_TESTS "Build the unit tests" ON)
+if(BUILD_CONF_UNIT_TESTS)
     add_library(MyServerLib ${SERVER_SOURCE_FILES})
 else()
     message(STATUS "Skipping server directory for unit test build")
