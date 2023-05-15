@@ -7,7 +7,7 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define CASE1 "../../../unit-test/config/test_config_files/custom/case1.conf"
+#define CASE1 "../../unit-test/config/test_config_files/custom/case1.conf"
 
 /* ================================== CASE1 ================================== */
 
