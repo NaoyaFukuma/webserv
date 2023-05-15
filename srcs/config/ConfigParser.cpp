@@ -49,7 +49,7 @@ void ConfigParser::Parse(Config &config) {
 void ConfigParser::ParseServer(Config &config) {
   Vserver server;
 
-  this->SkipSpaces();
+  this->SkipSpaces(true);
   this->Expect('{');
   while (!this->IsEof() && *it_ != '}') {
     this->SkipSpaces();
