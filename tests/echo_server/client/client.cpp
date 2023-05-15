@@ -86,7 +86,14 @@ std::string read_socket(int fd) {
 std::string read_socket(int fd, size_t recv_size, std::string &read_buff) {
   char buf[BUFF_SIZE];
   int len = 0;
+  time_t start = time(NULL);
   while (read_buff.size() < recv_size) {
+    if (time(NULL) - start > 10) {
+      std::cerr << "timeout" << std::endl;
+      std::string response = read_buff;
+      read_buff = "";
+      return response;
+    }
     int recv_ = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
     if (recv_ == -1) {
       continue;
@@ -168,8 +175,9 @@ int test_multiple_request(std::string host, std::string port, std::string path,
     std::cerr << "Failed to read request" << std::endl;
     return FAILURE;
   }
+  ssize_t len = 0;
   for (int i = 0; i < send_; i++) {
-    ssize_t len = send(client_fd, request.c_str(), request.size(), 0);
+    len += send(client_fd, request.c_str(), request.size(), 0);
     if (read_) {
       std::string response = read_socket(client_fd, request.size(), read_buff);
       if (response != request) {
@@ -200,6 +208,8 @@ int test_multiple_request(std::string host, std::string port, std::string path,
     for (int i = 0; i < send_; i++) {
       expected += request;
     }
+    std::cout << "expected: " << expected.size()
+              << " actual: " << response.size() << std::endl;
     if (response == expected && read_buff == "") {
       std::cout << OK << std::endl;
       return SUCCESS;
