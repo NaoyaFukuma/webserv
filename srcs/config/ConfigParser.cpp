@@ -374,7 +374,7 @@ void ConfigParser::AssertTimeOut(int &dest_timeout,
 
 void ConfigParser::AssertLocation(const Location &location) {
   // location path 有効かチェック
-  if (this->IsValidPath(location.path_)) {
+  if (!this->IsValidPath(location.path_)) {
     throw ParserException(ERR_MSG, "location path is invalid");
   }
   if (location.match_ == PREFIX &&
