@@ -63,22 +63,22 @@ int ConnSocket::OnReadable(Epoll *epoll) {
   }
 
   while (recv_buffer_.FindString("\r\n") >= 0) {
-    if (request_.empty() || request_.back().GetStatus() == COMPLETE ||
-        request_.back().GetStatus() == ERROR) {
-      request_.push_back(Request());
+    if (requests_.empty() || requests_.back().GetStatus() == COMPLETE ||
+        requests_.back().GetStatus() == ERROR) {
+      requests_.push_back(Request());
     }
-    request_.back().Parse(recv_buffer_);
+    requests_.back().Parse(recv_buffer_);
   }
 
-  for (std::deque<Request>::iterator it = request_.begin();
-       it != request_.end();) {
+  for (std::deque<Request>::iterator it = requests_.begin();
+       it != requests_.end();) {
     if (it->GetStatus() == COMPLETE || it->GetStatus() == ERROR) {
       Response response = ProcessRequest(*it, config_);
       send_buffer_.AddString(response.GetString());
       epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
       last_event_.out_time = time(NULL);
       std::deque<Request>::iterator tmp = it + 1;
-      request_.erase(it);
+      requests_.erase(it);
       it = tmp;
     } else {
       it++;
