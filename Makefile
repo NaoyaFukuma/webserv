@@ -23,7 +23,7 @@ $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	$(RM) -r $(OBJS_DIR)
+	$(RM) -r $(OBJS_DIR) unit-test/build
 
 fclean: clean
 	$(RM) $(NAME)
@@ -44,4 +44,21 @@ test_echo:
 # 必要に応じて以下を追加
 # docker-compose logs webserv &&
 
-.PHONY: docker
+unit-test:
+	(mkdir -p unit-test/build && \
+	cd unit-test/build && \
+	cmake .. -DBUILD_CONF_UNIT_TESTS=OFF && \
+	make 2> /dev/null && \
+	if [ "$(TEST_CASE)" != "" ]; then \
+		ctest -V -R $(TEST_CASE); \
+	else \
+		ctest -E "case" && \
+		for test in $$(ctest -N | grep case | awk '{print $$3}'); do \
+			ctest -V -R $$test; \
+		done \
+	fi)
+
+# unit-testのみで実行すると全てのテストが走ります
+# TEST_CASEにテストケース名を指定するとそのテストのみ実行されます
+
+.PHONY: docker test_echo unit-test

@@ -1,10 +1,9 @@
 *.out
 *.o
 
-CMakeLists.txt
-*/CMakeLists.txt
 .idea
 cmake-build-debug
 webserv
 .vscode
 test_main.cpp
+build

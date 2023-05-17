@@ -35,7 +35,7 @@ std::string ConfigParser::LoadFile(const char *filepath) {
   // filepathの拡張子を確認
   std::string ext = GetFileExt(filepath);
   if (ext != "conf") {
-    throw ParserException("Config Error: invalid file extension: %s", ext);
+    throw ParserException("Config Error: invalid file extension: %s", ext.c_str());
   }
 
   // ファイルを読み込み、stringに変換
@@ -374,7 +374,7 @@ void ConfigParser::AssertTimeOut(int &dest_timeout,
 
 void ConfigParser::AssertLocation(const Location &location) {
   // location path 有効かチェック
-  if (this->IsValidPath(location.path_)) {
+  if (!this->IsValidPath(location.path_)) {
     throw ParserException(ERR_MSG, "location path is invalid");
   }
   if (location.match_ == PREFIX &&
