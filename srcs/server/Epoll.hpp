@@ -11,9 +11,9 @@ class Epoll {
 private:
   int epoll_fd_;
   std::map<int, ASocket *> fd_to_socket_;
-  static const int epoll_timeout_ = 100;
-  static const int socket_timeout_ = 10;
-  static const int max_events_ = 10;
+  static const int kEpollTimeout = 100;
+  static const int kSocketTimeout = 10;
+  static const int kMaxEvents = 10;
 
   void CheckTimeout();
 
