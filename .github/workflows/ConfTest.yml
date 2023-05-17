@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "::group::Building"
           cd unit-test/build
-          make
+          make 2>/dev/null
           echo "::endgroup::"
 
       - name: Test
