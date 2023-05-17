@@ -11,7 +11,7 @@ SocketBuff::~SocketBuff() {} // デストラクタ
 
 // FAILURE: socketを閉じる, SUCCESS: socketを閉じない
 int SocketBuff::ReadSocket(int fd) {
-  char buf[1024];
+  char buf[kBuffSize];
   ssize_t len;
 
   while (true) {

@@ -61,26 +61,30 @@ int ConnSocket::OnReadable(Epoll *epoll) {
   if (recv_buffer_.ReadSocket(fd_) == FAILURE) {
     rdhup_ = true;
   }
-  size_t before_sum =
-      recv_buffer_.GetString().size() + send_buffer_.GetString().size();
-  send_buffer_.AddString(recv_buffer_.GetString());
-  std::cout << time(NULL) << " after_addstring: "
-            << (before_sum - send_buffer_.GetString().size()) << std::endl;
-  recv_buffer_.ClearBuff();
-  epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-  if (last_event_.out_time == -1) {
-    last_event_.out_time = time(NULL);
+
+  while (recv_buffer_.FindString("\r\n") >= 0) {
+    if (requests_.empty() || requests_.back().GetStatus() == COMPLETE ||
+        requests_.back().GetStatus() == ERROR) {
+      requests_.push_back(Request());
+    }
+    requests_.back().Parse(recv_buffer_);
+  }
+
+  for (std::deque<Request>::iterator it = requests_.begin();
+       it != requests_.end();) {
+    if (it->GetStatus() == COMPLETE || it->GetStatus() == ERROR) {
+      Response response = ProcessRequest(*it, config_);
+      send_buffer_.AddString(response.GetString());
+      epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+      last_event_.out_time = time(NULL);
+      std::deque<Request>::iterator tmp = it + 1;
+      requests_.erase(it);
+      it = tmp;
+    } else {
+      it++;
+    }
   }
   return SUCCESS;
-
-  // Todo: requestのparse
-  // request_.Parse(recv_buffer_);
-  // if (request_.GetStatus() == COMPLETE || request_.GetStatus() == ERROR) {
-  //   // Response response = ProcessRequest(request_, config_);
-  //   // send_buffer_.AddString(response.GetString());
-  //   std::cout << request_ << std::endl;
-  //   request_.Clear();
-  // }
 }
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
