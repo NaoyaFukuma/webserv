@@ -140,7 +140,20 @@ void Request::ResolvePath(Config config) {
   // locationを決定
   std::vector<Location> locations = context_.vserver->locations_;
   // locationsのpathをキーにmapに変換
+  std::map<std::string, Location> location_map;
+  for (std::vector<Location>::iterator it = locations.begin();
+       it != locations.end(); it++) {
+    location_map[it->path_] = *it;
+  }
   // context_.resource_path.uri.pathの最後の/までの部分文字列をキーにする
+  std::string path = context_.resource_path.uri.path;
+  std::vector<std::string> keys;
+  for (std::string::iterator it = path.begin(); it != path.end(); it++) {
+    if (*it == '/') {
+      keys.push_back(path.substr(0, it - path.begin() + 1));
+    }
+  }
+
   // "location /"があることを保証するので、必ずキーが存在する
 }
 

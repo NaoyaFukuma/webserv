@@ -9,15 +9,35 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
     std::size_t host_end = src.find('/', host_start);
     if (host_end == std::string::npos)
       return false;
-    dst.host = src.substr(host_start, host_end - host_start);
-    std::size_t port_pos = dst.host.find(':');
-    if (port_pos != std::string::npos) {
-      dst.port = dst.host.substr(port_pos + 1);
-      dst.host = dst.host.substr(0, port_pos);
+
+    std::string authority = src.substr(host_start, host_end - host_start);
+    std::size_t userinfo_pos = authority.find('@');
+    if (userinfo_pos != std::string::npos) {
+      std::string userinfo = authority.substr(0, userinfo_pos);
+      std::size_t pass_pos = userinfo.find(':');
+      if (pass_pos != std::string::npos) {
+        dst.user = userinfo.substr(0, pass_pos);
+        dst.pass = userinfo.substr(pass_pos + 1);
+      } else {
+        dst.user = userinfo;
+      }
+      authority = authority.substr(userinfo_pos + 1);
     }
+
+    std::size_t port_pos = authority.find(':');
+    if (port_pos != std::string::npos) {
+      dst.port = authority.substr(port_pos + 1);
+      dst.host = authority.substr(0, port_pos);
+    } else {
+      dst.host = authority;
+    }
+  } else {
+    // relative path, all string considered path
+    dst.path = src;
+    return src[0] == '/';
   }
 
-  // absolute path or the path part of absolute URI
+  // the path part of absolute URI
   std::size_t path_start =
       (scheme_pos == std::string::npos) ? 0 : src.find('/', scheme_pos + 3);
   std::size_t path_end = src.find('?', path_start);
@@ -41,6 +61,7 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
   if (fragment_start != std::string::npos) {
     dst.fragment = src.substr(fragment_start + 1);
   }
+
   return true;
 }
 
