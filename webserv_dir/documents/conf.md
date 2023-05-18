@@ -83,6 +83,8 @@ webservで用いる設定ファイルについての解説。
 - Multiple: true
 - Syntax: `'location' PATH '{' directive_in_location+ '}'`;
 - 概要: 特定のパスに対する設定を定義します。
+PATH に`/`を指定したものが存在しない場合、エラーとして扱います。
+serverへルーティングしたあと、locationへルーティングできないケースが無いことを保証するため。
 
 
 ### directive_in_location

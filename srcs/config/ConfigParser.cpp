@@ -298,9 +298,19 @@ void ConfigParser::AssertServer(const Vserver &server) {
   if (server.server_names_.empty()) {
     throw ParserException(ERR_MSG, "server name is not set");
   }
+  // location が設定されているかを確認
   if (server.locations_.empty()) {
     throw ParserException(ERR_MSG, "location is not set");
   }
+  // location path に / があることを保証する
+  for (std::vector<Location>::size_type i = 0; i < server.locations_.size();
+       i++) {
+    if (server.locations_[i].path_ == "/") { // / があればOKなのでreturn
+      return;
+    }
+  }
+  // for文を抜けてきた場合、/ がないのでエラー
+  throw ParserException(ERR_MSG, "location / is not set");
 }
 
 void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
