@@ -294,13 +294,29 @@ void ConfigParser::AssertConfig(const Config &config) {
   }
 }
 
-void ConfigParser::AssertServer(const Vserver &server) {
+void ConfigParser::AssertServer(Vserver &server) {
   if (server.server_names_.empty()) {
     throw ParserException(ERR_MSG, "server name is not set");
   }
+  // location が設定されているかを確認
   if (server.locations_.empty()) {
     throw ParserException(ERR_MSG, "location is not set");
   }
+  // location path に / があることを保証する
+  for (std::vector<Location>::size_type i = 0; i < server.locations_.size();
+       i++) {
+    if (server.locations_[i].path_ == "/") { // / があればOKなのでreturn
+      // /のlocationを先頭に持ってくる
+      // c++98ではswapが使えないので、 tmpを使ってswapする
+      Location tmp = server.locations_[0];
+      server.locations_[0] = server.locations_[i];
+      server.locations_[i] = tmp;
+
+      return;
+    }
+  }
+  // for文を抜けてきた場合、/ がないのでエラー
+  throw ParserException(ERR_MSG, "location / is not set");
 }
 
 void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
@@ -510,6 +526,17 @@ void ConfigParser::AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
     throw ParserException(
         ERR_MSG, (cgi_extension + " is Invalid cgi extension").c_str());
   }
+
+  // 拡張子で使えない文字が含まれていないかチェック '/' は使えない
+  for (size_t i = 0; i < cgi_extension.size(); i++) {
+    if (cgi_extension[i] == '/') {
+      throw ParserException(
+          ERR_MSG,
+          (cgi_extension + " is Invalid cgi extension. use Invalid character.")
+              .c_str());
+    }
+  }
+  // '/'が含まれていないことを保証したうえで、Linux ファイルシステムの制約に従う
   if (this->IsValidPath(cgi_extension)) {
     cgi_extensions_.push_back(cgi_extension);
   } else {
