@@ -23,7 +23,6 @@ Location::Location() {
   this->allow_methods_.insert(POST);
   this->allow_methods_.insert(DELETE);
   this->client_max_body_size_ = 1 * 1024 * 1024; // 1MB
-  this->is_cgi_ = false;
   this->autoindex_ = false;
   this->return_.return_type_ = RETURN_EMPTY;
 }
