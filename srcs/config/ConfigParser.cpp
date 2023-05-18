@@ -294,7 +294,7 @@ void ConfigParser::AssertConfig(const Config &config) {
   }
 }
 
-void ConfigParser::AssertServer(const Vserver &server) {
+void ConfigParser::AssertServer(Vserver &server) {
   if (server.server_names_.empty()) {
     throw ParserException(ERR_MSG, "server name is not set");
   }
@@ -307,10 +307,10 @@ void ConfigParser::AssertServer(const Vserver &server) {
        i++) {
     if (server.locations_[i].path_ == "/") { // / があればOKなのでreturn
       // /のlocationを先頭に持ってくる
-      // c++98ではswapが使えないので、一旦tmpに入れる
-      Location tmp = server.locations_[i];
-      server.locations_.erase(server.locations_.begin() + i);
-      server.locations_.insert(server.locations_.begin(), tmp);
+      // c++98ではswapが使えないので、 tmpを使ってswapする
+      Location tmp = server.locations_[0];
+      server.locations_[0] = server.locations_[i];
+      server.locations_[i] = tmp;
 
       return;
     }

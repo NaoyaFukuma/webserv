@@ -53,7 +53,7 @@ private:
 
   // validator
   void AssertConfig(const Config &config);
-  void AssertServer(const Vserver &server);
+  void AssertServer(Vserver &server);
   void AssertListen(struct sockaddr_in &dest_listen,
                     const std::string &listen_str);
   void AssertServerName(const std::string &server_name);
