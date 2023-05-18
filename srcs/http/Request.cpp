@@ -1,5 +1,5 @@
 #include "Request.hpp"
-#include "HttpUtils.hpp"
+#include "Http.hpp"
 #include "utils.hpp"
 
 Request::Request() {

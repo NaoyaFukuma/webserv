@@ -1,6 +1,6 @@
-#include "HttpUtils.hpp"
+#include "Http.hpp"
 
-bool HttpUtils::SplitURI(URI &dst, const std::string &src) {
+bool Http::SplitURI(URI &dst, const std::string &src) {
   std::size_t scheme_pos = src.find("://");
   if (scheme_pos != std::string::npos) {
     // absolute URI

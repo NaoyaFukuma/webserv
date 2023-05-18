@@ -1,8 +1,8 @@
-#ifndef HTTPUTILS_HPP_
-#define HTTPUTILS_HPP_
+#ifndef HTTP_HPP_
+#define HTTP_HPP_
 #include <string>
 
-namespace HttpUtils {
+namespace Http {
 struct URI {
   std::string scheme;
   std::string host;
@@ -12,7 +12,13 @@ struct URI {
   std::string fragment;
 };
 
+enum Version {
+  HTTP09,
+  HTTP10,
+  HTTP11,
+};
+
 bool SplitURI(URI &dst, const std::string &src);
-}; // namespace HttpUtils
+}; // namespace Http
 
 #endif // HTTPUTILS_HPP_

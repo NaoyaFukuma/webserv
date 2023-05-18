@@ -2,7 +2,7 @@
 #define REQUEST_HPP_
 
 #include "Config.hpp"
-#include "HttpUtils.hpp"
+#include "Http.hpp"
 #include "SocketBuff.hpp"
 #include <map>
 #include <string>
@@ -17,13 +17,7 @@ struct RequestMessage {
 struct RequestLine {
   std::string method;
   std::string uri;
-  HTTPVersion version;
-};
-
-enum HTTPVersion {
-  HTTP09,
-  HTTP10,
-  HTTP11,
+  Http::Version version;
 };
 
 typedef std::map<std::string, std::vector<std::string>> Header;
@@ -48,7 +42,7 @@ private:
 };
 
 struct ResourcePath {
-  HttpUtils::URI uri;
+  Http::URI uri;
   std::string server_path;
   std::string query;
   std::string path_info;
