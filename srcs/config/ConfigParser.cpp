@@ -306,6 +306,12 @@ void ConfigParser::AssertServer(const Vserver &server) {
   for (std::vector<Location>::size_type i = 0; i < server.locations_.size();
        i++) {
     if (server.locations_[i].path_ == "/") { // / があればOKなのでreturn
+      // /のlocationを先頭に持ってくる
+      // c++98ではswapが使えないので、一旦tmpに入れる
+      Location tmp = server.locations_[i];
+      server.locations_.erase(server.locations_.begin() + i);
+      server.locations_.insert(server.locations_.begin(), tmp);
+
       return;
     }
   }
