@@ -52,6 +52,13 @@ struct ResourcePath {
   std::string path_info;
 };
 
+struct Context {
+  Vserver *vserver_;
+  Location *location_;
+  ResourcePath resource_path_;
+  bool is_cgi_;
+};
+
 class Request {
 private:
   RequestMessage message_;
@@ -60,10 +67,7 @@ private:
   int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
   static const size_t kMaxHeaderSize = 8192; // 8KB
 
-  Vserver *vserver_;
-  Location *location_;
-  ResourcePath resource_path_;
-  bool is_cgi_;
+  Context context_; // ResolvePath()で設定される
 
   void ParseLine(const std::string &line);
   void ParseRequestLine(const std::string &line);
@@ -84,9 +88,8 @@ public:
   void Parse(SocketBuff &buffer_);
   void Clear();
 
-  void ResolvePath();
-  ResourcePath GetResourcePath() const;
-  bool IsCgi() const;
+  void ResolvePath(Config config);
+  Context GetContext() const;
 
 private: // 使用予定なし
   Request(const Request &src);
