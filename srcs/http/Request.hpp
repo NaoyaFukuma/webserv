@@ -1,6 +1,7 @@
 #ifndef _REQUEST_HPP_
 #define _REQUEST_HPP_
 
+#include "Config.hpp"
 #include "SocketBuff.hpp"
 #include <map>
 #include <string>
@@ -24,47 +25,7 @@ enum HTTPVersion {
   HTTP11,
 };
 
-struct Header {
-  // General Header
-  std::string Accept;
-  std::string AcceptCharset;
-  std::string AcceptEncoding;
-  std::string AcceptLanguage;
-  std::string Authorization;
-  std::string From;
-  std::string Host;
-  std::string IfModifiedSince;
-  std::string IfUnmodifiedSince;
-  std::string IfMatch;
-  std::string IfNoneMatch;
-  std::string IfRange;
-  std::string MaxForwards;
-  std::string ProxyAuthorization;
-  std::string Range;
-  std::string Referer;
-  std::string UserAgent;
-
-  // Request Header
-  std::string Connection;
-  std::string Date;
-  std::string Pragma;
-  std::string TransferEncoding;
-  std::string Upgrade;
-  std::string Via;
-
-  // Entity Header
-  std::string Allow;
-  std::string ContentBase;
-  std::string ContentEncoding;
-  std::string ContentLanguage;
-  int ContentLength;
-  std::string ContentLocation;
-  std::string ContentMD5;
-  std::string ContentRange;
-  std::string ContentType;
-  std::string Etag;
-  std::string LastModified;
-};
+typedef std::map<std::string, std::vector<std::string>> Header;
 
 enum ParseStatus {
   INIT,
@@ -85,12 +46,23 @@ private:
       : status_code(status_code), message(message) {}
 };
 
+struct ResourcePath {
+  std::string server_path;
+  std::string query;
+  std::string path_info;
+};
+
 class Request {
 private:
   RequestMessage message_;
   ParseStatus parse_status_;
   HttpError error_status_;
   int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+  static const size_t kMaxHeaderSize = 8192; // 8KB
+
+  Vserver *vserver_;
+  Location *location_;
+  ResourcePath resource_path_;
 
   void ParseLine(const std::string &line);
   void ParseRequestLine(const std::string &line);
@@ -98,6 +70,7 @@ private:
   void ParseBody(const std::string &line);
 
   void SetError(int status, std::string message);
+  void SetError(int status);
 
 public:
   Request();
