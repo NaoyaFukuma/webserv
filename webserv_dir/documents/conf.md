@@ -136,7 +136,7 @@ webservで用いる設定ファイルについての解説。
 - 概要: リクエストURIを置換する。
 例）
 location /images/,  root /data
-リクエスト'/images/cat.jpg' -> '/data/imeges/cat.jpg'
+リクエスト'/images/cat.jpg' -> '/data/images/cat.jpg'
 サーバーが稼働している環境のファイルシステムの絶対パスが完成する。
 注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 
