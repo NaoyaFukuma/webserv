@@ -46,8 +46,7 @@ private:
   void ParseClientMaxBodySize(Location &location);
   void ParseRoot(Location &location);
   void ParseIndex(Location &location);
-  void ParseIsCgi(Location &location);
-  void ParseCgiPath(Location &location);
+  void ParseCgiExtension(Location &location);
   void ParseErrorPages(Location &location);
   void ParseAutoIndex(Location &location);
   void ParseReturn(Location &location);
@@ -68,7 +67,9 @@ private:
                                const std::string &size_str);
   void AssertRoot(const std::string &root);
   void AssertIndex(const std::string &index);
-  void AssertCgiPath(const std::string &cgi_path);
+  void AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
+                          const std::string &cgi_extension);
+  void AssertCgiExtensions(std::vector<std::string> &cgi_extensions_);
   void AssertErrorPages(std::map<int, std::string> &dest_error_pages,
                         const std::vector<int> error_codes,
                         const std::string &error_page_str);
