@@ -63,6 +63,7 @@ private:
   Vserver *vserver_;
   Location *location_;
   ResourcePath resource_path_;
+  bool is_cgi_;
 
   void ParseLine(const std::string &line);
   void ParseRequestLine(const std::string &line);
@@ -82,6 +83,10 @@ public:
   int GetErrorStatus() const;
   void Parse(SocketBuff &buffer_);
   void Clear();
+
+  void ResolvePath();
+  ResourcePath GetResourcePath() const;
+  bool IsCgi() const;
 
 private: // 使用予定なし
   Request(const Request &src);
