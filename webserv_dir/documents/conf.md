@@ -24,7 +24,7 @@ webservで用いる設定ファイルについての解説。
            - [root_directive](#root_directive)
            - [index_directive](#index_directive)
            - [autoindex_directive](#autoindex_directive)
-           - [is_cgi_directive](#is_cgi_directive)
+           - [cgi_extension](#cgi_extension)
            - [return_directive](#return_directive)
 
 ### config
@@ -96,8 +96,7 @@ webservで用いる設定ファイルについての解説。
     | client_max_body_size_directive
     | root_directive
     | index_directive
-    | is_cgi_directive
-    | cgi_path_directive
+    | cgi_extension
     | error_page_directive
     | autoindex_directive
     | return_directive;
@@ -148,19 +147,14 @@ location /images/,  root /data
 注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 相対パスを指定し、rootディレクティブのPATHを起点にします。
 
-### is_cgi_directive
+### cgi_extension
 - Required: false
 - Multiple: false
-- Syntax: `is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE`
-- 概要: ONの場合、このlocation に入ってきたリクエストはCGIへのリクエストと解釈します。
-注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
-指定が無い場合、OFFをデフォルトの設定として採用。
-
-### cgi_path_directive
-- Required: true ※is_cgiがONなら必須
-- Multiple: false
-- Syntax: `is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE`
-- 概要: cgiで実行するアプリケーション（execveなどの第一引数）。
+- Syntax: `cgi_extension: 'cgi_extension' '.' (ALPHABET | NUMBER)* END_DIRECTIVE`
+- 概要: cgiスクリプトを特定する際に使用する。
+また、このディレクティブがあるlocationディレクティブルーティングされた場合、cgiスクリプトの実行を許容することも包含している。
+cgiスクリプトの位置は、location path 直下だけでなく、サブディレクトリ以下も含む。
+拡張子の限定を設けずに、CGIスクリプトの実行を許容したい場合、'.'だけを置くことを許容する。
 注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
 
 ### autoindex_directive
