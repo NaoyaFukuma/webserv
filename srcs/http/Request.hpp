@@ -1,7 +1,8 @@
-#ifndef _REQUEST_HPP_
-#define _REQUEST_HPP_
+#ifndef REQUEST_HPP_
+#define REQUEST_HPP_
 
 #include "Config.hpp"
+#include "HttpUtils.hpp"
 #include "SocketBuff.hpp"
 #include <map>
 #include <string>
@@ -47,16 +48,17 @@ private:
 };
 
 struct ResourcePath {
+  HttpUtils::URI uri;
   std::string server_path;
   std::string query;
   std::string path_info;
 };
 
 struct Context {
-  Vserver *vserver_;
-  Location *location_;
-  ResourcePath resource_path_;
-  bool is_cgi_;
+  Vserver *vserver;
+  Location *location;
+  ResourcePath resource_path;
+  bool is_cgi;
 };
 
 class Request {
@@ -87,8 +89,8 @@ public:
   int GetErrorStatus() const;
   void Parse(SocketBuff &buffer_);
   void Clear();
-
   void ResolvePath(Config config);
+
   Context GetContext() const;
 
 private: // 使用予定なし

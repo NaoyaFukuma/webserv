@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "HttpUtils.hpp"
 #include "utils.hpp"
 
 Request::Request() {
@@ -96,6 +97,53 @@ void Request::ParseHeader(const std::string &line) {}
 void Request::ParseBody(const std::string &line) {}
 
 void Request::Clear() { *this = Request(); }
+
+void Request::ResolvePath(Config config) {
+  if (HttpUtils::SplitURI(context_.resource_path.uri,
+                          message_.request_line.uri) == false) {
+    SetError(400);
+    return;
+  }
+  context_.resource_path.query = context_.resource_path.uri.query;
+
+  // hostを決定
+  std::string host;
+  if (!context_.resource_path.uri.host.empty()) {
+    host = context_.resource_path.uri.host;
+  }
+  if (message_.header.find("Host") != message_.header.end()) {
+    host = message_.header["Host"][0];
+  }
+
+  // vserverを決定
+  std::vector<Vserver> vservers = config.GetServerVec();
+  if (host.empty()) {
+    context_.vserver = config.GetDefaultServer();
+  } else {
+    for (std::vector<Vserver>::iterator itv = vservers.begin();
+         itv != vservers.end(); itv++) {
+      for (std::vector<std::string>::iterator its = itv->server_names_.begin();
+           its != itv->server_names_.end(); its++) {
+        if (*its == host) {
+          context_.vserver = &(*itv);
+          break;
+        }
+      }
+      if (context_.vserver != NULL) {
+        break;
+      }
+    }
+    if (context_.vserver == NULL) {
+      context_.vserver = config.GetDefaultServer();
+    }
+  }
+
+  // locationを決定
+  std::vector<Location> locations = context_.vserver->locations_;
+  // locationsのpathをキーにmapに変換
+  // context_.resource_path.uri.pathの最後の/までの部分文字列をキーにする
+  // "location /"があることを保証するので、必ずキーが存在する
+}
 
 std::ostream &operator<<(std::ostream &os, const Request &request) {
   RequestMessage m = request.GetRequestMessage();
