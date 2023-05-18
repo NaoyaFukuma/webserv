@@ -526,6 +526,17 @@ void ConfigParser::AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
     throw ParserException(
         ERR_MSG, (cgi_extension + " is Invalid cgi extension").c_str());
   }
+
+  // 拡張子で使えない文字が含まれていないかチェック '/' は使えない
+  for (size_t i = 0; i < cgi_extension.size(); i++) {
+    if (cgi_extension[i] == '/') {
+      throw ParserException(
+          ERR_MSG,
+          (cgi_extension + " is Invalid cgi extension. use Invalid character.")
+              .c_str());
+    }
+  }
+  // '/'が含まれていないことを保証したうえで、Linux ファイルシステムの制約に従う
   if (this->IsValidPath(cgi_extension)) {
     cgi_extensions_.push_back(cgi_extension);
   } else {
