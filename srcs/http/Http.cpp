@@ -43,3 +43,41 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
   }
   return true;
 }
+
+std::string Http::DeHexify(std::string uri) {
+  std::string result;
+  result.reserve(uri.size());
+
+  for (std::size_t i = 0; i < uri.size(); ++i) {
+    if (uri[i] == '%' && i + 2 < uri.size()) {
+      if (!IsHexDigit(uri[i + 1]) || !IsHexDigit(uri[i + 2])) {
+        result += uri[i]; // Plain characters.
+        continue;
+      } else {
+        result +=
+            static_cast<char>(16 * Hex2Char(uri[i + 1]) + Hex2Char(uri[i + 2]));
+        i += 2;
+      }
+    } else {
+      result += uri[i]; // Plain characters.
+    }
+  }
+
+  return result;
+}
+
+bool Http::IsHexDigit(char c) {
+  return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') ||
+         ('A' <= c && c <= 'F');
+}
+
+int Http::Hex2Char(char c) {
+  if ('0' <= c && c <= '9')
+    return c - '0';
+  else if ('a' <= c && c <= 'f')
+    return c - 'a' + 10;
+  else if ('A' <= c && c <= 'F')
+    return c - 'A' + 10;
+  else
+    return 0;
+}

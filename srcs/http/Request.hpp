@@ -44,7 +44,6 @@ private:
 struct ResourcePath {
   Http::URI uri;
   std::string server_path;
-  std::string query;
   std::string path_info;
 };
 

@@ -19,6 +19,9 @@ enum Version {
 };
 
 bool SplitURI(URI &dst, const std::string &src);
+std::string DeHexify(std::string uri);
+bool IsHexDigit(char c);
+int Hex2Char(char c);
 }; // namespace Http
 
 #endif // HTTPUTILS_HPP_

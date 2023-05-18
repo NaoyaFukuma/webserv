@@ -99,12 +99,11 @@ void Request::ParseBody(const std::string &line) {}
 void Request::Clear() { *this = Request(); }
 
 void Request::ResolvePath(Config config) {
-  if (HttpUtils::SplitURI(context_.resource_path.uri,
-                          message_.request_line.uri) == false) {
+  std::string src_uri = Http::DeHexify(message_.request_line.uri);
+  if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
     SetError(400);
     return;
   }
-  context_.resource_path.query = context_.resource_path.uri.query;
 
   // hostを決定
   std::string host;
@@ -118,7 +117,7 @@ void Request::ResolvePath(Config config) {
   // vserverを決定
   std::vector<Vserver> vservers = config.GetServerVec();
   if (host.empty()) {
-    context_.vserver = config.GetDefaultServer();
+    context_.vserver = &vservers[0];
   } else {
     for (std::vector<Vserver>::iterator itv = vservers.begin();
          itv != vservers.end(); itv++) {
@@ -134,7 +133,7 @@ void Request::ResolvePath(Config config) {
       }
     }
     if (context_.vserver == NULL) {
-      context_.vserver = config.GetDefaultServer();
+      context_.vserver = &vservers[0];
     }
   }
 
