@@ -49,8 +49,7 @@ struct Location {
   // 任意 複数可 mapのkeyはエラーコード, valueはエラーページのパス
   // エラーコードに重複があった場合は、最後の一つだけ保持する（上書きされる）
   bool autoindex_; // 任意 単一 デフォルトはfalse
-  bool is_cgi_; // デフォルトはfalse 一致する場合は、CGIとして処理する
-  std::string cgi_path_; // execve(cgi_path, X, X) is_cgi_がtrueの場合必須
+  std::vector<std::string> cgi_extensions_; // 任意 単一
   struct Return return_;
   // 任意 単一 ステータスコードと、その時に返すファイルのパス(emptyを許容する)
 };

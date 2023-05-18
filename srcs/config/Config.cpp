@@ -23,7 +23,6 @@ Location::Location() {
   this->allow_methods_.insert(POST);
   this->allow_methods_.insert(DELETE);
   this->client_max_body_size_ = 1 * 1024 * 1024; // 1MB
-  this->is_cgi_ = false;
   this->autoindex_ = false;
   this->return_.return_type_ = RETURN_EMPTY;
 }
@@ -87,8 +86,13 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
         os << server_vec[i].locations_[j].index_[k] << " ";
       }
       os << '\n';
-      os << "      is_cgi: " << server_vec[i].locations_[j].is_cgi_ << '\n';
-      os << "      cgi_path: " << server_vec[i].locations_[j].cgi_path_ << '\n';
+
+      os << "      cgi_extention: ";
+      for (size_t k = 0; k < server_vec[i].locations_[j].cgi_extensions_.size();
+           ++k) {
+        os << server_vec[i].locations_[j].cgi_extensions_[k] << " ";
+      }
+
       os << "      error_pages: ";
       for (size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
            ++k) {
