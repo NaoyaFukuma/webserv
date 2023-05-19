@@ -43,8 +43,7 @@ directive_in_location:
 	| client_max_body_size_directive
 	| root_directive
 	| index_directive
-	| is_cgi_directive
-	| cgi_path_directive
+	| cgi_extension
 	| error_page_directive
 	| autoindex_directive
 	| return_directive;
@@ -67,9 +66,7 @@ error_page_directive: 'error_page' STATUS_CODE+ PATH END_DIRECTIVE;
 autoindex_directive:
 	'autoindex' ON_OFF END_DIRECTIVE;
 
-is_cgi_directive: 'is_cgi' ON_OFF END_DIRECTIVE;
-
-cgi_path_directive: 'cgi_path' PATH END_DIRECTIVE;
+cgi_extension_directive: 'cgi_extension' '.' (ALPHABET | NUMBER)* END_DIRECTIVE;
 
 return_directive: 'return' STATUS_CODE? (URL | TEXT)? END_DIRECTIVE;
 

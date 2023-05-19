@@ -35,7 +35,8 @@ std::string ConfigParser::LoadFile(const char *filepath) {
   // filepathの拡張子を確認
   std::string ext = GetFileExt(filepath);
   if (ext != "conf") {
-    throw ParserException("Config Error: invalid file extension: %s", ext.c_str());
+    throw ParserException("Config Error: invalid file extension: %s",
+                          ext.c_str());
   }
 
   // ファイルを読み込み、stringに変換
@@ -141,10 +142,8 @@ void ConfigParser::ParseLocation(Vserver &server) {
       ParseRoot(location);
     } else if (token == "index") {
       ParseIndex(location);
-    } else if (token == "is_cgi") {
-      ParseIsCgi(location);
-    } else if (token == "cgi_path") {
-      ParseCgiPath(location);
+    } else if (token == "cgi_extension") {
+      ParseCgiExtension(location);
     } else if (token == "error_page") {
       ParseErrorPages(location);
     } else if (token == "autoindex") {
@@ -205,20 +204,16 @@ void ConfigParser::ParseIndex(Location &location) {
   this->Expect(';');
 }
 
-void ConfigParser::ParseIsCgi(Location &location) {
+void ConfigParser::ParseCgiExtension(Location &location) {
+  location.cgi_extensions_.clear(); // 複数回ある場合は上書き
   this->SkipSpaces(true);
-  std::string is_cgi_str = GetWord();
-  this->SkipSpaces(true);
+  while (!this->IsEof() && *it_ != ';') {
+    std::string extension_str = GetWord();
+    this->SkipSpaces(true);
+    AssertCgiExtension(location.cgi_extensions_, extension_str);
+  }
   this->Expect(';');
-  AssertBool(location.is_cgi_, is_cgi_str);
-}
-
-void ConfigParser::ParseCgiPath(Location &location) {
-  this->SkipSpaces(true);
-  location.cgi_path_ = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
-  AssertCgiPath(location.cgi_path_);
+  AssertCgiExtensions(location.cgi_extensions_);
 }
 
 void ConfigParser::ParseErrorPages(Location &location) {
@@ -299,13 +294,29 @@ void ConfigParser::AssertConfig(const Config &config) {
   }
 }
 
-void ConfigParser::AssertServer(const Vserver &server) {
+void ConfigParser::AssertServer(Vserver &server) {
   if (server.server_names_.empty()) {
     throw ParserException(ERR_MSG, "server name is not set");
   }
+  // location が設定されているかを確認
   if (server.locations_.empty()) {
     throw ParserException(ERR_MSG, "location is not set");
   }
+  // location path に / があることを保証する
+  for (std::vector<Location>::size_type i = 0; i < server.locations_.size();
+       i++) {
+    if (server.locations_[i].path_ == "/") { // / があればOKなのでreturn
+      // /のlocationを先頭に持ってくる
+      // c++98ではswapが使えないので、 tmpを使ってswapする
+      Location tmp = server.locations_[0];
+      server.locations_[0] = server.locations_[i];
+      server.locations_[i] = tmp;
+
+      return;
+    }
+  }
+  // for文を抜けてきた場合、/ がないのでエラー
+  throw ParserException(ERR_MSG, "location / is not set");
 }
 
 void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
@@ -384,10 +395,6 @@ void ConfigParser::AssertLocation(const Location &location) {
   // root ディレクティブが無いとエラー
   if (location.root_.empty()) {
     throw ParserException(ERR_MSG, "root is not set");
-  }
-  // is_cgi が true の場合、cgi_path が無いとエラー
-  if (location.is_cgi_ && location.cgi_path_.empty()) {
-    throw ParserException(ERR_MSG, "CGI path is not set");
   }
 }
 
@@ -513,14 +520,37 @@ void ConfigParser::AssertBool(bool &dest_bool, const std::string &bool_str) {
   }
 }
 
-void ConfigParser::AssertCgiPath(const std::string &cgi_path) {
-  // rootディレクティブを起点にした相対パスである必要がある
+void ConfigParser::AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
+                                      const std::string &cgi_extension) {
+  if (cgi_extension[0] != '.') {
+    throw ParserException(
+        ERR_MSG, (cgi_extension + " is Invalid cgi extension").c_str());
+  }
 
-  // Linux ファイルシステムの制約に従う
-  if (!IsValidPath(cgi_path)) {
+  // 拡張子で使えない文字が含まれていないかチェック '/' は使えない
+  for (size_t i = 0; i < cgi_extension.size(); i++) {
+    if (cgi_extension[i] == '/') {
+      throw ParserException(
+          ERR_MSG,
+          (cgi_extension + " is Invalid cgi extension. use Invalid character.")
+              .c_str());
+    }
+  }
+  // '/'が含まれていないことを保証したうえで、Linux ファイルシステムの制約に従う
+  if (this->IsValidPath(cgi_extension)) {
+    cgi_extensions_.push_back(cgi_extension);
+  } else {
     throw ParserException(
         ERR_MSG,
-        (cgi_path + " is Invalid cgi path. use Invalid character.").c_str());
+        (cgi_extension + " is Invalid cgi extension. use Invalid character.")
+            .c_str());
+  }
+}
+
+void ConfigParser::AssertCgiExtensions(
+    std::vector<std::string> &cgi_extensions_) {
+  if (cgi_extensions_.empty()) {
+    throw ParserException(ERR_MSG, "Empty cgi extension");
   }
 }
 
