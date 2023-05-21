@@ -69,6 +69,8 @@ struct Vserver { // 各バーチャルサーバーの設定を格納する
                           // confファイルで一番上に書かれたものがデフォルトサーバー
 };
 
+typedef std::vector<Vserver> ConfVec;
+
 class Config {
 public:
   Config();

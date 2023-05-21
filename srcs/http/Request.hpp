@@ -8,19 +8,19 @@
 #include <string>
 #include <vector>
 
-struct RequestMessage {
-  RequestLine request_line;
-  Header header;
-  std::string body;
-};
-
 struct RequestLine {
   std::string method;
   std::string uri;
   Http::Version version;
 };
 
-typedef std::map<std::string, std::vector<std::string>> Header;
+typedef std::map<std::string, std::vector<std::string> > Header;
+
+struct RequestMessage {
+  RequestLine request_line;
+  Header header;
+  std::string body;
+};
 
 enum ParseStatus {
   INIT,
@@ -28,17 +28,6 @@ enum ParseStatus {
   BODY,
   COMPLETE,
   ERROR,
-};
-
-struct HttpError {
-  int status_code;
-  std::string message;
-
-private:
-  const static std::map<int, std::string> kDefaultErrorMessage;
-
-  HttpError(int status_code, std::string message)
-      : status_code(status_code), message(message) {}
 };
 
 struct ResourcePath {
@@ -58,7 +47,7 @@ class Request {
 private:
   RequestMessage message_;
   ParseStatus parse_status_;
-  HttpError error_status_;
+  Http::HttpError error_status_;
   int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
   static const size_t kMaxHeaderSize = 8192; // 8KB
 
@@ -75,19 +64,17 @@ private:
 public:
   Request();
   ~Request();
+  Request(const Request &src);
   Request &operator=(const Request &rhs);
 
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
-  int GetErrorStatus() const;
+  Http::HttpError GetErrorStatus() const;
   void Parse(SocketBuff &buffer_);
   void Clear();
-  void ResolvePath(Config config);
+  void ResolvePath(const Config &config);
 
   Context GetContext() const;
-
-private: // 使用予定なし
-  Request(const Request &src);
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

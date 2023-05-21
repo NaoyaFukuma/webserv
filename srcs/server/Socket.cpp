@@ -15,7 +15,7 @@
 // ------------------------------------------------------------------
 // 継承用のクラス
 
-ASocket::ASocket(std::vector<Vserver> config) : fd_(-1), config_(config) {
+ASocket::ASocket(ConfVec config) : fd_(-1), config_(config) {
   last_event_.in_time = -1;
   last_event_.out_time = -1;
 }
@@ -46,13 +46,16 @@ bool ASocket::IsTimeout(const time_t &threshold) const {
 // ------------------------------------------------------------------
 // 通信用のソケット
 
-ConnSocket::ConnSocket(std::vector<Vserver> config)
-    : ASocket(config), rdhup_(false) {
+ConnSocket::ConnSocket(ConfVec config) : ASocket(config), rdhup_(false) {
   last_event_.in_time = time(NULL);
   last_event_.out_time = -1;
 }
 
 ConnSocket::~ConnSocket() {}
+
+void ConnSocket::AddResponse(const Response &response) {
+  responses_.push_back(response);
+}
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::OnReadable(Epoll *epoll) {
@@ -62,21 +65,20 @@ int ConnSocket::OnReadable(Epoll *epoll) {
     rdhup_ = true;
   }
 
-  while (recv_buffer_.FindString("\r\n\r\n") >= 0) {
-    if (request_.empty() || request_.back().GetStatus() == COMPLETE ||
-        request_.back().GetStatus() == ERROR) {
-      request_.push_back(Request());
+  while (recv_buffer_.FindString("\r\n") >= 0) {
+    if (requests_.empty() || requests_.back().GetParseStatus() == COMPLETE ||
+        requests_.back().GetParseStatus() == ERROR) {
+      requests_.push_back(Request());
     }
     request_.back().Parse(recv_buffer_);
   }
 
-  for (std::deque<Request>::iterator it = request_.begin();
-       it != request_.end();) {
-    if (it->GetStatus() == COMPLETE || it->GetStatus() == ERROR) {
-      Response response = ProcessRequest(*it, config_);
-      send_buffer_.AddString(response.GetString());
-      epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-      last_event_.out_time = time(NULL);
+  size_t tmp_len = responses_.size();
+  for (std::deque<Request>::iterator it = requests_.begin();
+       it != requests_.end();) {
+    if (it->GetParseStatus() == COMPLETE || it->GetParseStatus() == ERROR) {
+      responses_.push_back(Response());
+      responses_.back().ProcessRequest(*it, config_, this);
       std::deque<Request>::iterator tmp = it + 1;
       request_.erase(it);
       it = tmp;
@@ -84,11 +86,22 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       it++;
     }
   }
+  if (responses_.size() != tmp_len) {
+    epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+    last_event_.out_time = time(NULL);
+  }
   return SUCCESS;
 }
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::OnWritable(Epoll *epoll) {
+  for (std::deque<Response>::iterator it = responses_.begin();
+       it != responses_.end();) {
+    if (it->GetProcessStatus() == DONE) {
+      std::cout << it->GetString() << std::endl;
+      send_buffer_.AddString(it->GetString());
+    }
+  }
   int send_result = send_buffer_.SendSocket(fd_);
   if (send_result < 0) {
     return FAILURE;
@@ -161,7 +174,7 @@ int ConnSocket::ProcessSocket(Epoll *epoll, void *data) {
 // ------------------------------------------------------------------
 // listen用のソケット
 
-ListenSocket::ListenSocket(std::vector<Vserver> config) : ASocket(config) {
+ListenSocket::ListenSocket(ConfVec config) : ASocket(config) {
   fd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (fd_ < 0) {
     throw std::runtime_error("Fatal Error: socket");

@@ -1,5 +1,6 @@
 #ifndef HTTP_HPP_
 #define HTTP_HPP_
+#include <map>
 #include <string>
 
 namespace Http {
@@ -18,6 +19,20 @@ enum Version {
   HTTP09,
   HTTP10,
   HTTP11,
+};
+
+struct HttpError {
+  int status_code;
+  std::string message;
+
+private:
+  const static std::map<int, std::string> kDefaultErrorMessage;
+
+public:
+  HttpError() : status_code(-1), message("") {}
+
+  HttpError(int status_code, std::string message)
+      : status_code(status_code), message(message) {}
 };
 
 bool SplitURI(URI &dst, const std::string &src);

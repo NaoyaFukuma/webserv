@@ -7,8 +7,16 @@
 #include <map>
 #include <string>
 
+class ConnSocket;
+
+enum ProcessStatus {
+  PROCESSING,
+  DONE,
+};
+
 class Response {
 private:
+  ProcessStatus process_status_;
   Http::Version version_;
   int status_code_;
   std::string status_message_;
@@ -18,13 +26,13 @@ private:
 public:
   Response();
   ~Response();
-  std::string GetString();
-
-private: // 使用予定なし
   Response(const Response &src);
   Response &operator=(const Response &src);
-};
 
-Response ProcessRequest(Request request, Config config);
+  std::string GetString();
+  ProcessStatus GetProcessStatus() const;
+  void ProcessRequest(Request &request, ConfVec &config, ConnSocket *socket);
+  void ProcessStatic(Request &request, ConfVec &config, ConnSocket *socket);
+};
 
 #endif // RESPONSE_HPP_
