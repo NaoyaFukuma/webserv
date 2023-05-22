@@ -22,20 +22,20 @@ std::string Response::GetString() { return "hoge"; }
 
 ProcessStatus Response::GetProcessStatus() const { return process_status_; }
 
-void Response::ProcessRequest(Request &request, ConfVec &config,
-                              ConnSocket *socket) {
+void Response::ProcessRequest(Request &request, ConnSocket *socket,
+                              Epoll *epoll) {
   // request.ResolvePath(config);
   if (request.GetContext().is_cgi) {
     // CGI
   } else {
     // 静的ファイル
-    ProcessStatic(request, config, socket);
+    ProcessStatic(request, socket, epoll);
   }
 }
 
-void Response::ProcessStatic(Request &request, ConfVec &config,
-                             ConnSocket *socket) {
+void Response::ProcessStatic(Request &request, ConnSocket *socket,
+                             Epoll *epoll) {
   (void)request;
-  (void)config;
+  (void)epoll;
   (void)socket;
 }

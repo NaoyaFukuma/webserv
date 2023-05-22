@@ -27,11 +27,11 @@ Http::HttpError Request::GetErrorStatus() const { return error_status_; }
 
 Context Request::GetContext() const { return context_; }
 
-// void Request::SetError(int error_status) {
-//   Clear();
-//   error_status_ = error_status;
-//   parse_status_ = ERROR;
-// }
+void Request::SetError(int error_status) {
+  error_status_.status_code = error_status;
+  // error_status_.status_message = Http::GetStatusMessage(error_status);
+  parse_status_ = ERROR;
+}
 
 void Request::Parse(SocketBuff &buffer_) {
   // std::string line;
@@ -106,65 +106,99 @@ void Request::Parse(SocketBuff &buffer_) {
 
 // void Request::Clear() { *this = Request(); }
 
-// void Request::ResolvePath(Config config) {
-//   std::string src_uri = Http::DeHexify(message_.request_line.uri);
-//   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
-//     SetError(400);
-//     return;
-//   }
+void Request::ResolvePath(const Config &config) {
+  std::string src_uri = Http::DeHexify(message_.request_line.uri);
+  if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
+    SetError(400);
+    return;
+  }
 
-//   // hostを決定
-//   std::string host;
-//   if (!context_.resource_path.uri.host.empty()) {
-//     host = context_.resource_path.uri.host;
-//   }
-//   if (message_.header.find("Host") != message_.header.end()) {
-//     host = message_.header["Host"][0];
-//   }
+  // hostを決定
+  std::string host = ResolveHost();
 
-//   // vserverを決定
-//   std::vector<Vserver> vservers = config.GetServerVec();
-//   if (host.empty()) {
-//     context_.vserver = &vservers[0];
-//   } else {
-//     for (std::vector<Vserver>::iterator itv = vservers.begin();
-//          itv != vservers.end(); itv++) {
-//       for (std::vector<std::string>::iterator its =
-//       itv->server_names_.begin();
-//            its != itv->server_names_.end(); its++) {
-//         if (*its == host) {
-//           context_.vserver = &(*itv);
-//           break;
-//         }
-//       }
-//       if (context_.vserver != NULL) {
-//         break;
-//       }
-//     }
-//     if (context_.vserver == NULL) {
-//       context_.vserver = &vservers[0];
-//     }
-//   }
+  // vserverを決定
+  context_.vserver = ResolveVserver(config, host);
 
-//   // locationを決定
-//   std::vector<Location> locations = context_.vserver->locations_;
-//   // locationsのpathをキーにmapに変換
-//   std::map<std::string, Location> location_map;
-//   for (std::vector<Location>::iterator it = locations.begin();
-//        it != locations.end(); it++) {
-//     location_map[it->path_] = *it;
-//   }
-//   // context_.resource_path.uri.pathの最後の/までの部分文字列をキーにする
-//   std::string path = context_.resource_path.uri.path;
-//   std::vector<std::string> keys;
-//   for (std::string::iterator it = path.begin(); it != path.end(); it++) {
-//     if (*it == '/') {
-//       keys.push_back(path.substr(0, it - path.begin() + 1));
-//     }
-//   }
+  // locationを決定
+  context_.location =
+      ResolveLocation(*context_.vserver, context_.resource_path.uri.path);
+}
 
-//   // "location /"があることを保証するので、必ずキーが存在する
-// }
+std::string Request::ResolveHost() {
+  std::string host = "";
+  Http::URI uri = context_.resource_path.uri;
+
+  if (!uri.host.empty()) {
+    host = uri.host;
+  }
+  if (message_.header.find("Host") != message_.header.end()) {
+    host = message_.header["Host"][0];
+  }
+  return host;
+}
+
+Vserver *Request::ResolveVserver(const Config &config,
+                                 const std::string &host) {
+  Vserver *vserver = NULL;
+  ConfVec vservers = config.GetServerVec();
+
+  // vservers[0]: default vserver
+  if (host.empty()) {
+    vserver = &vservers[0];
+  } else {
+    for (ConfVec::iterator itv = vservers.begin(); itv != vservers.end();
+         itv++) {
+      for (std::vector<std::string>::iterator its = itv->server_names_.begin();
+           its != itv->server_names_.end(); its++) {
+        if (*its == host) {
+          vserver = &(*itv);
+          break;
+        }
+      }
+      if (vserver != NULL) {
+        break;
+      }
+    }
+    if (vserver == NULL) {
+      vserver = &vservers[0];
+    }
+  }
+  return vserver;
+}
+
+Location *Request::ResolveLocation(Vserver &vserver, const std::string &path) {
+  std::vector<Location> &locations = vserver.locations_;
+
+  // locationsのpathをキーにmapに変換
+  std::map<std::string, Location> location_map;
+  for (std::vector<Location>::const_iterator it = locations.begin();
+       it != locations.end(); it++) {
+    location_map[it->path_] = *it;
+  }
+
+  // context_.resource_path.uri.pathの最後の/までの部分文字列をキーにする
+  std::vector<std::string> keys;
+  for (std::string::const_iterator it = path.begin(); it != path.end(); it++) {
+    if (*it == '/') {
+      keys.push_back(path.substr(0, it - path.begin() + 1));
+    }
+  }
+  // path != "" (uriの分解時に空文字列の場合は'/'としている)
+  if (path[path.size() - 1] != '/') {
+    keys.push_back(path);
+  }
+
+  // "location /"があることを保証するので、必ずキーが存在する
+  for (std::vector<std::string>::iterator it = keys.begin(); it != keys.end();
+       it++) {
+    if (location_map.find(*it) != location_map.end()) {
+      return &location_map[*it];
+    }
+  }
+  // ここのreturnは実行されないはず
+  // locations[0] = "location /"
+  return &locations[0];
+}
 
 // std::ostream &operator<<(std::ostream &os, const Request &request) {
 //   RequestMessage m = request.GetRequestMessage();
