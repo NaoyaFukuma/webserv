@@ -2,13 +2,15 @@
 // Created by chanma on 2023/05/19.
 //
 
+#define DEBUG
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 
-#include "Request.hpp"
+//#include "Request.hpp"
+#include "../../srcs/http/Request.hpp"
 
 //// リクエストメッセージのdefine
 //#define REQUEST_MESSAGE R"(GET /index.html HTTP/1.1
@@ -26,13 +28,16 @@ BOOST_AUTO_TEST_CASE(Test1) {
   Request test1;
   test1.ParseHeader("Header: Value1,Value2,Value3");
 
-  const auto& header_map = test1.GetHeaderMap();  // Assuming you have a GetHeaderMap method.
+  Header header_map = test1.GetHeaderMap();
   BOOST_REQUIRE(header_map.count("Header") == 1);  // Ensure there's one entry for "Header".
 
-  const auto& values = header_map.at("Header");
+  std::vector<std::string> values = header_map.at("Header");
   BOOST_REQUIRE(values.size() == 3);  // Ensure there are 3 values.
+  std::cout << "value[0]: " << values[0] << std::endl;
   BOOST_CHECK_EQUAL(values[0], "Value1");  // Check each value.
+  std::cout << "value[1]: " << values[1] << std::endl;
   BOOST_CHECK_EQUAL(values[1], "Value2");
+  std::cout << "value[2]: " << values[2] << std::endl;
   BOOST_CHECK_EQUAL(values[2], "Value3");
 }
 
