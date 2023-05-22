@@ -17,4 +17,6 @@ template <typename T> T mul_assert_overflow(T lhs, T rhs);
 
 #include "utils.tpp"
 
+bool end_with(const std::string &str, const std::string &query);
+
 #endif
