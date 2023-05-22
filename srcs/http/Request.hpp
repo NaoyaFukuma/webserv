@@ -71,6 +71,8 @@ public:
 
     std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string &delim);
 
+    bool SplitRequestLine(std::vector <std::string> &splited, const std::string &line);
+
 public:
     Request();
 

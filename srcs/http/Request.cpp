@@ -69,14 +69,8 @@ void Request::ParseLine(const std::string &line) {
 
 void Request::ParseRequestLine(const std::string &line) {
   std::vector<std::string> splited;
-  // TODO: split要変更
-  if (ws_split(splited, line, ' ') < 0) {
-//     SetError(500);
-    return;
-  } else if (splited.size() != 2 && splited.size() != 3) {
-//     SetError(400);
-    return;
-  }
+  SplitRequestLine(splited, line);
+  // TODO: リクエストが有効かどうかのチェック足す
   // HTTP0.9
   if (splited.size() == 2) {
     message_.request_line.method = splited[0];
@@ -108,6 +102,8 @@ void Request::ParseRequestLine(const std::string &line) {
   }
 }
 
+#include <iostream>
+
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
   if (line == "\r\n") {
@@ -124,15 +120,15 @@ void Request::ParseHeader(const std::string &line) {
   }
   // ':'の前後で分割
   std::string key = line.substr(0, pos);
+  pos++;
   // key が正しい文字列がエラー処理?
 
   std::vector<std::string> header_values;
-  // pos+1以降の文字列を','ごとに分割
+  // pos+1以降の文字列を','や' 'ごとに分割
   // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
-  pos = MovePos(line, pos + 1, " \t");
-  if (ws_split(header_values, line.substr(pos), ',') < 0) {
-    // TODO: エラー処理
-    return;
+  while (pos < line.size()) {
+    pos = MovePos(line, pos, " \t");
+    header_values.push_back(GetWord(line, pos));
   }
   // Headerのkeyとvalueを格納
   message_.header[key] = header_values;
@@ -142,9 +138,8 @@ void Request::ParseBody(const std::string &line) {
 
 }
 
-std::string Request::GetWord(const std::string& line, std::string::size_type& pos) {
+std::string Request::GetWord(const std::string &line, std::string::size_type &pos) {
   std::string word;
-  pos = Request::MovePos(line, pos, " \t");
   while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
     word += line[pos++];
   }
@@ -219,6 +214,22 @@ std::string Request::GetWord(const std::string& line, std::string::size_type& po
 //   os << "RequestLine: " << m.request_line.method << " " << m.request_line.uri
 //      << " " << m.request_line.version;
 // }
+
+bool Request::SplitRequestLine(std::vector <std::string> &splited, const std::string &line) {
+  // 空白文字で分割
+  // 空白は1文字まで
+  std::string::size_type pos = 0;
+  while (pos < line.size()) {
+    if (std::isspace(line[pos])) {
+      return false;
+    }
+    splited.push_back(GetWord(line, pos));
+  }
+  if (splited.size() != 2 && splited.size() != 3) {
+    return false;
+  }
+  return true;
+}
 
 std::string::size_type
 Request::MovePos(const std::string &line, std::string::size_type start, const std::string &delim) {
