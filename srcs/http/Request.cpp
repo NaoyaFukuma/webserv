@@ -111,7 +111,6 @@ void Request::ParseHeader(const std::string &line) {
     return;
   }
 
-  // findで':'を探す
   std::string::size_type pos = line.find(':');
   if (pos == std::string::npos) {
     // TODO: エラー処理
@@ -135,8 +134,24 @@ void Request::ParseHeader(const std::string &line) {
 }
 
 void Request::ParseBody(const std::string &line) {
+  if (!JudgeBodyType()) {
+    // error
+  }
 
 }
+
+bool Request::JudgeBodyType() {
+  // headerにContent-LengthかTransfer-Encodingがあるかを調べる
+  Header::iterator it_transfer_encoding = message_.header.find("Transfer-Encoding");
+  Header::iterator it_content_length = message_.header.find("Content-Length");
+
+  if (it_transfer_encoding != message_.header.end()) {
+    std::vector<std::string> value = it_transfer_encoding->second;
+    // Chunkedが見つかった場合は
+  }
+}
+
+
 
 std::string Request::GetWord(const std::string &line, std::string::size_type &pos) {
   std::string word;

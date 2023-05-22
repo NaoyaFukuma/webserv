@@ -29,9 +29,11 @@ BOOST_AUTO_TEST_CASE(General) {
   test.ParseHeader("Header:          \t Value1,Value2,Value3");
 
   Header header_map = test.GetHeaderMap();
+  std::cout << "header_map.size(): " << header_map.size() << std::endl;
   BOOST_REQUIRE(header_map.count("Header") == 1);  // Ensure there's one entry for "Header".
 
   std::vector<std::string> values = header_map.at("Header");
+  std::cout << "values.size(): " << values.size() << std::endl;
   BOOST_REQUIRE(values.size() == 3);  // Ensure there are 3 values.
   std::cout << "value[0]: " << values[0] << std::endl;
   BOOST_CHECK_EQUAL(values[0], "Value1");  // Check each value.
@@ -58,4 +60,11 @@ BOOST_AUTO_TEST_CASE(Status) {
     ParseStatus parse_status = test.GetParseStatus();
     BOOST_CHECK_EQUAL(parse_status, HEADER);
   }
+}
+
+BOOST_AUTO_TEST_CASE(Body) {
+//  Request test;
+//
+//    test.SetParseStatus(BODY);
+  // GetWordで一番初めから切り取る
 }
