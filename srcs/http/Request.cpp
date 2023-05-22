@@ -27,6 +27,8 @@ Http::HttpError Request::GetErrorStatus() const { return error_status_; }
 
 Context Request::GetContext() const { return context_; }
 
+Header Request::GetHeaderMap() const { return message_.header; }
+
 // void Request::SetError(int error_status) {
 //   Clear();
 //   error_status_ = error_status;
@@ -34,75 +36,111 @@ Context Request::GetContext() const { return context_; }
 // }
 
 void Request::Parse(SocketBuff &buffer_) {
-  // std::string line;
-  // while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
-  //        buffer_.GetUntilCRLF(line)) {
-  //   ParseLine(line);
-  // }
-  (void)buffer_;
+  std::string line;
+  while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
+         buffer_.GetUntilCRLF(line)) {
+    ParseLine(line);
+  }
+  (void) buffer_;
   message_.request_line.method = "GET";
   message_.request_line.uri = "/index.html";
   message_.request_line.version = Http::HTTP09;
   parse_status_ = COMPLETE;
 }
 
-// void Request::ParseLine(const std::string &line) {
-//   switch (parse_status_) {
-//   case INIT:
-//     ParseRequestLine(line);
-//     break;
-//   case HEADER:
-//     ParseHeader(line);
-//     break;
-//   case BODY:
-//     ParseBody(line);
-//     break;
-//   }
-// }
+void Request::ParseLine(const std::string &line) {
+  switch (parse_status_) {
+    case INIT:
+      ParseRequestLine(line);
+      break;
+    case HEADER:
+      ParseHeader(line);
+      break;
+    case BODY:
+      ParseBody(line);
+      break;
+    case COMPLETE:
+      break;
+    case ERROR:
+      // TODO: ここでエラー処理
+      break;
+  }
+}
 
-// void Request::ParseRequestLine(const std::string &line) {
-//   std::vector<std::string> splited;
-//   if (ms_split(splited, line, ' ') < 0) {
+void Request::ParseRequestLine(const std::string &line) {
+  std::vector<std::string> splited;
+  // TODO: split要変更
+  if (ws_split(splited, line, ' ') < 0) {
 //     SetError(500);
-//     return;
-//   } else if (splited.size() != 2 && splited.size() != 3) {
+    return;
+  } else if (splited.size() != 2 && splited.size() != 3) {
 //     SetError(400);
-//     return;
-//   }
-//   // HTTP0.9
-//   if (splited.size() == 2) {
-//     message_.request_line.method = splited[0];
+    return;
+  }
+  // HTTP0.9
+  if (splited.size() == 2) {
+    message_.request_line.method = splited[0];
 //     if (IsValidMethod(message_.request_line.method) == false) {
-//       SetError(400);
+////       SetError(400);
 //       return;
 //     }
-//     message_.request_line.uri = splited[1];
-//     message_.request_line.version = HTTP09;
-//     parse_status_ = COMPLETE;
-//   }
-//   // HTTP1.0~
-//   else {
-//     message_.request_line.method = splited[0];
+    message_.request_line.uri = splited[1];
+    message_.request_line.version = Http::HTTP09;
+    parse_status_ = COMPLETE;
+  }
+    // HTTP1.0~
+  else {
+    message_.request_line.method = splited[0];
 //     if (IsValidMethod(message_.request_line.method) == false) {
-//       SetError(400);
+////       SetError(400);
 //       return;
 //     }
-//     message_.request_line.uri = splited[1];
-//     if (splited[2] == "HTTP/1.0") {
-//       message_.request_line.version = HTTP10;
-//     } else if (splited[2] == "HTTP/1.1") {
-//       message_.request_line.version = HTTP11;
-//     } else {
+    message_.request_line.uri = splited[1];
+    if (splited[2] == "HTTP/1.0") {
+      message_.request_line.version = Http::HTTP10;
+    } else if (splited[2] == "HTTP/1.1") {
+      message_.request_line.version = Http::HTTP11;
+    } else {
 //       SetError(400);
-//       return;
-//     }
-//     parse_status_ = HEADER;
-//   }
-// }
+      return;
+    }
+    parse_status_ = HEADER;
+  }
+}
 
-// void Request::ParseHeader(const std::string &line) {}
+void Request::ParseHeader(const std::string &line) {
+  // 空行の場合BODYに移行
+  if (line == "\r\n") {
+    parse_status_ = BODY;
+    return;
+  }
 
-// void Request::ParseBody(const std::string &line) {}
+  // findで':'を探す
+  std::string::size_type pos = line.find(':');
+  if (pos == std::string::npos) {
+    // TODO: エラー処理
+    // ':'がない
+    return;
+  }
+  // ':'の前後で分割
+  std::string key = line.substr(0, pos);
+  // key が正しい文字列がエラー処理?
+
+  std::vector<std::string> header_values;
+  // pos+1以降の文字列を','ごとに分割
+  // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
+  pos = MovePos(line, pos + 1, " \t");
+  if (ws_split(header_values, line.substr(pos), ',') < 0) {
+    // TODO: エラー処理
+    return;
+  }
+  // Headerのkeyとvalueを格納
+  message_.header[key] = header_values;
+}
+
+void Request::ParseBody(const std::string &line) {
+  (void) line;
+}
 
 // void Request::Clear() { *this = Request(); }
 
@@ -171,3 +209,12 @@ void Request::Parse(SocketBuff &buffer_) {
 //   os << "RequestLine: " << m.request_line.method << " " << m.request_line.uri
 //      << " " << m.request_line.version;
 // }
+
+std::string::size_type
+Request::MovePos(const std::string &line, std::string::size_type start, const std::string &delim) {
+  std::string::size_type pos = start;
+  while (pos < line.size() && delim.find(line[pos]) != std::string::npos) {
+    pos++;
+  }
+  return pos;
+}
