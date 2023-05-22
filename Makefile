@@ -48,7 +48,7 @@ unit-test:
 	(mkdir -p unit-test/build && \
 	cd unit-test/build && \
 	cmake .. && \
-	make  && \
+	make 2> /dev/null && \
 	if [ "$(TEST_CASE)" != "" ]; then \
 		ctest -V -R $(TEST_CASE); \
 	else \

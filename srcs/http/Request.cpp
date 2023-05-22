@@ -1,5 +1,7 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <cerrno>
+#include <stdlib.h>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -103,8 +105,6 @@ void Request::ParseRequestLine(const std::string &line) {
   }
 }
 
-#include <iostream>
-
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
   if (line == "\r\n") {
@@ -138,7 +138,7 @@ void Request::ParseBody(const std::string &line) {
   if (!JudgeBodyType()) {
     // error
   }
-
+  (void )line;
 }
 
 bool Request::JudgeBodyType() {
@@ -149,8 +149,8 @@ bool Request::JudgeBodyType() {
   if (it_transfer_encoding != message_.header.end()) {
     std::vector<std::string> values = it_transfer_encoding->second;
     // values を全部探索
-    for (const std::string &value: values) {
-      if (value == "chunked") {
+    for (std::vector<std::string>::const_iterator it = values.begin(); it != values.end(); ++it) {
+      if (*it == "chunked") {
         chunk_status_ = true;
         return true;
       }
@@ -161,7 +161,7 @@ bool Request::JudgeBodyType() {
     // 複数の指定があったらエラー
     // 負の数、strtollのエラーもエラー
     errno = 0;
-    long long content_length = std::strtoll(values[0].c_str(), nullptr, 10);
+    long long content_length = std::strtoll(values[0].c_str(), NULL, 10);
     if (values.size() != 1 || errno == ERANGE || content_length < 0) {
       // error
       return false;
