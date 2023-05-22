@@ -4,6 +4,7 @@
 Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
+  content_length_ = -1;
 }
 
 Request::~Request() {}
@@ -146,11 +147,31 @@ bool Request::JudgeBodyType() {
   Header::iterator it_content_length = message_.header.find("Content-Length");
 
   if (it_transfer_encoding != message_.header.end()) {
-    std::vector<std::string> value = it_transfer_encoding->second;
-    // Chunkedが見つかった場合は
+    std::vector<std::string> values = it_transfer_encoding->second;
+    // values を全部探索
+    for (const std::string &value: values) {
+      if (value == "chunked") {
+        chunk_status_ = true;
+        return true;
+      }
+    }
   }
+  if (it_content_length != message_.header.end()) {
+    std::vector<std::string> values = it_content_length->second;
+    // 複数の指定があったらエラー
+    // 負の数、strtollのエラーもエラー
+    errno = 0;
+    long long content_length = std::strtoll(values[0].c_str(), nullptr, 10);
+    if (values.size() != 1 || errno == ERANGE || content_length < 0) {
+      // error
+      return false;
+    } else {
+      content_length_ = content_length;
+      return true;
+    }
+  }
+  return false;
 }
-
 
 
 std::string Request::GetWord(const std::string &line, std::string::size_type &pos) {
@@ -230,7 +251,7 @@ std::string Request::GetWord(const std::string &line, std::string::size_type &po
 //      << " " << m.request_line.version;
 // }
 
-bool Request::SplitRequestLine(std::vector <std::string> &splited, const std::string &line) {
+bool Request::SplitRequestLine(std::vector<std::string> &splited, const std::string &line) {
   // 空白文字で分割
   // 空白は1文字まで
   std::string::size_type pos = 0;
