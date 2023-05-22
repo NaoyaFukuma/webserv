@@ -62,6 +62,40 @@ private: // 使用予定なし
 };
 
 // ------------------------------------------------------------------
+// CGI用のソケット
+
+/*
+HTTPクライアント
+HTTPサーバー CGIクライアント
+CGIスクリプト CGIサーバー
+*/
+
+class CgiSocket : public ASocket {
+private:
+  SocketBuff recv_buffer_;
+  SocketBuff send_buffer_;
+  bool rdhup_;
+  pid_t pid_;               // CGIスクリプト実行用のプロセスID
+  ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
+
+public:
+  CgiSocket(ConnSocket *conn_socket);
+  ~CgiSocket();
+  CgiSocket *CreatCgiProcess();
+  int OnWritable(Epoll *epoll);
+  int OnReadable(Epoll *epoll);
+  int ProcessSocket(Epoll *epoll, void *data);
+
+private: // 使用予定なし
+  CgiSocket(const CgiSocket &src);
+  CgiSocket &operator=(const CgiSocket &rhs);
+
+  // 内部でしか使わないメソッド
+  void SetSocket(int child_sock, int parent_sock);
+  char **SetMetaVariables();
+};
+
+// ------------------------------------------------------------------
 // listen用のソケット
 
 class ListenSocket : public ASocket {
