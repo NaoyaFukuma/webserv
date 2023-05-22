@@ -241,7 +241,7 @@ void Request::ResolveResourcePath() {
         // fileであれば、cgiとして実行する
         struct stat path_stat;
         stat(partial_path.c_str(), &path_stat);
-        if (end_with(partial_path, cgi_extension) &&
+        if ((cgi_extension == "." || end_with(partial_path, cgi_extension)) &&
             S_ISREG(path_stat.st_mode)) {
           context_.resource_path.server_path =
               concat.substr(0, itc - concat.begin());
