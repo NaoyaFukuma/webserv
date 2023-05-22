@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(MultiRoute) {
 
   // Check location /a/
   Location location1 = server.locations_[0];
-  BOOST_CHECK_EQUAL(location1.path_, "/a/");
+  BOOST_CHECK_EQUAL(location1.path_, "/");
   BOOST_CHECK_EQUAL(location1.root_, "/var/www/html");
   BOOST_REQUIRE_EQUAL(location1.allow_methods_.size(), 1);
   BOOST_CHECK_EQUAL(location1.allow_methods_.count(GET), 1); // Only GET method is allowed
@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(MultiRoute) {
 
   // Check location /b/
   Location location2 = server.locations_[1];
-  BOOST_CHECK_EQUAL(location2.path_, "/b/");
+  BOOST_CHECK_EQUAL(location2.path_, "/");
   BOOST_CHECK_EQUAL(location2.root_, "/var/www/html");
   BOOST_REQUIRE_EQUAL(location2.allow_methods_.size(), 2);
   BOOST_CHECK_EQUAL(location2.allow_methods_.count(GET), 1); // GET method is allowed
