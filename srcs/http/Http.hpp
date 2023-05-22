@@ -37,6 +37,7 @@ public:
 
 bool SplitURI(URI &dst, const std::string &src);
 std::string DeHexify(std::string uri);
+void DeHexify(Http::URI &uri);
 bool IsHexDigit(char c);
 int Hex2Char(char c);
 }; // namespace Http
