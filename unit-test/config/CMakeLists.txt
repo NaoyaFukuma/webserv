@@ -13,52 +13,46 @@ enable_testing()
 # ==================================== test_valid_configs ==================================== #
 
 # Simple_config
-set(TEST_SIMPLE TestSimple.cpp)
-add_executable(simple_config ${TEST_SIMPLE})
-target_link_libraries(simple_config PRIVATE PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
+add_executable(simple_config TestValidConfig.cpp)
+target_compile_definitions(simple_config PRIVATE BOOST_TEST_MODULE=TestSimple)
+target_link_libraries(simple_config PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
 target_include_directories(simple_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
 add_test(NAME simple_config COMMAND simple_config)
-enable_testing()
 
 # MultiPort_config
-set(TEST_MULTIPORT TestMultiplePort.cpp)
-add_executable(multiport_config ${TEST_MULTIPORT})
-target_link_libraries(multiport_config PRIVATE PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
+add_executable(multiport_config TestValidConfig.cpp)
+target_compile_definitions(multiport_config PRIVATE BOOST_TEST_MODULE=TestMultiPort)
+target_link_libraries(multiport_config PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
 target_include_directories(multiport_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
 add_test(NAME multiport_config COMMAND multiport_config)
-enable_testing()
 
 # MultiRoute_config
-set(TEST_MULTIROUTE TestMultipleRoute.cpp)
-add_executable(multiroute_config ${TEST_MULTIROUTE})
-target_link_libraries(multiroute_config PRIVATE PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
+add_executable(multiroute_config TestValidConfig.cpp)
+target_compile_definitions(multiroute_config PRIVATE BOOST_TEST_MODULE=TestMultiRoute)
+target_link_libraries(multiroute_config PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
 target_include_directories(multiroute_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
 add_test(NAME multiroute_config COMMAND multiroute_config)
-enable_testing()
 
 # MultiHost_config
-set(TEST_MULTIRHOST TestMultipleHost.cpp)
-add_executable(multihost_config ${TEST_MULTIRHOST})
-target_link_libraries(multihost_config PRIVATE PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
+add_executable(multihost_config TestValidConfig.cpp)
+target_compile_definitions(multihost_config PRIVATE BOOST_TEST_MODULE=TestMultiHost)
+target_link_libraries(multihost_config PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
 target_include_directories(multihost_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
 add_test(NAME multihost_config COMMAND multihost_config)
-enable_testing()
 
 # Complex_config
-set(TEST_COMPLEX TestMultipleHost.cpp)
-add_executable(multicomplex_config ${TEST_COMPLEX})
-target_link_libraries(multicomplex_config PRIVATE PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
-target_include_directories(multicomplex_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
-add_test(NAME multicomplex_config COMMAND multicomplex_config)
-enable_testing()
+add_executable(complex_config TestValidConfig.cpp)
+target_compile_definitions(complex_config PRIVATE BOOST_TEST_MODULE=TestComplex)
+target_link_libraries(complex_config PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
+target_include_directories(complex_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
+add_test(NAME complex_config COMMAND complex_config)
 
 # OneLine_config
-set(TEST_ONELINE TestMultipleHost.cpp)
-add_executable(oneline_config ${TEST_ONELINE})
-target_link_libraries(oneline_config PRIVATE PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
+add_executable(oneline_config TestValidConfig.cpp)
+target_compile_definitions(oneline_config PRIVATE BOOST_TEST_MODULE=TestOneLine)
+target_link_libraries(oneline_config PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
 target_include_directories(oneline_config PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
 add_test(NAME oneline_config COMMAND oneline_config)
-enable_testing()
 
 # ==================================== test_custom_configs ==================================== #
 
