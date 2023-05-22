@@ -52,7 +52,10 @@ private:
   static const size_t kMaxHeaderSize = 8192; // 8KB
 
   Context context_; // ResolvePath()で設定される
-
+// TESTがdefineされている場合はpublicにする
+#ifdef DEBUG
+public:
+#endif
   void ParseLine(const std::string &line);
   void ParseRequestLine(const std::string &line);
   void ParseHeader(const std::string &line);
@@ -60,6 +63,8 @@ private:
 
   void SetError(int status, std::string message);
   void SetError(int status);
+
+  std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string& delim);
 
 public:
   Request();
@@ -75,6 +80,7 @@ public:
   void ResolvePath(const Config &config);
 
   Context GetContext() const;
+  Header GetHeaderMap() const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);
