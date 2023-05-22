@@ -2,8 +2,10 @@
 *.o
 
 .idea
-cmake-build-debug
+cmake-build-debug*
 webserv
 .vscode
 test_main.cpp
 build
+Dockerfile
+.Ds_Store
