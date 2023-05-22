@@ -24,11 +24,11 @@
 //Connection: keep-alive
 //)"
 
-BOOST_AUTO_TEST_CASE(Test1) {
-  Request test1;
-  test1.ParseHeader("Header: Value1,Value2,Value3");
+BOOST_AUTO_TEST_CASE(General) {
+  Request test;
+  test.ParseHeader("Header:          \t Value1,Value2,Value3");
 
-  Header header_map = test1.GetHeaderMap();
+  Header header_map = test.GetHeaderMap();
   BOOST_REQUIRE(header_map.count("Header") == 1);  // Ensure there's one entry for "Header".
 
   std::vector<std::string> values = header_map.at("Header");
@@ -41,3 +41,21 @@ BOOST_AUTO_TEST_CASE(Test1) {
   BOOST_CHECK_EQUAL(values[2], "Value3");
 }
 
+BOOST_AUTO_TEST_CASE(Status) {
+  { /* 1 */
+    Request test;
+
+    test.SetParseStatus(HEADER);
+    test.ParseHeader("\r\n");
+    ParseStatus parse_status = test.GetParseStatus();
+    BOOST_CHECK_EQUAL(parse_status, BODY);
+  }
+  { /* 2 */
+    Request test;
+
+    test.SetParseStatus(HEADER);
+    test.ParseHeader("Header:          \t Value1,Value2,Value3\r\n");
+    ParseStatus parse_status = test.GetParseStatus();
+    BOOST_CHECK_EQUAL(parse_status, HEADER);
+  }
+}
