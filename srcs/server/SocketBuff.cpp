@@ -11,7 +11,7 @@ SocketBuff::~SocketBuff() {} // デストラクタ
 
 // FAILURE: socketを閉じる, SUCCESS: socketを閉じない
 int SocketBuff::ReadSocket(int fd) {
-  char buf[1024];
+  char buf[kBuffSize];
   ssize_t len;
 
   while (true) {
@@ -124,3 +124,5 @@ int SocketBuff::SendSocket(const int fd) {
   this->Erase(send_len);
   return send_len == len;
 }
+
+size_t SocketBuff::GetBuffSize() { return this->ss_.str().size(); }

@@ -28,6 +28,10 @@ clean:
 fclean: clean
 	$(RM) $(NAME)
 
+re:
+	make fclean
+	make all
+
 .PHONY: all clean fclean re
 
 docker:

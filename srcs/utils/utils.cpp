@@ -70,3 +70,11 @@ bool ws_isspace(const char c) {
   }
   return false;
 }
+
+bool end_with(const std::string &str, const std::string &query) {
+  if (str.size() >= query.size() &&
+      str.substr(str.size() - query.size()) == query) {
+    return true;
+  }
+  return false;
+}

@@ -2,6 +2,8 @@
 #define SOCKET_HPP_
 
 #include "Config.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 #include "SocketBuff.hpp"
 #include <deque>
 #include <netinet/in.h>
@@ -21,11 +23,11 @@ struct LastEventTime {
 class ASocket {
 protected:
   int fd_;
-  std::vector<Vserver> config_;
+  ConfVec config_;
   LastEventTime last_event_; // ListenSocketの場合は負の数に設定する
 
 public:
-  ASocket(std::vector<Vserver> config);
+  ASocket(ConfVec config);
   virtual ~ASocket();
 
   int GetFd() const;
@@ -46,15 +48,17 @@ private:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
   bool rdhup_; // RDHUPが発生したかどうか
-  // std::deque<Request> requests_;
+  std::deque<Request> requests_;
+  std::deque<Response> responses_;
 
 public:
-  ConnSocket(std::vector<Vserver> config);
+  ConnSocket(ConfVec config);
   ~ConnSocket();
 
   int OnReadable(Epoll *epoll);
   int OnWritable(Epoll *epoll);
   int ProcessSocket(Epoll *epoll, void *data);
+  void AddResponse(const Response &response);
 
 private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
@@ -66,7 +70,7 @@ private: // 使用予定なし
 
 class ListenSocket : public ASocket {
 public:
-  ListenSocket(std::vector<Vserver> config);
+  ListenSocket(ConfVec config);
   ~ListenSocket();
 
   void Create();

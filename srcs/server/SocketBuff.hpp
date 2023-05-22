@@ -8,6 +8,7 @@
 class SocketBuff {
 private:
   std::stringstream ss_;
+  const static size_t kBuffSize = 1024;
 
 public:
   SocketBuff(); // デフォルトコンストラクタ
@@ -62,6 +63,8 @@ public:
 
   // バッファの文字列をクリアする
   void ClearBuff();
+
+  size_t GetBuffSize();
 
 private:                                     // 使用予定無し
   SocketBuff(const SocketBuff &);            // コピーコンストラクタ

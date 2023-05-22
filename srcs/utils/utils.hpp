@@ -14,4 +14,6 @@ void *ws_memset(void *s, int c, size_t n);
 void *ws_memcpy(void *dest, const void *src, size_t n);
 bool ws_isspace(const char c);
 
+bool end_with(const std::string &str, const std::string &query);
+
 #endif
