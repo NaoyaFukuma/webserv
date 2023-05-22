@@ -80,6 +80,9 @@ public:
   void ResolvePath(const Config &config);
 
   Context GetContext() const;
+
+  // for unit-test
+  void SetMessage(RequestMessage message);
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

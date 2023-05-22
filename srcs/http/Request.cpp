@@ -265,3 +265,6 @@ void Request::ResolveResourcePath() {
 //   os << "RequestLine: " << m.request_line.method << " " << m.request_line.uri
 //      << " " << m.request_line.version;
 // }
+
+// for unit-test
+void Request::SetMessage(RequestMessage message) { message_ = message; }
