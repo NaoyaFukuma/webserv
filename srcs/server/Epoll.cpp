@@ -66,7 +66,7 @@ void Epoll::Mod(int fd, uint32_t event_mask) {
 void Epoll::CheckTimeout() {
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
        it != fd_to_socket_.end();) {
-    if (it->second->IsTimeout(socket_timeout_)) {
+    if (it->second->IsTimeout(kSocketTimeout)) {
       int fd = it->first;
       it++;
       Del(fd);
@@ -89,10 +89,10 @@ void Epoll::RegisterListenSocket(const Config &config) {
 }
 
 void Epoll::EventLoop() {
-  struct epoll_event events[max_events_];
+  struct epoll_event events[kMaxEvents];
   while (true) {
     CheckTimeout();
-    int nfds = epoll_wait(epoll_fd_, events, max_events_, epoll_timeout_);
+    int nfds = epoll_wait(epoll_fd_, events, kMaxEvents, kEpollTimeout);
     if (nfds == -1) {
       throw std::runtime_error("Fatal Error: epoll_wait");
     }
