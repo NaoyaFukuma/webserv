@@ -139,7 +139,17 @@ void Request::ParseHeader(const std::string &line) {
 }
 
 void Request::ParseBody(const std::string &line) {
-  (void) line;
+
+}
+
+std::string Request::GetWord(const std::string& line, std::string::size_type& pos) {
+  std::string word;
+  pos = Request::MovePos(line, pos, " \t");
+  while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
+    word += line[pos++];
+  }
+  pos++;
+  return word;
 }
 
 // void Request::Clear() { *this = Request(); }

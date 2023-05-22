@@ -96,6 +96,8 @@ public:
 
     Header GetHeaderMap() const;
 
+    std::string GetWord(const std::string& line, std::string::size_type& pos);
+
     // for test
     void SetParseStatus(ParseStatus status) { parse_status_ = status; }
 };
