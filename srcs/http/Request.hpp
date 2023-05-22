@@ -49,6 +49,7 @@ private:
     ParseStatus parse_status_;
     Http::HttpError error_status_;
     int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+    long long content_length_; // bodyの長さを覚えておくための変数
     static const size_t kMaxHeaderSize = 8192; // 8KB
 
     Context context_; // ResolvePath()で設定される

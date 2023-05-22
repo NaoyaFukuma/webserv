@@ -2,9 +2,11 @@
 #define BOOST_TEST_MAIN
 
 #include <boost/test/included/unit_test.hpp>
+#include <iostream>
 #include <arpa/inet.h>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
+
 #define SIMPLE "../../config/test_config_files/valid/Simple.conf"
 
 // 通常のconfファイル

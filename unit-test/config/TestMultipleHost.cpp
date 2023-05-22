@@ -2,12 +2,13 @@
 #define BOOST_TEST_MAIN
 
 #include <boost/test/included/unit_test.hpp>
+#include <iostream>
 #include <arpa/inet.h>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
+
 #define MULTI_HOST "../../config/test_config_files/valid/MultipleHost.conf"
 
-// server_nameが複数ある場合
 BOOST_AUTO_TEST_CASE(MultiHost) {
   Config config;
   config.ParseConfig(MULTI_HOST); // Replace with actual path of your config file

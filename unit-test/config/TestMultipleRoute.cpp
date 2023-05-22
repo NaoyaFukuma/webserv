@@ -2,12 +2,13 @@
 #define BOOST_TEST_MAIN
 
 #include <boost/test/included/unit_test.hpp>
+#include <iostream>
 #include <arpa/inet.h>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
+
 #define MULTI_ROUTE "../../config/test_config_files/valid/MultipleRoute.conf"
 
-// locationが複数ある場合
 BOOST_AUTO_TEST_CASE(MultiRoute) {
   Config config;
   config.ParseConfig(MULTI_ROUTE); // Replace with actual path of your config file

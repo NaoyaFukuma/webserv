@@ -2,9 +2,11 @@
 #define BOOST_TEST_MAIN
 
 #include <boost/test/included/unit_test.hpp>
+#include <iostream>
 #include <arpa/inet.h>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
+
 #define ONE_LINE "../../config/test_config_files/valid/OneLine.conf"
 
 BOOST_AUTO_TEST_CASE(OneLine) {

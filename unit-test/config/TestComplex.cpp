@@ -2,16 +2,17 @@
 #define BOOST_TEST_MAIN
 
 #include <boost/test/included/unit_test.hpp>
+#include <iostream>
 #include <arpa/inet.h>
 #include "Config.hpp"
 #include "ConfigParser.hpp"
-#define COMPLEX_TEST "../../config/test_config_files/valid/Complex.conf"
 
-// 色々なのが混ざったテスト
+#define COMPLEX "../../config/test_config_files/valid/Complex.conf"
+
 BOOST_AUTO_TEST_CASE(Complex) {
   Config config;
   try {
-    config.ParseConfig(COMPLEX_TEST); // Replace with actual path of your config file
+    config.ParseConfig(COMPLEX); // Replace with actual path of your config file
   } catch (ConfigParser::ParserException &e) {
     std::cerr << e.what() << std::endl;
   }
