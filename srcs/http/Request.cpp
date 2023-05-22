@@ -1,5 +1,6 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <sys/stat.h>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -117,11 +118,13 @@ void Request::ResolvePath(const Config &config) {
   std::string host = ResolveHost();
 
   // vserverを決定
-  context_.vserver = ResolveVserver(config, host);
+  ResolveVserver(config, host);
 
   // locationを決定
-  context_.location =
-      ResolveLocation(*context_.vserver, context_.resource_path.uri.path);
+  ResolveLocation();
+
+  // resource_path, is_cgiを決定
+  ResolveResourcePath();
 }
 
 std::string Request::ResolveHost() {
@@ -137,8 +140,7 @@ std::string Request::ResolveHost() {
   return host;
 }
 
-Vserver *Request::ResolveVserver(const Config &config,
-                                 const std::string &host) {
+void Request::ResolveVserver(const Config &config, const std::string &host) {
   Vserver *vserver = NULL;
   ConfVec vservers = config.GetServerVec();
 
@@ -163,11 +165,13 @@ Vserver *Request::ResolveVserver(const Config &config,
       vserver = &vservers[0];
     }
   }
-  return vserver;
+  context_.vserver = vserver;
 }
 
-Location *Request::ResolveLocation(Vserver &vserver, const std::string &path) {
-  std::vector<Location> &locations = vserver.locations_;
+void Request::ResolveLocation() {
+  Vserver *vserver = context_.vserver;
+  std::string &path = context_.resource_path.uri.path;
+  std::vector<Location> &locations = vserver->locations_;
 
   // locationsのpathをキーにmapに変換
   std::map<std::string, Location> location_map;
@@ -192,12 +196,67 @@ Location *Request::ResolveLocation(Vserver &vserver, const std::string &path) {
   for (std::vector<std::string>::iterator it = keys.begin(); it != keys.end();
        it++) {
     if (location_map.find(*it) != location_map.end()) {
-      return &location_map[*it];
+      context_.location = &location_map[*it];
+      return;
     }
   }
   // ここのreturnは実行されないはず
   // locations[0] = "location /"
-  return &locations[0];
+  context_.location = &locations[0];
+}
+
+void Request::ResolveResourcePath() {
+  std::string &root = context_.location->root_;
+  std::string &path = context_.resource_path.uri.path;
+
+  // pathからlocationを除去して、rootを付与
+  std::string concat =
+      root + '/' + path.substr(context_.location->path_.size());
+
+  // cgi_extensionsがない場合、path_infoはなく、concatをserver_pathとする
+  if (context_.location->cgi_extensions_.empty()) {
+    context_.resource_path.server_path = concat;
+    context_.resource_path.path_info = "";
+    context_.is_cgi = false;
+    return;
+  }
+
+  // cgi_extensionsがある場合
+  for (std::vector<std::string>::iterator ite =
+           context_.location->cgi_extensions_.begin();
+       ite != context_.location->cgi_extensions_.end(); ite++) {
+    std::string cgi_extension = *ite;
+
+    // concatは'/'を含むので、size() > 0が保証されている
+    if (concat[concat.size() - 1] != '/') {
+      concat = concat + '/';
+    }
+
+    // concatの'/'ごとにextensionを確認
+    for (std::string::iterator itc = concat.begin(); itc != concat.end();
+         itc++) {
+      if (*itc == '/') {
+        std::string partial_path = concat.substr(itc - concat.begin());
+        // partial_pathがcgi_extensionで終わり、かつregular
+        // fileであれば、cgiとして実行する
+        struct stat path_stat;
+        stat(partial_path.c_str(), &path_stat);
+        if (end_with(partial_path, cgi_extension) &&
+            S_ISREG(path_stat.st_mode)) {
+          context_.resource_path.server_path =
+              concat.substr(0, itc - concat.begin());
+          context_.resource_path.path_info =
+              concat.substr(itc - concat.begin() + 1);
+          context_.is_cgi = true;
+          return;
+        }
+      }
+    }
+  }
+  context_.resource_path.server_path = concat;
+  context_.resource_path.path_info = "";
+  context_.is_cgi = false;
+  return;
 }
 
 // std::ostream &operator<<(std::ostream &os, const Request &request) {

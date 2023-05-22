@@ -62,8 +62,9 @@ private:
   void SetError(int status);
 
   std::string ResolveHost();
-  Vserver *ResolveVserver(const Config &config, const std::string &host);
-  Location *ResolveLocation(Vserver &vserver, const std::string &path);
+  void ResolveVserver(const Config &config, const std::string &host);
+  void ResolveLocation();
+  void ResolveResourcePath();
 
 public:
   Request();
