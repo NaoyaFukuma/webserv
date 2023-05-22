@@ -108,11 +108,12 @@ void Request::Parse(SocketBuff &buffer_) {
 // void Request::Clear() { *this = Request(); }
 
 void Request::ResolvePath(const Config &config) {
-  std::string src_uri = Http::DeHexify(message_.request_line.uri);
+  std::string src_uri = message_.request_line.uri;
   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
     SetError(400);
     return;
   }
+  Http::DeHexify(context_.resource_path.uri);
 
   // hostを決定
   std::string host = ResolveHost();

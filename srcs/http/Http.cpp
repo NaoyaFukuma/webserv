@@ -77,26 +77,37 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
   return true;
 }
 
-std::string Http::DeHexify(std::string uri) {
+std::string Http::DeHexify(std::string src) {
   std::string result;
-  result.reserve(uri.size());
+  result.reserve(src.size());
 
-  for (std::size_t i = 0; i < uri.size(); ++i) {
-    if (uri[i] == '%' && i + 2 < uri.size()) {
-      if (!IsHexDigit(uri[i + 1]) || !IsHexDigit(uri[i + 2])) {
-        result += uri[i]; // Plain characters.
+  for (std::size_t i = 0; i < src.size(); ++i) {
+    if (src[i] == '%' && i + 2 < src.size()) {
+      if (!IsHexDigit(src[i + 1]) || !IsHexDigit(src[i + 2])) {
+        result += src[i]; // Plain characters.
         continue;
       } else {
         result +=
-            static_cast<char>(16 * Hex2Char(uri[i + 1]) + Hex2Char(uri[i + 2]));
+            static_cast<char>(16 * Hex2Char(src[i + 1]) + Hex2Char(src[i + 2]));
         i += 2;
       }
     } else {
-      result += uri[i]; // Plain characters.
+      result += src[i]; // Plain characters.
     }
   }
 
   return result;
+}
+
+// queryはcgiのためにデコードしない
+void Http::DeHexify(Http::URI &uri) {
+  uri.scheme = Http::DeHexify(uri.scheme);
+  uri.user = Http::DeHexify(uri.user);
+  uri.pass = Http::DeHexify(uri.pass);
+  uri.host = Http::DeHexify(uri.host);
+  uri.port = Http::DeHexify(uri.port);
+  uri.path = Http::DeHexify(uri.path);
+  uri.fragment = Http::DeHexify(uri.fragment);
 }
 
 bool Http::IsHexDigit(char c) {
