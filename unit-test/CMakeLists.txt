@@ -39,17 +39,24 @@ set(UTILS_SOURCE_FILES
 # Create libraries
 add_library(MyConfigLib ${CONFIG_SOURCE_FILES})
 add_library(MyHttpLib ${HTTP_SOURCE_FILES})
-# 指定がない場合はインクルードしない
-option(BUILD_CONF_UNIT_TESTS "Build the unit tests" ON)
-if(BUILD_CONF_UNIT_TESTS)
-    add_library(MyServerLib ${SERVER_SOURCE_FILES})
-else()
-    message(STATUS "Skipping server directory for unit test build")
-endif()
+add_library(MyServerLib ${SERVER_SOURCE_FILES})
 add_library(MyUtilsLib ${UTILS_SOURCE_FILES})
 
-# Add subdirectory
-add_subdirectory(config)
-add_subdirectory(http)
+# Check options for unit tests
+option(BUILD_HTTP_UNIT_TESTS "Build the HTTP unit tests" ON)
+option(BUILD_CONF_UNIT_TESTS "Build the config unit tests" ON)
+
+if(BUILD_HTTP_UNIT_TESTS)
+    add_subdirectory(http)
+    target_compile_definitions(MyHttpLib PRIVATE DEBUG)
+else()
+    message(STATUS "Skipping HTTP tests")
+endif()
+
+if(BUILD_CONF_UNIT_TESTS)
+    add_subdirectory(config)
+else()
+    message(STATUS "Skipping config tests")
+endif()
 
 enable_testing()
