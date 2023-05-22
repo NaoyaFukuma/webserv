@@ -8,6 +8,7 @@
 #include <string>
 
 class ConnSocket;
+class Epoll;
 
 enum ProcessStatus {
   PROCESSING,
@@ -31,8 +32,8 @@ public:
 
   std::string GetString();
   ProcessStatus GetProcessStatus() const;
-  void ProcessRequest(Request &request, ConfVec &config, ConnSocket *socket);
-  void ProcessStatic(Request &request, ConfVec &config, ConnSocket *socket);
+  void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);
 };
 
 #endif // RESPONSE_HPP_

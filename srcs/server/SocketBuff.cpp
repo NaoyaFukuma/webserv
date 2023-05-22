@@ -124,3 +124,5 @@ int SocketBuff::SendSocket(const int fd) {
   this->Erase(send_len);
   return send_len == len;
 }
+
+size_t SocketBuff::GetBuffSize() { return this->ss_.str().size(); }

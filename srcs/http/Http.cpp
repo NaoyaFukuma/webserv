@@ -34,7 +34,13 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
   } else {
     // relative path, all string considered path
     dst.path = src;
-    return src[0] == '/';
+    if (dst.path.empty()) {
+      dst.path = '/';
+    }
+    if (src[0] != '/') {
+      dst.path = '/' + dst.path;
+    }
+    return true;
   }
 
   // the path part of absolute URI
@@ -46,6 +52,12 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
   if (path_end == std::string::npos)
     path_end = src.size();
   dst.path = src.substr(path_start, path_end - path_start);
+  if (dst.path.empty()) {
+    dst.path = '/';
+  }
+  if (src[0] != '/') {
+    dst.path = '/' + dst.path;
+  }
 
   // query
   std::size_t query_start = src.find('?', path_end);

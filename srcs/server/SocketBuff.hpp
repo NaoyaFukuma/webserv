@@ -64,6 +64,8 @@ public:
   // バッファの文字列をクリアする
   void ClearBuff();
 
+  size_t GetBuffSize();
+
 private:                                     // 使用予定無し
   SocketBuff(const SocketBuff &);            // コピーコンストラクタ
   SocketBuff &operator=(const SocketBuff &); // 代入演算子

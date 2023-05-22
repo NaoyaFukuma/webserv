@@ -73,12 +73,11 @@ int ConnSocket::OnReadable(Epoll *epoll) {
     requests_.back().Parse(recv_buffer_);
   }
 
-  size_t tmp_len = responses_.size();
   for (std::deque<Request>::iterator it = requests_.begin();
        it != requests_.end();) {
     if (it->GetParseStatus() == COMPLETE || it->GetParseStatus() == ERROR) {
       responses_.push_back(Response());
-      responses_.back().ProcessRequest(*it, config_, this);
+      responses_.back().ProcessRequest(*it, this, epoll);
       std::deque<Request>::iterator tmp = it + 1;
       requests_.erase(it);
       it = tmp;
@@ -86,10 +85,11 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       it++;
     }
   }
-  if (responses_.size() != tmp_len) {
-    epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-    last_event_.out_time = time(NULL);
-  }
+  // Todo: Responseの状態をDONEにする時に以下の処理を実行する(ProcessRequest)
+  // if (it->GetProcessStatus() == DONE) {
+  //   epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+  //   last_event_.out_time = time(NULL);
+  // }
   return SUCCESS;
 }
 
@@ -105,7 +105,6 @@ int ConnSocket::OnWritable(Epoll *epoll) {
       it = tmp;
     }
   }
-  // Todo: send_buffer_が空の処理
   int send_result = send_buffer_.SendSocket(fd_);
   if (send_result < 0) {
     return FAILURE;
