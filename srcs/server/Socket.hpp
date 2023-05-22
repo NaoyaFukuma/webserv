@@ -50,6 +50,7 @@ private:
   bool rdhup_; // RDHUPが発生したかどうか
   std::deque<Request> requests_;
   std::deque<Response> responses_;
+  std::pair<std::string, std::string> ip_port_;
 
 public:
   ConnSocket(ConfVec config);
@@ -59,6 +60,7 @@ public:
   int OnWritable(Epoll *epoll);
   int ProcessSocket(Epoll *epoll, void *data);
   void AddResponse(const Response &response);
+  void SetIpPort(const struct sockaddr_in &addr);
 
 private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
