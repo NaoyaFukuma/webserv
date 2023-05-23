@@ -99,6 +99,7 @@ private: // 使用予定なし
   // 内部でしか使わないメソッド
   void SetSocket(int child_sock, int parent_sock);
   char **SetMetaVariables();
+  Response &ParseCgiResponse();
 };
 
 // ------------------------------------------------------------------
