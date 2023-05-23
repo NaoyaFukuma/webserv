@@ -147,6 +147,7 @@ std::string Request::ResolveHost() {
 void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
   // vservers[0]: default vserver
   context_.vserver = vservers[0];
+  context_.server_name = vservers[0].server_names_[0];
   if (host.empty()) {
     return;
   } else {
@@ -157,6 +158,7 @@ void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
            its != itv->server_names_.end(); its++) {
         if (*its == host) {
           context_.vserver = *itv;
+          context_.server_name = *its;
           return;
         }
       }

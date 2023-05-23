@@ -14,7 +14,7 @@ struct RequestLine {
   Http::Version version;
 };
 
-typedef std::map<std::string, std::vector<std::string> > Header;
+typedef std::map<std::string, std::vector<std::string>> Header;
 
 struct RequestMessage {
   RequestLine request_line;
@@ -38,6 +38,7 @@ struct ResourcePath {
 
 struct Context {
   Vserver vserver;
+  std::string server_name;
   Location location;
   ResourcePath resource_path;
   bool is_cgi;
