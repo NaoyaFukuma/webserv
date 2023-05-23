@@ -38,7 +38,7 @@ set(UTILS_SOURCE_FILES
 
 # Create libraries
 add_library(MyConfigLib ${CONFIG_SOURCE_FILES})
-add_library(MyHttpLib ${HTTP_SOURCE_FILES})
+add_library(MyHttpLib ${HTTP_SOURCE_FILES} ${CONFIG_SOURCE_FILES})
 add_library(MyServerLib ${SERVER_SOURCE_FILES})
 add_library(MyUtilsLib ${UTILS_SOURCE_FILES})
 
@@ -55,6 +55,12 @@ endif()
 
 if(BUILD_CONF_UNIT_TESTS)
     add_subdirectory(config)
+else()
+    message(STATUS "Skipping config tests")
+endif()
+
+if(BUILD_PATH_UNIT_TESTS)
+    add_subdirectory(resolve_path)
 else()
     message(STATUS "Skipping config tests")
 endif()
