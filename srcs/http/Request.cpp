@@ -1,5 +1,6 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <deque>
 #include <iostream>
 #include <sys/stat.h>
 
@@ -175,10 +176,10 @@ void Request::ResolveLocation() {
   }
 
   // context_.resource_path.uri.pathの最後の/までの部分文字列をキーにする
-  std::vector<std::string> keys;
+  std::deque<std::string> keys;
   for (std::string::const_iterator it = path.begin(); it != path.end(); it++) {
     if (*it == '/') {
-      keys.push_back(path.substr(0, it - path.begin() + 1));
+      keys.push_front(path.substr(0, it - path.begin() + 1));
     }
   }
   // path != "" (uriの分解時に空文字列の場合は'/'としている)
@@ -187,16 +188,13 @@ void Request::ResolveLocation() {
   }
 
   // "location /"があることを保証するので、必ずキーが存在する
-  for (std::vector<std::string>::iterator it = keys.begin(); it != keys.end();
+  for (std::deque<std::string>::iterator it = keys.begin(); it != keys.end();
        it++) {
     if (location_map.find(*it) != location_map.end()) {
       context_.location = location_map[*it];
       return;
     }
   }
-  // ここのreturnは実行されないはず
-  // locations[0] = "location /"
-  context_.location = locations[0];
 }
 
 void Request::ResolveResourcePath() {
@@ -220,41 +218,51 @@ void Request::ResolveResourcePath() {
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
-    // concatは'/'を含むので、size() > 0が保証されている
-    if (concat[concat.size() - 1] != '/') {
-      concat = concat + '/';
-    }
-
     // concatの'/'ごとにextensionを確認
-    for (std::string::iterator itc = concat.begin(); itc != concat.end();
-         itc++) {
-      if (*itc == '/') {
-        std::string partial_path = concat.substr(itc - concat.begin());
-        // partial_pathがcgi_extensionで終わり、かつregular
-        // fileであれば、cgiとして実行する
-        struct stat path_stat;
-        stat(partial_path.c_str(), &path_stat);
-        if ((cgi_extension == "." || end_with(partial_path, cgi_extension)) &&
-            S_ISREG(path_stat.st_mode)) {
+    for (std::string::iterator its = concat.begin(); its != concat.end();
+         its++) {
+      if (*its == '/') {
+        std::string partial_path = concat.substr(0, its - concat.begin());
+        if (ExistCgiFile(partial_path, cgi_extension)) {
           context_.resource_path.server_path =
-              concat.substr(0, itc - concat.begin());
+              concat.substr(0, its - concat.begin());
           context_.resource_path.path_info =
-              concat.substr(itc - concat.begin() + 1);
+              concat.substr(its - concat.begin());
           context_.is_cgi = true;
           return;
         }
       }
     }
+    // concatが/で終わらない場合、追加でチェックが必要
+    // concatは '/'を含むので、size() > 0が保証されている
+    if (concat[concat.size() - 1] != '/' &&
+        ExistCgiFile(concat, cgi_extension)) {
+      context_.resource_path.server_path = concat;
+      context_.is_cgi = true;
+      return;
+    }
   }
+
   context_.resource_path.server_path = concat;
   context_.resource_path.path_info = "";
   context_.is_cgi = false;
   return;
 }
 
+// partial_pathがcgi_extensionで終わり、かつregular
+// fileであれば、cgiとして実行する
+bool Request::ExistCgiFile(const std::string &path,
+                           const std::string &extension) const {
+  struct stat path_stat;
+  stat(path.c_str(), &path_stat);
+  return (extension == "." || end_with(path, extension)) &&
+         S_ISREG(path_stat.st_mode);
+}
+
 // std::ostream &operator<<(std::ostream &os, const Request &request) {
 //   RequestMessage m = request.GetRequestMessage();
-//   os << "RequestLine: " << m.request_line.method << " " << m.request_line.uri
+//   os << "RequestLine: " << m.request_line.method << " " <<
+//   m.request_line.uri
 //      << " " << m.request_line.version;
 // }
 

@@ -65,6 +65,8 @@ private:
   void ResolveVserver(const ConfVec &vservers, const std::string &host);
   void ResolveLocation();
   void ResolveResourcePath();
+  bool ExistCgiFile(const std::string &path,
+                    const std::string &extension) const;
 
 public:
   Request();
