@@ -1,10 +1,10 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <cerrno>
 #include <deque>
 #include <iostream>
-#include <sys/stat.h>
-#include <cerrno>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -47,7 +47,7 @@ void Request::Parse(SocketBuff &buffer_) {
          buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
-  (void) buffer_;
+  (void)buffer_;
   message_.request_line.method = "GET";
   message_.request_line.uri = "/index.html";
   message_.request_line.version = Http::HTTP09;
@@ -56,20 +56,20 @@ void Request::Parse(SocketBuff &buffer_) {
 
 void Request::ParseLine(const std::string &line) {
   switch (parse_status_) {
-    case INIT:
-      ParseRequestLine(line);
-      break;
-    case HEADER:
-      ParseHeader(line);
-      break;
-    case BODY:
-      ParseBody(line);
-      break;
-    case COMPLETE:
-      break;
-    case ERROR:
-      // TODO: ここでエラー処理
-      break;
+  case INIT:
+    ParseRequestLine(line);
+    break;
+  case HEADER:
+    ParseHeader(line);
+    break;
+  case BODY:
+    ParseBody(line);
+    break;
+  case COMPLETE:
+    break;
+  case ERROR:
+    // TODO: ここでエラー処理
+    break;
   }
 }
 
@@ -80,28 +80,28 @@ void Request::ParseRequestLine(const std::string &line) {
   // HTTP0.9
   if (splited.size() == 2) {
     message_.request_line.method = splited[0];
-//     if (IsValidMethod(message_.request_line.method) == false) {
-////       SetError(400);
-//       return;
-//     }
+    //     if (IsValidMethod(message_.request_line.method) == false) {
+    ////       SetError(400);
+    //       return;
+    //     }
     message_.request_line.uri = splited[1];
     message_.request_line.version = Http::HTTP09;
     parse_status_ = COMPLETE;
   }
-    // HTTP1.0~
+  // HTTP1.0~
   else {
     message_.request_line.method = splited[0];
-//     if (IsValidMethod(message_.request_line.method) == false) {
-////       SetError(400);
-//       return;
-//     }
+    //     if (IsValidMethod(message_.request_line.method) == false) {
+    ////       SetError(400);
+    //       return;
+    //     }
     message_.request_line.uri = splited[1];
     if (splited[2] == "HTTP/1.0") {
       message_.request_line.version = Http::HTTP10;
     } else if (splited[2] == "HTTP/1.1") {
       message_.request_line.version = Http::HTTP11;
     } else {
-//       SetError(400);
+      //       SetError(400);
       return;
     }
     parse_status_ = HEADER;
@@ -275,18 +275,20 @@ void Request::ParseBody(const std::string &line) {
   if (!JudgeBodyType()) {
     // error
   }
-  (void )line;
+  (void)line;
 }
 
 bool Request::JudgeBodyType() {
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
-  Header::iterator it_transfer_encoding = message_.header.find("Transfer-Encoding");
+  Header::iterator it_transfer_encoding =
+      message_.header.find("Transfer-Encoding");
   Header::iterator it_content_length = message_.header.find("Content-Length");
 
   if (it_transfer_encoding != message_.header.end()) {
     std::vector<std::string> values = it_transfer_encoding->second;
     // values を全部探索
-    for (std::vector<std::string>::const_iterator it = values.begin(); it != values.end(); ++it) {
+    for (std::vector<std::string>::const_iterator it = values.begin();
+         it != values.end(); ++it) {
       if (*it == "chunked") {
         chunk_status_ = true;
         return true;
@@ -310,8 +312,8 @@ bool Request::JudgeBodyType() {
   return false;
 }
 
-
-std::string Request::GetWord(const std::string &line, std::string::size_type &pos) {
+std::string Request::GetWord(const std::string &line,
+                             std::string::size_type &pos) {
   std::string word;
   while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
     word += line[pos++];
@@ -340,7 +342,8 @@ bool Request::ExistCgiFile(const std::string &path,
 // for unit-test
 void Request::SetMessage(RequestMessage message) { message_ = message; }
 
-bool Request::SplitRequestLine(std::vector<std::string> &splited, const std::string &line) {
+bool Request::SplitRequestLine(std::vector<std::string> &splited,
+                               const std::string &line) {
   // 空白文字で分割
   // 空白は1文字まで
   std::string::size_type pos = 0;
@@ -356,8 +359,9 @@ bool Request::SplitRequestLine(std::vector<std::string> &splited, const std::str
   return true;
 }
 
-std::string::size_type
-Request::MovePos(const std::string &line, std::string::size_type start, const std::string &delim) {
+std::string::size_type Request::MovePos(const std::string &line,
+                                        std::string::size_type start,
+                                        const std::string &delim) {
   std::string::size_type pos = start;
   while (pos < line.size() && delim.find(line[pos]) != std::string::npos) {
     pos++;
