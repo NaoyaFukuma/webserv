@@ -30,6 +30,7 @@ public:
   ASocket(ConfVec config);
   virtual ~ASocket();
 
+  ConfVec GetConf() const;
   int GetFd() const;
   void SetFd(int fd);
   bool IsTimeout(const time_t &threshold) const;
@@ -61,6 +62,7 @@ public:
   int ProcessSocket(Epoll *epoll, void *data);
   void AddResponse(const Response &response);
   void SetIpPort(const struct sockaddr_in &addr);
+  void PushResponse(Response &response);
 
 private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
@@ -80,12 +82,12 @@ class CgiSocket : public ASocket {
 private:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
-  bool rdhup_;
   pid_t pid_;               // CGIスクリプト実行用のプロセスID
   ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
+  Request http_request_;    // CGI実行要求したHTTPリクエスト
 
 public:
-  CgiSocket(ConnSocket *conn_socket);
+  CgiSocket(ConnSocket &conn_socket, Request &http_request, const ConfVec &config);
   ~CgiSocket();
   CgiSocket *CreatCgiProcess();
   int OnWritable(Epoll *epoll);
@@ -99,7 +101,9 @@ private: // 使用予定なし
   // 内部でしか使わないメソッド
   void SetSocket(int child_sock, int parent_sock);
   char **SetMetaVariables();
-  Response &ParseCgiResponse();
+  char **SetArgv();
+  void SetCurrentDir(const std::string &cgi_path);
+  Response ParseCgiResponse();
 };
 
 // ------------------------------------------------------------------

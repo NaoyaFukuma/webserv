@@ -27,6 +27,8 @@ ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
 Http::HttpError Request::GetErrorStatus() const { return error_status_; }
 
+RequestMessage Request::GetRequestMessage() const { return message_; }
+
 Context Request::GetContext() const { return context_; }
 
 void Request::SetError(int error_status) {

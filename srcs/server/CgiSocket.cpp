@@ -7,12 +7,13 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <string>
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <wait.h>
+#include <cstring>
 
 /* ConnScoketクラスと同じアウトラインを持つ
   CgiSocket(ConnSocket *conn_socket);
@@ -24,10 +25,11 @@
 */
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
-CgiSocket::CgiSocket(ConnSocket &conn_socket, Request &http_request)
-    : conn_socket_(conn_socket), ASocket(conn_socket->config_),
-      http_request_(http_request){
-          this->send_buffer_.AddString(http_request_.message_.body.c_str())};
+CgiSocket::CgiSocket(ConnSocket &conn_socket, Request &http_request,
+                     const ConfVec &config)
+    : ASocket(config), conn_socket_(&conn_socket), http_request_(http_request) {
+  this->send_buffer_.AddString(http_request_.GetRequestMessage().body.c_str());
+};
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
 CgiSocket::~CgiSocket() {
@@ -86,9 +88,13 @@ CgiSocket *CgiSocket::CreatCgiProcess() {
     this->SetSocket(child_sock, parent_sock);
     char **env = this->SetMetaVariables();
     char **argv = this->SetArgv();
+    this->SetCurrentDir(
+        this->http_request_.GetContext().resource_path.server_path);
 
     // CGIスクリプトを実行
-    if (execve(conn_socket_->request_.script_name_.c_str(), argv, env) < 0) {
+    if (execve(
+            this->http_request_.GetContext().resource_path.server_path.c_str(),
+            argv, env) < 0) {
       // 子プロセス内でのエラーは例外を投げてすぐ子プロセスを終了させる
       throw std::runtime_error(
           "Keep Running Error: close in CGI script procces");
@@ -131,13 +137,14 @@ int CgiSocket::OnReadable(Epoll *epoll) {
 
   case -1: // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
     // parseし、HTTPレスポンスを作成する
-    Response &http_response = this->ParseCgiResponse();
+    Response http_response = this->ParseCgiResponse();
 
     // HTTPレスポンスをdequeに追加する
-    this->conn_socket_->responses_.push_back(response);
+    this->conn_socket_->PushResponse(http_response);
 
     // EpollにEPOLLOUT追加でADDする
-    epoll->Add(this->conn_socket_->fd_, EPOLLIN | EPOLLOUT | EPOLLET);
+    uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
+    epoll->Add(this->conn_socket_, event_mask);
 
     return FAILURE;
     // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
@@ -151,34 +158,38 @@ int CgiSocket::OnReadable(Epoll *epoll) {
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int CgiSocket::OnWritable(Epoll *epoll) {
   // send_buffer_の内容をUNIXソケットを通じてCGIスクリプトに書き込む
-  int send_result = send_buffer_.SendSocket(this->GetFd());
+  int send_result;
+  if (send_buffer_.GetBuffSize()) {
+    send_result = send_buffer_.SendSocket(this->GetFd());
+  } else {
+    send_result = 1; // 送信完了扱いとする
+  }
 
   switch (send_result) {
 
-  case 0: // 送信未完了
+  case 0: {// 送信未完了
     // EPOLLOUTのイベント登録を維持しつつ、次回のEPOLLOUTを発火を待つ
     last_event_.out_time = time(NULL); // 現在時間に更新
     break;
-
-  case 1: // 送信完了
+  }
+  case 1: { // 送信完了
     // EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
-    epoll->Mod(this->GetFd(), EPOLLIN | EPOLLRDHUP, EPOLLET);
+    uint32_t event_mask = EPOLLIN | EPOLLRDHUP | EPOLLET;
+    epoll->Mod(this->GetFd(), event_mask);
     // UNIXドメインソケットの全二重通信の送信側を閉じるこれにより、CGIスクリプト側のread()がEOFを検知することができる
     if (shutdown(this->GetFd(), SHUT_WR) < 0) {
       std::cerr << "Keep Running Error: shutdown" << std::endl;
     }
     last_event_.out_time = -1; // タイムアウトを無効化
     break;
-
-  case -1: // エラー
+  }
+  default: { // (-1) エラー
     return FAILURE;
     // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
     // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
     // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
     break;
-
-  default: // ありえない
-    break;
+  }
   }
 
   return SUCCESS;
@@ -249,7 +260,7 @@ char **CgiSocket::SetMetaVariables() {
 
   // メタ変数を構築したvectorをchar**に変換
   char **envp = new char *[meta_variables.size() + 1];
-  for (int i = 0; i < meta_variables.size(); i++) {
+  for (size_t i = 0; i < meta_variables.size(); i++) {
     envp[i] = new char[meta_variables[i].size() + 1];
     std::strcpy(envp[i], meta_variables[i].c_str());
   }
@@ -264,14 +275,14 @@ char **CgiSocket::SetArgv() {
   std::vector<std::string> argv;
 
   // 実行ファイルのパス
-  argv.push_back(http_request_.context_.resource_path.server_path);
+  argv.push_back(this->http_request_.GetContext().resource_path.server_path.c_str());
 
   // TODO:
   // クエリ文字列に'='があるか判定し、なければ'+'で区切ってコマンドラインに追加
 
   // argvを構築したvectorをchar**に変換
   char **argvp = new char *[argv.size() + 1];
-  for (int i = 0; i < argv.size(); i++) {
+  for (size_t i = 0; i < argv.size(); i++) {
     argvp[i] = new char[argv[i].size() + 1];
     std::strcpy(argvp[i], argv[i].c_str());
   }
@@ -281,17 +292,33 @@ char **CgiSocket::SetArgv() {
   return argvp;
 }
 
-Response &CgiSocket::ParseCgiResponse() {
+Response CgiSocket::ParseCgiResponse() {
   Response http_response;
+  ResponseMessage response_message;
 
   // シナリオ 1:500 Internal Server Error
-  if (this->send_buffer_.GetBuffSize() == 0) {
-    http_response.
-  }
+  response_message.status_code_ = 500;
+  response_message.status_message_ = "Internal Server Error";
 
   // シナリオ 2:
 
   // シナリオ 3:
 
+  http_response.SetResponseMessage(response_message);
   return http_response;
+}
+
+// RFC3875 7.2
+// カレントワーキングディレクトリをCGIスクリプトのディレクトリに変更する
+void CgiSocket::SetCurrentDir(const std::string &cgi_path) {
+  // cgi_pathからディレクトリを取得
+  std::string dir_path = cgi_path.substr(0, cgi_path.find_last_of('/'));
+
+  // chdir()でディレクトリを変更
+  if (chdir(dir_path.c_str()) < 0) {
+    // syscall エラーなので、プロセスを終了するために例外を投げる
+    // 子プロセスなので即終了でOK
+    // 課題要件上exit()を使ってはいけないので、例外を投げる
+    throw std::runtime_error("Keep Running Error: chdir in CGI script procces");
+  }
 }

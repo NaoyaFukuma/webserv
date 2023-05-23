@@ -1,5 +1,7 @@
 #include "Response.hpp"
 #include "Socket.hpp"
+#include "Epoll.hpp"
+#include <sys/epoll.h>
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -24,13 +26,14 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   // request.ResolvePath(config);
   if (request.GetContext().is_cgi) {
     // CGI
-    CgiSocket cgi_socket(socket, request);
+    CgiSocket cgi_socket(*socket, request, socket->GetConf());
     ASocket *sock = cgi_socket.CreatCgiProcess();
     if (sock == NULL) {
       // エラー処理 クライアントへ500 Internal Server Errorを返す
       return;
     }
-    epoll->AddSocket(sock, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+    uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
+    epoll->Add(sock, event_mask);
   } else {
     // 静的ファイル
     ProcessStatic(request, socket, epoll);
@@ -42,4 +45,9 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
   (void)request;
   (void)epoll;
   (void)socket;
+}
+
+void Response::SetResponseMessage(ResponseMessage message) {
+  this->message_ = message;
+  this->process_status_ = DONE;
 }

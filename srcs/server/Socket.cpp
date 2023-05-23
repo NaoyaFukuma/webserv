@@ -26,6 +26,8 @@ ASocket::~ASocket() {
   }
 }
 
+ConfVec ASocket::GetConf() const { return config_; }
+
 int ASocket::GetFd() const { return fd_; }
 
 void ASocket::SetFd(int fd) { fd_ = fd; }
@@ -192,6 +194,10 @@ void ConnSocket::SetIpPort(const struct sockaddr_in &addr) {
   ip_port_.second = oss.str();
 }
 
+void ConnSocket::PushResponse(Response &response) {
+  responses_.push_back(response);
+}
+
 // ------------------------------------------------------------------
 // listen用のソケット
 
@@ -226,16 +232,17 @@ void ListenSocket::Passive() {
 ConnSocket *ListenSocket::Accept() {
   ConnSocket *conn_socket = new ConnSocket(config_);
 
-  struct sockaddr_in sockaddr;
-  socklen_t len = sizeof(sockaddr);
+  struct sockaddr_in sockaddr_in_instance;
+  socklen_t len = sizeof(sockaddr_in_instance);
+  int fd = accept(
+      fd_, reinterpret_cast<struct sockaddr *>(&sockaddr_in_instance), &len);
 
-  int fd = accept(fd_, &sockaddr, &len);
   if (fd < 0) {
     std::cerr << "Keep Running Error: accept" << std::endl;
     delete conn_socket;
     return NULL;
   }
-  SetIpPort(sockaddr);
+  conn_socket->SetIpPort(sockaddr_in_instance);
 
   int yes = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
