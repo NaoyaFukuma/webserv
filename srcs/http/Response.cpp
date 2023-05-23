@@ -9,11 +9,7 @@ Response::Response(const Response &src) { *this = src; }
 Response &Response::operator=(const Response &src) {
   if (this != &src) {
     process_status_ = src.process_status_;
-    version_ = src.version_;
-    status_code_ = src.status_code_;
-    status_message_ = src.status_message_;
-    header_ = src.header_;
-    body_ = src.body_;
+    message_ = src.message_;
   }
   return *this;
 }
