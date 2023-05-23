@@ -15,6 +15,9 @@ public:
   ~SocketBuff();
 
   // EPOLLINを検知したソケットFDを受け取り、全てバッファに格納する
+  // SUCCESS(0): ソケット内で読み込み可能な文字をすべてバッファに格納した
+  // FAILURE(-1):
+  // EPOLLINが発火して一回目のrecv()で0が返った。すなわち、finパケットの受信によりEPOLLINが発火したことを示す。
   int ReadSocket(int fd);
 
   // バッファから1行読み込み、引数に受け取った文字列に格納する
