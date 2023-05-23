@@ -38,13 +38,14 @@ set(UTILS_SOURCE_FILES
 
 # Create libraries
 add_library(MyConfigLib ${CONFIG_SOURCE_FILES})
-add_library(MyHttpLib ${HTTP_SOURCE_FILES} ${CONFIG_SOURCE_FILES})
+add_library(MyHttpLib ${HTTP_SOURCE_FILES} ${CONFIG_SOURCE_FILES} ${SERVER_SOURCE_FILES})
 add_library(MyServerLib ${SERVER_SOURCE_FILES})
 add_library(MyUtilsLib ${UTILS_SOURCE_FILES})
 
 # Check options for unit tests
 option(BUILD_HTTP_UNIT_TESTS "Build the HTTP unit tests" ON)
 option(BUILD_CONF_UNIT_TESTS "Build the config unit tests" ON)
+option(BUILD_PATH_UNIT_TESTS "Build the resolve_path unit tests" ON)
 
 if(BUILD_HTTP_UNIT_TESTS)
     add_subdirectory(http)
@@ -62,7 +63,7 @@ endif()
 if(BUILD_PATH_UNIT_TESTS)
     add_subdirectory(resolve_path)
 else()
-    message(STATUS "Skipping config tests")
+    message(STATUS "Skipping resolve_path tests")
 endif()
 
 enable_testing()
