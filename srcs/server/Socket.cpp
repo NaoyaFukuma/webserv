@@ -198,6 +198,10 @@ void ConnSocket::PushResponse(Response &response) {
   responses_.push_back(response);
 }
 
+std::pair<std::string, std::string> ConnSocket::GetIpPort() const {
+  return ip_port_;
+}
+
 // ------------------------------------------------------------------
 // listen用のソケット
 

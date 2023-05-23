@@ -1,10 +1,12 @@
 #include "Epoll.hpp"
+#include "Http.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 #include "Socket.hpp"
 #include "define.hpp"
 #include "utils.hpp"
 #include <arpa/inet.h>
+#include <cstring>
 #include <errno.h>
 #include <fcntl.h>
 #include <string>
@@ -13,7 +15,6 @@
 #include <unistd.h>
 #include <vector>
 #include <wait.h>
-#include <cstring>
 
 /* ConnScoketクラスと同じアウトラインを持つ
   CgiSocket(ConnSocket *conn_socket);
@@ -167,7 +168,7 @@ int CgiSocket::OnWritable(Epoll *epoll) {
 
   switch (send_result) {
 
-  case 0: {// 送信未完了
+  case 0: { // 送信未完了
     // EPOLLOUTのイベント登録を維持しつつ、次回のEPOLLOUTを発火を待つ
     last_event_.out_time = time(NULL); // 現在時間に更新
     break;
@@ -256,6 +257,88 @@ char **CgiSocket::SetMetaVariables() {
 
   // GATEWAY_INTERFACE
   meta_variables.push_back("GATEWAY_INTERFACE=CGI/1.1");
+  // REMOTE_ADDR
+  meta_variables.push_back("REMOTE_ADDR=" +
+                           this->conn_socket_->GetIpPort().first);
+  // REQUEST_METHOD
+  meta_variables.push_back(
+      "REQUEST_METHOD=" +
+      this->http_request_.GetRequestMessage().request_line.method);
+  // SCRIPT_NAME
+  meta_variables.push_back(
+      "SCRIPT_NAME=" +
+      this->http_request_.GetContext().resource_path.server_path);
+  // SERVER_NAME
+  meta_variables.push_back(
+      "SERVER_NAME=" + this->http_request_.GetContext().resource_path.uri.path);
+  // SERVER_PORT
+  std::stringstream ss;
+  ss << ntohl(this->conn_socket_->GetConf()[0].listen_.sin_port);
+  meta_variables.push_back("SERVER_PORT=" + ss.str());
+
+  // SERVER_PROTOCOL
+  enum Http::Version ver =
+      this->http_request_.GetRequestMessage().request_line.version;
+  std::string version;
+  switch (ver) {
+  case Http::HTTP09:
+    version = "HTTP/0.9";
+    break;
+  case Http::HTTP10:
+    version = "HTTP/1.0";
+    break;
+  case Http::HTTP11:
+    version = "HTTP/1.1";
+    break;
+  default:
+    break;
+  }
+  meta_variables.push_back("SERVER_PROTOCOL=" + version);
+  // SERVER_SOFTWARE
+  meta_variables.push_back("SERVER_SOFTWARE=webserv/0.1");
+  // CONTENT_LENGTH
+  // bodyのサイズをstringに変換して、メタ変数に追加
+  ss.str("");
+  ss.clear();
+  ss << this->http_request_.GetRequestMessage().body.size();
+  meta_variables.push_back("CONTENT_LENGTH=" + ss.str());
+  // PATH_INFO
+  meta_variables.push_back(
+      "PATH_INFO=" + this->http_request_.GetContext().resource_path.path_info);
+  // QUERY_STRING
+  std::string query_string =
+      this->http_request_.GetContext().resource_path.uri.query;
+  // '&'が含まれている場合にのみ環境変数に追加、含まれない場合は"QUERY_STRING="と設定、別の関数でコマンドライン引数とする
+  if (query_string.find('&') != std::string::npos) {
+    // '%'があったので、%デコードを行い環境変数に設定
+    query_string = Http::DeHexify(query_string);
+    meta_variables.push_back("QUERY_STRING=" + query_string);
+  } else { // '&'が含まれていないので、"QUERY_STRING="と設定
+    meta_variables.push_back("QUERY_STRING=");
+  }
+  // REMOTE_HOST これは対応しない RFC3875 MAY
+  // AUTH_TYPE これは対応しない RFC3875 MAY
+  // CONTENT_TYPE
+  if (this->http_request_.GetRequestMessage().header.find("Content-Type") !=
+      this->http_request_.GetRequestMessage().header.end()) {
+    meta_variables.push_back(
+        "CONTENT_TYPE=" +
+        this->http_request_.GetRequestMessage().header["Content-Type"][0]);
+  } else {
+    meta_variables.push_back("CONTENT_TYPE=");
+  }
+
+  // PATH_TRANSLATED
+  std::string path = this->http_request_.GetContext().resource_path.server_path;
+  path = path.substr(0, path.find_last_of('/'));
+  path += this->http_request_.GetContext().resource_path.path_info;
+  meta_variables.push_back("PATH_TRANSLATED=" + path);
+  // REMOTE_IDENT これは対応しない RFC3875 MAY
+  // REMOTE_USER これは対応しない RFC3875 MAY
+  // SCRIPT_FILENAME
+  meta_variables.push_back("SCRIPT_FILENAME=" +
+                           this->http_request_.GetContext().server_name);
+
   // TODO: 他のメタ変数はこれから追加
 
   // メタ変数を構築したvectorをchar**に変換
@@ -275,10 +358,25 @@ char **CgiSocket::SetArgv() {
   std::vector<std::string> argv;
 
   // 実行ファイルのパス
-  argv.push_back(this->http_request_.GetContext().resource_path.server_path.c_str());
+  argv.push_back(
+      this->http_request_.GetContext().resource_path.server_path.c_str());
 
-  // TODO:
-  // クエリ文字列に'='があるか判定し、なければ'+'で区切ってコマンドラインに追加
+  std::string query_string =
+      this->http_request_.GetContext().resource_path.uri.query;
+  // '&'が含まれている場合にのみ環境変数に追加、含まれない場合は"QUERY_STRING="と設定、この関数でコマンドライン引数とする
+  if (query_string.find('&') == std::string::npos) {
+    // %が無いので、argvに追加
+    // '+'をdemiliterとしてsubstr()し、%デコードを施しargvにpush_back
+    std::string delimiter = "+";
+    size_t pos = 0;
+    std::string token;
+    while ((pos = query_string.find(delimiter)) != std::string::npos) {
+      token = query_string.substr(0, pos);
+      token = Http::DeHexify(token);
+      argv.push_back(token);
+      query_string.erase(0, pos + delimiter.length());
+    }
+  }
 
   // argvを構築したvectorをchar**に変換
   char **argvp = new char *[argv.size() + 1];

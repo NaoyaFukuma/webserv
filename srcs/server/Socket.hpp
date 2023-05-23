@@ -63,6 +63,7 @@ public:
   void AddResponse(const Response &response);
   void SetIpPort(const struct sockaddr_in &addr);
   void PushResponse(Response &response);
+  std::pair<std::string, std::string> GetIpPort() const;
 
 private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
@@ -87,7 +88,8 @@ private:
   Request http_request_;    // CGI実行要求したHTTPリクエスト
 
 public:
-  CgiSocket(ConnSocket &conn_socket, Request &http_request, const ConfVec &config);
+  CgiSocket(ConnSocket &conn_socket, Request &http_request,
+            const ConfVec &config);
   ~CgiSocket();
   CgiSocket *CreatCgiProcess();
   int OnWritable(Epoll *epoll);
