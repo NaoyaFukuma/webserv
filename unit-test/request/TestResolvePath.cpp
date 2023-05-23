@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_CASE(SimpleConfig) {
                             .header = {},
                             .body = ""};
   request.SetMessage(message);
-  request.ResolvePath(config);
+  request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
                     "/var/www/html/test/index.html");
 }
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(SimpleConfigWithoutSlash) {
                             .header = {},
                             .body = ""};
   request.SetMessage(message);
-  request.ResolvePath(config);
+  request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
                     "/var/www/html/test/index.html");
 }
@@ -47,7 +47,23 @@ BOOST_AUTO_TEST_CASE(MultipleLocation) {
                             .header = {},
                             .body = ""};
   request.SetMessage(message);
-  request.ResolvePath(config);
+  request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
                     "/var/www/html/b/a/index.html");
 }
+
+// BOOST_AUTO_TEST_CASE(MultipleServername) {
+//   Config config;
+//   config.ParseConfig("../../config/test_config_files/valid/MultipleRoute.conf");
+//   std::cout << config << std::endl;
+//   Request request;
+//   RequestMessage message = {.request_line = {.method = "GET",
+//                                              .uri = "/b/a/index.html",
+//                                              .version = Http::HTTP11},
+//                             .header = {},
+//                             .body = ""};
+//   request.SetMessage(message);
+//   request.ResolvePath(config.GetServerVec());
+//   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
+//                     "/var/www/html/b/a/index.html");
+// }

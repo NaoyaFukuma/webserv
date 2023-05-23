@@ -62,7 +62,7 @@ private:
   void SetError(int status);
 
   std::string ResolveHost();
-  void ResolveVserver(const Config &config, const std::string &host);
+  void ResolveVserver(const ConfVec &vservers, const std::string &host);
   void ResolveLocation();
   void ResolveResourcePath();
 
@@ -77,7 +77,7 @@ public:
   Http::HttpError GetErrorStatus() const;
   void Parse(SocketBuff &buffer_);
   void Clear();
-  void ResolvePath(const Config &config);
+  void ResolvePath(const ConfVec &vservers);
 
   Context GetContext() const;
 

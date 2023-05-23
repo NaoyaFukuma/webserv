@@ -108,7 +108,7 @@ void Request::Parse(SocketBuff &buffer_) {
 
 // void Request::Clear() { *this = Request(); }
 
-void Request::ResolvePath(const Config &config) {
+void Request::ResolvePath(const ConfVec &vservers) {
   std::string src_uri = message_.request_line.uri;
   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
     SetError(400);
@@ -121,7 +121,7 @@ void Request::ResolvePath(const Config &config) {
   std::string host = ResolveHost();
 
   // vserverを決定
-  ResolveVserver(config, host);
+  ResolveVserver(vservers, host);
 
   // locationを決定
   ResolveLocation();
@@ -143,9 +143,7 @@ std::string Request::ResolveHost() {
   return host;
 }
 
-void Request::ResolveVserver(const Config &config, const std::string &host) {
-  const ConfVec &vservers = config.GetServerVec();
-
+void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
   // vservers[0]: default vserver
   context_.vserver = vservers[0];
   if (host.empty()) {
