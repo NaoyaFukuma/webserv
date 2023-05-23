@@ -53,11 +53,10 @@ private:
     static const size_t kMaxHeaderSize = 8192; // 8KB
 
     Context context_; // ResolvePath()で設定される
-// TESTがdefineされている場合はpublicにする
+// DEBUGがdefineされている場合はpublicにする
 #ifdef DEBUG
 public:
 #endif
-
     void ParseLine(const std::string &line);
 
     void ParseRequestLine(const std::string &line);
@@ -72,14 +71,18 @@ public:
 
     std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string &delim);
 
-    bool SplitRequestLine(std::vector <std::string> &splited, const std::string &line);
+    bool SplitRequestLine(std::vector<std::string> &splited, const std::string &line);
+
     // 名前が微妙
     bool JudgeBodyType();
 
-  std::string ResolveHost();
-  void ResolveVserver(const Config &config, const std::string &host);
-  void ResolveLocation();
-  void ResolveResourcePath();
+    std::string ResolveHost();
+
+    void ResolveVserver(const Config &config, const std::string &host);
+
+    void ResolveLocation();
+
+    void ResolveResourcePath();
 
 public:
     Request();
@@ -106,7 +109,7 @@ public:
 
     Header GetHeaderMap() const;
 
-    std::string GetWord(const std::string& line, std::string::size_type& pos);
+    std::string GetWord(const std::string &line, std::string::size_type &pos);
 
     // for test
     void SetParseStatus(ParseStatus status) { parse_status_ = status; }
