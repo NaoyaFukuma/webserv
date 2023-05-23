@@ -9,77 +9,110 @@
 #include <vector>
 
 struct RequestLine {
-  std::string method;
-  std::string uri;
-  Http::Version version;
+    std::string method;
+    std::string uri;
+    Http::Version version;
 };
 
 typedef std::map<std::string, std::vector<std::string> > Header;
 
 struct RequestMessage {
-  RequestLine request_line;
-  Header header;
-  std::string body;
+    RequestLine request_line;
+    Header header;
+    std::string body;
 };
 
 enum ParseStatus {
-  INIT,
-  HEADER,
-  BODY,
-  COMPLETE,
-  ERROR,
+    INIT,
+    HEADER,
+    BODY,
+    COMPLETE,
+    ERROR,
 };
 
 struct ResourcePath {
-  Http::URI uri;
-  std::string server_path;
-  std::string path_info;
+    Http::URI uri;
+    std::string server_path;
+    std::string path_info;
 };
 
 struct Context {
-  Vserver *vserver;
-  Location *location;
-  ResourcePath resource_path;
-  bool is_cgi;
+    Vserver *vserver;
+    Location *location;
+    ResourcePath resource_path;
+    bool is_cgi;
 };
 
 class Request {
 private:
-  RequestMessage message_;
-  ParseStatus parse_status_;
-  Http::HttpError error_status_;
-  int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
-  static const size_t kMaxHeaderSize = 8192; // 8KB
+    RequestMessage message_;
+    ParseStatus parse_status_;
+    Http::HttpError error_status_;
+    int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+    long long content_length_; // bodyの長さを覚えておくための変数
+    static const size_t kMaxHeaderSize = 8192; // 8KB
 
-  Context context_; // ResolvePath()で設定される
+    Context context_; // ResolvePath()で設定される
+// DEBUGがdefineされている場合はpublicにする
+#ifdef DEBUG
+public:
+#endif
+    void ParseLine(const std::string &line);
 
-  void ParseLine(const std::string &line);
-  void ParseRequestLine(const std::string &line);
-  void ParseHeader(const std::string &line);
-  void ParseBody(const std::string &line);
+    void ParseRequestLine(const std::string &line);
 
-  void SetError(int status, std::string message);
-  void SetError(int status);
+    void ParseHeader(const std::string &line);
 
-  std::string ResolveHost();
-  void ResolveVserver(const Config &config, const std::string &host);
-  void ResolveLocation();
-  void ResolveResourcePath();
+    void ParseBody(const std::string &line);
+
+    void SetError(int status, std::string message);
+
+    void SetError(int status);
+
+    std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string &delim);
+
+    bool SplitRequestLine(std::vector<std::string> &splited, const std::string &line);
+
+    // 名前が微妙
+    bool JudgeBodyType();
+
+    std::string ResolveHost();
+
+    void ResolveVserver(const Config &config, const std::string &host);
+
+    void ResolveLocation();
+
+    void ResolveResourcePath();
 
 public:
-  Request();
-  ~Request();
-  Request(const Request &src);
-  Request &operator=(const Request &rhs);
+    Request();
 
-  RequestMessage GetRequestMessage() const;
-  ParseStatus GetParseStatus() const;
-  Http::HttpError GetErrorStatus() const;
-  void Parse(SocketBuff &buffer_);
-  void Clear();
-  void ResolvePath(const Config &config);
+    ~Request();
 
-  Context GetContext() const;
+    Request(const Request &src);
+
+    Request &operator=(const Request &rhs);
+
+    RequestMessage GetRequestMessage() const;
+
+    ParseStatus GetParseStatus() const;
+
+    Http::HttpError GetErrorStatus() const;
+
+    void Parse(SocketBuff &buffer_);
+
+    void Clear();
+
+    void ResolvePath(const Config &config);
+
+    Context GetContext() const;
+
+    Header GetHeaderMap() const;
+
+    std::string GetWord(const std::string &line, std::string::size_type &pos);
+
+    // for test
+    void SetParseStatus(ParseStatus status) { parse_status_ = status; }
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

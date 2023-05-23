@@ -1,6 +1,6 @@
 NAME = webserv
 
-CXX = g++
+CXX = c++
 
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 
@@ -51,7 +51,7 @@ test_echo:
 unit-test:
 	(mkdir -p unit-test/build && \
 	cd unit-test/build && \
-	cmake .. -DBUILD_CONF_UNIT_TESTS=OFF && \
+	cmake .. && \
 	make 2> /dev/null && \
 	if [ "$(TEST_CASE)" != "" ]; then \
 		ctest -V -R $(TEST_CASE); \
