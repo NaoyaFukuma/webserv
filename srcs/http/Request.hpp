@@ -14,7 +14,7 @@ struct RequestLine {
   Http::Version version;
 };
 
-typedef std::map<std::string, std::vector<std::string>> Header;
+typedef std::map<std::string, std::vector<std::string> > Header;
 
 struct RequestMessage {
   RequestLine request_line;
@@ -63,10 +63,19 @@ private:
                     const std::string &extension) const;
   // 名前が微妙
   bool JudgeBodyType();
-  std::string ResolveHost();
-  void ResolveVserver(const Config &config, const std::string &host);
-  void ResolveLocation();
-  void ResolveResourcePath();
+// DEBUGがdefineされている場合はpublicにする
+#ifdef DEBUG
+public:
+#endif
+  void ParseLine(const std::string &line);
+  void ParseRequestLine(const std::string &line);
+  void ParseHeader(const std::string &line);
+  void ParseBody(const std::string &line);
+  std::string::size_type MovePos(const std::string &line,
+                                 std::string::size_type start,
+                                 const std::string &delim);
+  bool SplitRequestLine(std::vector<std::string> &splited,
+                        const std::string &line);
 
 public:
   Request();
@@ -77,6 +86,9 @@ public:
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
   Http::HttpError GetErrorStatus() const;
+  void SetError(int status, std::string message);
+  void SetError(int status);
+
   void Parse(SocketBuff &buffer_);
   void Clear();
   void ResolvePath(const ConfVec &vservers);
@@ -90,22 +102,6 @@ public:
 
   // for unit-test
   void SetMessage(RequestMessage message);
-
-// DEBUGがdefineされている場合はpublicにする
-#ifdef DEBUG
-public:
-#endif
-  void ParseLine(const std::string &line);
-  void ParseRequestLine(const std::string &line);
-  void ParseHeader(const std::string &line);
-  void ParseBody(const std::string &line);
-  void SetError(int status, std::string message);
-  void SetError(int status);
-  std::string::size_type MovePos(const std::string &line,
-                                 std::string::size_type start,
-                                 const std::string &delim);
-  bool SplitRequestLine(std::vector<std::string> &splited,
-                        const std::string &line);
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

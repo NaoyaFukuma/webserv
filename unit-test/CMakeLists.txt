@@ -7,10 +7,10 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 # Include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../srcs/config)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../srcs/server)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../srcs/http)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../srcs/utils)
+include_directories(${PROJECT_SOURCE_DIR}/../srcs/config)
+include_directories(${PROJECT_SOURCE_DIR}/../srcs/http)
+include_directories(${PROJECT_SOURCE_DIR}/../srcs/server)
+include_directories(${PROJECT_SOURCE_DIR}/../srcs/utils)
 
 # Source files
 set(CONFIG_SOURCE_FILES
@@ -31,14 +31,10 @@ set(SERVER_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/../srcs/server/SocketBuff.cpp
         )
 
-set(HTTP_SOURCE_FILES
-        ../srcs/http/Http.cpp
-        ../srcs/http/Request.cpp
-        ../srcs/http/Response.cpp)
-
 set(UTILS_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/../srcs/utils/utils.cpp
-        ${PROJECT_SOURCE_DIR}/../srcs/utils/utils.tpp)
+        ${PROJECT_SOURCE_DIR}/../srcs/utils/utils.tpp
+        )
 
 # Create libraries
 add_library(MyConfigLib ${CONFIG_SOURCE_FILES})
@@ -57,15 +53,10 @@ else()
     message(STATUS "Skipping HTTP tests")
 endif()
 
-add_library(MyUtilsLib ${UTILS_SOURCE_FILES})
-add_library(MyHttpLib ${HTTP_SOURCE_FILES})
-
 if(BUILD_CONF_UNIT_TESTS)
     add_subdirectory(config)
 else()
     message(STATUS "Skipping config tests")
 endif()
-
-add_subdirectory(resolve_path)
 
 enable_testing()

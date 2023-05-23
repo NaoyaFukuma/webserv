@@ -114,27 +114,6 @@ void Request::ParseRequestLine(const std::string &line) {
 
 // void Request::Clear() { *this = Request(); }
 
-void Request::ResolvePath(const ConfVec &vservers) {
-  std::string src_uri = message_.request_line.uri;
-  if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
-    SetError(400);
-    return;
-  }
-  // hostを決定
-  std::string host = ResolveHost();
-
-  // vserverを決定
-  ResolveVserver(vservers, host);
-
-  // locationを決定
-  ResolveLocation();
-
-  Http::DeHexify(context_.resource_path.uri);
-
-  // resource_path, is_cgiを決定
-  ResolveResourcePath();
-}
-
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
   if (line == "\r\n") {
@@ -162,6 +141,125 @@ void Request::ParseHeader(const std::string &line) {
   }
   // Headerのkeyとvalueを格納
   message_.header[key] = header_values;
+}
+
+void Request::ParseBody(const std::string &line) {
+  if (!JudgeBodyType()) {
+    // error
+  }
+  (void)line;
+}
+
+bool Request::JudgeBodyType() {
+  // headerにContent-LengthかTransfer-Encodingがあるかを調べる
+  Header::iterator it_transfer_encoding =
+      message_.header.find("Transfer-Encoding");
+  Header::iterator it_content_length = message_.header.find("Content-Length");
+
+  if (it_transfer_encoding != message_.header.end()) {
+    std::vector<std::string> values = it_transfer_encoding->second;
+    // values を全部探索
+    for (std::vector<std::string>::const_iterator it = values.begin();
+         it != values.end(); ++it) {
+      if (*it == "chunked") {
+        chunk_status_ = true;
+        return true;
+      }
+    }
+  }
+  if (it_content_length != message_.header.end()) {
+    std::vector<std::string> values = it_content_length->second;
+    // 複数の指定があったらエラー
+    // 負の数、strtollのエラーもエラー
+    errno = 0;
+    long long content_length = std::strtoll(values[0].c_str(), NULL, 10);
+    if (values.size() != 1 || errno == ERANGE || content_length < 0) {
+      // error
+      return false;
+    } else {
+      content_length_ = content_length;
+      return true;
+    }
+  }
+  return false;
+}
+
+std::string Request::GetWord(const std::string &line,
+                             std::string::size_type &pos) {
+  std::string word;
+  while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
+    word += line[pos++];
+  }
+  pos++;
+  return word;
+}
+
+// std::ostream &operator<<(std::ostream &os, const Request &request) {
+//   RequestMessage m = request.GetRequestMessage();
+//   os << "RequestLine: " << m.request_line.method << " " <<
+//   m.request_line.uri
+//      << " " << m.request_line.version;
+// }
+
+bool Request::SplitRequestLine(std::vector<std::string> &splited,
+                               const std::string &line) {
+  // 空白文字で分割
+  // 空白は1文字まで
+  std::string::size_type pos = 0;
+  while (pos < line.size()) {
+    if (std::isspace(line[pos])) {
+      return false;
+    }
+    splited.push_back(GetWord(line, pos));
+  }
+  if (splited.size() != 2 && splited.size() != 3) {
+    return false;
+  }
+  return true;
+}
+
+std::string::size_type Request::MovePos(const std::string &line,
+                                        std::string::size_type start,
+                                        const std::string &delim) {
+  std::string::size_type pos = start;
+  while (pos < line.size() && delim.find(line[pos]) != std::string::npos) {
+    pos++;
+  }
+  return pos;
+}
+
+void Request::ResolvePath(const ConfVec &vservers) {
+  std::string src_uri = message_.request_line.uri;
+  if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
+    // SetError(400);
+    return;
+  }
+  // hostを決定
+  std::string host = ResolveHost();
+
+  // vserverを決定
+  ResolveVserver(vservers, host);
+
+  // locationを決定
+  ResolveLocation();
+
+  Http::DeHexify(context_.resource_path.uri);
+
+  // resource_path, is_cgiを決定
+  ResolveResourcePath();
+}
+
+std::string Request::ResolveHost() {
+  std::string host = "";
+  Http::URI uri = context_.resource_path.uri;
+
+  if (!uri.host.empty()) {
+    host = uri.host;
+  }
+  if (message_.header.find("Host") != message_.header.end()) {
+    host = message_.header["Host"][0];
+  }
+  return host;
 }
 
 void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
@@ -271,57 +369,6 @@ void Request::ResolveResourcePath() {
   return;
 }
 
-void Request::ParseBody(const std::string &line) {
-  if (!JudgeBodyType()) {
-    // error
-  }
-  (void)line;
-}
-
-bool Request::JudgeBodyType() {
-  // headerにContent-LengthかTransfer-Encodingがあるかを調べる
-  Header::iterator it_transfer_encoding =
-      message_.header.find("Transfer-Encoding");
-  Header::iterator it_content_length = message_.header.find("Content-Length");
-
-  if (it_transfer_encoding != message_.header.end()) {
-    std::vector<std::string> values = it_transfer_encoding->second;
-    // values を全部探索
-    for (std::vector<std::string>::const_iterator it = values.begin();
-         it != values.end(); ++it) {
-      if (*it == "chunked") {
-        chunk_status_ = true;
-        return true;
-      }
-    }
-  }
-  if (it_content_length != message_.header.end()) {
-    std::vector<std::string> values = it_content_length->second;
-    // 複数の指定があったらエラー
-    // 負の数、strtollのエラーもエラー
-    errno = 0;
-    long long content_length = std::strtoll(values[0].c_str(), NULL, 10);
-    if (values.size() != 1 || errno == ERANGE || content_length < 0) {
-      // error
-      return false;
-    } else {
-      content_length_ = content_length;
-      return true;
-    }
-  }
-  return false;
-}
-
-std::string Request::GetWord(const std::string &line,
-                             std::string::size_type &pos) {
-  std::string word;
-  while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
-    word += line[pos++];
-  }
-  pos++;
-  return word;
-}
-
 // partial_pathがcgi_extensionで終わり、かつregular
 // fileであれば、cgiとして実行する
 bool Request::ExistCgiFile(const std::string &path,
@@ -332,39 +379,5 @@ bool Request::ExistCgiFile(const std::string &path,
          S_ISREG(path_stat.st_mode);
 }
 
-// std::ostream &operator<<(std::ostream &os, const Request &request) {
-//   RequestMessage m = request.GetRequestMessage();
-//   os << "RequestLine: " << m.request_line.method << " " <<
-//   m.request_line.uri
-//      << " " << m.request_line.version;
-// }
-
 // for unit-test
 void Request::SetMessage(RequestMessage message) { message_ = message; }
-
-bool Request::SplitRequestLine(std::vector<std::string> &splited,
-                               const std::string &line) {
-  // 空白文字で分割
-  // 空白は1文字まで
-  std::string::size_type pos = 0;
-  while (pos < line.size()) {
-    if (std::isspace(line[pos])) {
-      return false;
-    }
-    splited.push_back(GetWord(line, pos));
-  }
-  if (splited.size() != 2 && splited.size() != 3) {
-    return false;
-  }
-  return true;
-}
-
-std::string::size_type Request::MovePos(const std::string &line,
-                                        std::string::size_type start,
-                                        const std::string &delim) {
-  std::string::size_type pos = start;
-  while (pos < line.size() && delim.find(line[pos]) != std::string::npos) {
-    pos++;
-  }
-  return pos;
-}
