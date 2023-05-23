@@ -31,6 +31,15 @@ int main(int ac, char *av[], char *envp[]) {
       cout << "<li>" << envp[i] << "</li>\r\n";
     }
     cout << "</ul>\r\n";
+    // acが2以上の場合はクエリ文字列を受け取っているので表示する
+    if (ac >= 2) {
+      cout << "<p>av:</p>\r\n";
+      cout << "<ul>\r\n";
+      for (int i = 0; av[i] != NULL; i++) {
+        cout << "<li>" << av[i] << "</li>\r\n";
+      }
+      cout << "</ul>\r\n";
+    }
     cout << "</body></html>\r\n";
     return 0;
   }
@@ -53,6 +62,15 @@ int main(int ac, char *av[], char *envp[]) {
       cout << "<li>" << envp[i] << "</li>\r\n";
     }
     cout << "</ul>\r\n";
+    // acが2以上の場合はクエリ文字列を受け取っているので表示する
+    if (ac >= 2) {
+      cout << "<p>av:</p>\r\n";
+      cout << "<ul>\r\n";
+      for (int i = 0; av[i] != NULL; i++) {
+        cout << "<li>" << av[i] << "</li>\r\n";
+      }
+      cout << "</ul>\r\n";
+    }
     cout << "</body></html>\r\n";
     delete[] postData;
   } else if (requestMethod == "GET") {
@@ -66,6 +84,15 @@ int main(int ac, char *av[], char *envp[]) {
       cout << "<li>" << envp[i] << "</li>\r\n";
     }
     cout << "</ul>\r\n";
+    // acが2以上の場合はクエリ文字列を受け取っているので表示する
+    if (ac >= 2) {
+      cout << "<p>av:</p>\r\n";
+      cout << "<ul>\r\n";
+      for (int i = 0; av[i] != NULL; i++) {
+        cout << "<li>" << av[i] << "</li>\r\n";
+      }
+      cout << "</ul>\r\n";
+    }
     cout << "</body></html>\r\n";
   } else { // 不正なリクエストメソッド
     cout
@@ -80,6 +107,15 @@ int main(int ac, char *av[], char *envp[]) {
       cout << "<li>" << envp[i] << "</li>\r\n";
     }
     cout << "</ul>\r\n";
+    // acが2以上の場合はクエリ文字列を受け取っているので表示する
+    if (ac >= 2) {
+      cout << "<p>av:</p>\r\n";
+      cout << "<ul>\r\n";
+      for (int i = 0; av[i] != NULL; i++) {
+        cout << "<li>" << av[i] << "</li>\r\n";
+      }
+      cout << "</ul>\r\n";
+    }
     cout << "</body></html>\r\n";
   }
 }
