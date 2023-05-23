@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(MultipleServerLocation) {
 
 BOOST_AUTO_TEST_CASE(Cgi) {
   Config config;
-  config.ParseConfig("../../request/test_config_files/cgi.conf");
+  config.ParseConfig("../../resolve_path/test_config_files/cgi.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
                                              .uri = "/cgi/cgi.py",
@@ -76,13 +76,13 @@ BOOST_AUTO_TEST_CASE(Cgi) {
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
-                    "/app/unit-test/request/test_cgi_bin/cgi.py");
+                    "/app/unit-test/resolve_path/test_cgi_bin/cgi.py");
   BOOST_CHECK_EQUAL(request.GetContext().is_cgi, true);
 }
 
 BOOST_AUTO_TEST_CASE(PathInfo) {
   Config config;
-  config.ParseConfig("../../request/test_config_files/cgi.conf");
+  config.ParseConfig("../../resolve_path/test_config_files/cgi.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
                                              .uri = "/cgi/cgi.py/path/info",
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(PathInfo) {
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
-                    "/app/unit-test/request/test_cgi_bin/cgi.py");
+                    "/app/unit-test/resolve_path/test_cgi_bin/cgi.py");
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.path_info, "/path/info");
   BOOST_CHECK_EQUAL(request.GetContext().is_cgi, true);
 }

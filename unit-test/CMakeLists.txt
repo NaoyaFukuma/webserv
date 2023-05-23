@@ -49,6 +49,6 @@ add_library(MyHttpLib ${HTTP_SOURCE_FILES})
 
 # Add subdirectory
 add_subdirectory(config)
-add_subdirectory(request)
+add_subdirectory(resolve_path)
 
 enable_testing()
