@@ -115,9 +115,6 @@ void Request::ResolvePath(const ConfVec &vservers) {
     SetError(400);
     return;
   }
-
-  Http::DeHexify(context_.resource_path.uri);
-
   // hostを決定
   std::string host = ResolveHost();
 
@@ -126,6 +123,8 @@ void Request::ResolvePath(const ConfVec &vservers) {
 
   // locationを決定
   ResolveLocation();
+
+  Http::DeHexify(context_.resource_path.uri);
 
   // resource_path, is_cgiを決定
   ResolveResourcePath();
