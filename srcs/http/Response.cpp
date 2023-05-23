@@ -1,4 +1,5 @@
 #include "Response.hpp"
+#include "Socket.hpp"
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -27,6 +28,13 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   // request.ResolvePath(config);
   if (request.GetContext().is_cgi) {
     // CGI
+    CgiSocket cgi_socket(socket, request);
+    ASocket *sock = cgi_socket.CreatCgiProcess();
+    if (sock == NULL) {
+      // エラー処理 クライアントへ500 Internal Server Errorを返す
+      return;
+    }
+    epoll->AddSocket(sock, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
   } else {
     // 静的ファイル
     ProcessStatic(request, socket, epoll);
