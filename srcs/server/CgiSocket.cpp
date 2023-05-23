@@ -119,8 +119,9 @@ CgiSocket *CgiSocket::CreatCgiProcess() {
   // 親プロセス側のソケットFDを設定
   SetFd(parent_sock);
 
-  // CGIリクエスト書き込みまでの制限時間の起算点を設定
+  // タイムアウトの起算点を設定
   this->last_event_.out_time = time(NULL);
+  this->last_event_.in_time = time(NULL);
 
   // CgiSocketを返り値にしてEPOLLにEPOLLOUTでADDしてもらう
   return this;
@@ -130,6 +131,8 @@ CgiSocket *CgiSocket::CreatCgiProcess() {
 int CgiSocket::OnReadable(Epoll *epoll) {
   // UNIXドメインソケットからCGIスクリプトの出力を受け取る
   int recv_result = recv_buffer_.ReadSocket(this->GetFd());
+  // this->last_event_.in_time = time(NULL); //
+  // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
 
   switch (recv_result) {
   case 0: // CGIレスポンスを受信しバッファにためた。あえてまだParseはしない。finパケットを受信し、EOFを読み込んだら（case
@@ -158,6 +161,8 @@ int CgiSocket::OnReadable(Epoll *epoll) {
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int CgiSocket::OnWritable(Epoll *epoll) {
+  // this->last_event_.out_time = time(NULL); //
+  // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
   // send_buffer_の内容をUNIXソケットを通じてCGIスクリプトに書き込む
   int send_result;
   if (send_buffer_.GetBuffSize()) {
