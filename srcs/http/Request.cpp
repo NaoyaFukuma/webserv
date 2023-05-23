@@ -1,5 +1,6 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <iostream>
 #include <sys/stat.h>
 
 Request::Request() {
@@ -113,6 +114,7 @@ void Request::ResolvePath(const Config &config) {
     SetError(400);
     return;
   }
+
   Http::DeHexify(context_.resource_path.uri);
 
   // hostを決定
@@ -142,37 +144,30 @@ std::string Request::ResolveHost() {
 }
 
 void Request::ResolveVserver(const Config &config, const std::string &host) {
-  Vserver *vserver = NULL;
-  ConfVec vservers = config.GetServerVec();
+  const ConfVec &vservers = config.GetServerVec();
 
   // vservers[0]: default vserver
+  context_.vserver = vservers[0];
   if (host.empty()) {
-    vserver = &vservers[0];
+    return;
   } else {
-    for (ConfVec::iterator itv = vservers.begin(); itv != vservers.end();
+    for (ConfVec::const_iterator itv = vservers.begin(); itv != vservers.end();
          itv++) {
-      for (std::vector<std::string>::iterator its = itv->server_names_.begin();
+      for (std::vector<std::string>::const_iterator its =
+               itv->server_names_.begin();
            its != itv->server_names_.end(); its++) {
         if (*its == host) {
-          vserver = &(*itv);
-          break;
+          context_.vserver = *itv;
+          return;
         }
       }
-      if (vserver != NULL) {
-        break;
-      }
-    }
-    if (vserver == NULL) {
-      vserver = &vservers[0];
     }
   }
-  context_.vserver = vserver;
 }
 
 void Request::ResolveLocation() {
-  Vserver *vserver = context_.vserver;
   std::string &path = context_.resource_path.uri.path;
-  std::vector<Location> &locations = vserver->locations_;
+  std::vector<Location> &locations = context_.vserver.locations_;
 
   // locationsのpathをキーにmapに変換
   std::map<std::string, Location> location_map;
@@ -197,25 +192,24 @@ void Request::ResolveLocation() {
   for (std::vector<std::string>::iterator it = keys.begin(); it != keys.end();
        it++) {
     if (location_map.find(*it) != location_map.end()) {
-      context_.location = &location_map[*it];
+      context_.location = location_map[*it];
       return;
     }
   }
   // ここのreturnは実行されないはず
   // locations[0] = "location /"
-  context_.location = &locations[0];
+  context_.location = locations[0];
 }
 
 void Request::ResolveResourcePath() {
-  std::string &root = context_.location->root_;
+  std::string &root = context_.location.root_;
   std::string &path = context_.resource_path.uri.path;
 
   // pathからlocationを除去して、rootを付与
-  std::string concat =
-      root + '/' + path.substr(context_.location->path_.size());
+  std::string concat = root + '/' + path.substr(context_.location.path_.size());
 
   // cgi_extensionsがない場合、path_infoはなく、concatをserver_pathとする
-  if (context_.location->cgi_extensions_.empty()) {
+  if (context_.location.cgi_extensions_.empty()) {
     context_.resource_path.server_path = concat;
     context_.resource_path.path_info = "";
     context_.is_cgi = false;
@@ -224,8 +218,8 @@ void Request::ResolveResourcePath() {
 
   // cgi_extensionsがある場合
   for (std::vector<std::string>::iterator ite =
-           context_.location->cgi_extensions_.begin();
-       ite != context_.location->cgi_extensions_.end(); ite++) {
+           context_.location.cgi_extensions_.begin();
+       ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
     // concatは'/'を含むので、size() > 0が保証されている
@@ -265,3 +259,6 @@ void Request::ResolveResourcePath() {
 //   os << "RequestLine: " << m.request_line.method << " " << m.request_line.uri
 //      << " " << m.request_line.version;
 // }
+
+// for unit-test
+void Request::SetMessage(RequestMessage message) { message_ = message; }
