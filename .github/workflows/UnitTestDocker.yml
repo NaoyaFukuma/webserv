@@ -1,4 +1,4 @@
-name: CMake Build and Test
+name: Unit Test on Docker
 
 on: [ push ]
 
@@ -24,4 +24,4 @@ jobs:
 
       - name: Test
         run: |
-          make unit-test
+          docker exec debian /bin/bash -c "make unit-test"
