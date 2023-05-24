@@ -1,0 +1,168 @@
+#include "CgiSocket.hpp"
+#include "Epoll.hpp"
+#include "Http.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Socket.hpp"
+#include "define.hpp"
+#include "utils.hpp"
+#include <arpa/inet.h>
+#include <cstring>
+#include <errno.h>
+#include <fcntl.h>
+#include <string>
+#include <sys/epoll.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <vector>
+#include <wait.h>
+
+/* ConnScoketクラスと同じアウトラインを持つ
+  CgiSocket(ConnSocket *conn_socket);
+  ~CgiSocket();
+  CgiSocket *CreatCgiProcess();
+  int OnWritable(Epoll *epoll);
+  int OnReadable(Epoll *epoll);
+  int ProcessSocket(Epoll *epoll, void *data);
+*/
+
+// CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
+CgiSocket::CgiSocket(ConnSocket &conn_socket, Request &http_request)
+    : conn_socket_(&conn_socket), http_request_(http_request) {
+  this->send_buffer_.AddString(http_request_.GetRequestMessage().body.c_str());
+};
+
+// このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
+CgiSocket::~CgiSocket() {
+  int status;
+
+  // 子プロセスが終了していない場合に備え、WNOHANGを使う
+  int wait_res = waitpid(pid_, &status, WNOHANG);
+
+  switch (wait_res) {
+  case 0: // 子プロセスが終了していないのでkill()で終了させて、終了ステータスを回収する
+    if (kill(pid_, SIGKILL) < 0) {
+      std::cerr << "Keep Running Error: kill" << std::endl;
+    }
+    if (waitpid(pid_, &status, WNOHANG) < 0) {
+      std::cerr << "Keep Running Error: waitpid" << std::endl;
+    }
+    break;
+
+  case -1: // waitpid()でエラーが発生した
+    std::cerr << "Keep Running Error: waitpid" << std::endl;
+    break;
+
+  default: // 子プロセスが終了していて、終了ステータスを回収できた
+    break;
+  }
+}
+
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+int CgiSocket::OnReadable(Epoll *epoll) {
+  // UNIXドメインソケットからCGIスクリプトの出力を受け取る
+  int recv_result = recv_buffer_.ReadSocket(this->GetFd());
+  // this->last_event_.in_time = time(NULL); //
+  // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
+
+  switch (recv_result) {
+  case 0: // CGIレスポンスを受信しバッファにためた。あえてまだParseはしない。finパケットを受信し、EOFを読み込んだら（case
+          // -1）Parseする
+    break;
+
+  case -1: // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
+    // parseし、HTTPレスポンスを作成する
+    Response http_response = this->ParseCgiResponse();
+
+    // HTTPレスポンスをdequeに追加する
+    this->conn_socket_->PushResponse(http_response);
+
+    // EpollにEPOLLOUT追加でADDする
+    uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
+    epoll->Add(this->conn_socket_, event_mask);
+
+    return FAILURE;
+    // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
+    // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
+    // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
+  }
+
+  return SUCCESS;
+}
+
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+int CgiSocket::OnWritable(Epoll *epoll) {
+  // this->last_event_.out_time = time(NULL); //
+  // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
+  // send_buffer_の内容をUNIXソケットを通じてCGIスクリプトに書き込む
+  int send_result;
+  if (send_buffer_.GetBuffSize()) {
+    send_result = send_buffer_.SendSocket(this->GetFd());
+  } else {
+    send_result = 1; // 送信完了扱いとする
+  }
+
+  switch (send_result) {
+
+  case 0: { // 送信未完了
+    // EPOLLOUTのイベント登録を維持しつつ、次回のEPOLLOUTを発火を待つ
+    last_event_.out_time = time(NULL); // 現在時間に更新
+    break;
+  }
+  case 1: { // 送信完了
+    // EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
+    uint32_t event_mask = EPOLLIN | EPOLLRDHUP | EPOLLET;
+    epoll->Mod(this->GetFd(), event_mask);
+    // UNIXドメインソケットの全二重通信の送信側を閉じるこれにより、CGIスクリプト側のread()がEOFを検知することができる
+    if (shutdown(this->GetFd(), SHUT_WR) < 0) {
+      std::cerr << "Keep Running Error: shutdown" << std::endl;
+    }
+    last_event_.out_time = -1; // タイムアウトを無効化
+    break;
+  }
+  default: { // (-1) エラー
+    return FAILURE;
+    // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
+    // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
+    // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
+    break;
+  }
+  }
+
+  return SUCCESS;
+}
+
+// SUCCESS: 引き続きsocketを利用
+// FAILURE: socketを閉じる。異常シナリオでも、FAILUREを使う
+// FILURE:
+// あわせて、CgiSocketのデストラクタが呼ばれ、子プロセスkill()し、waitpid()して、子プロセスの終了やゾンビプロセスの発生を防ぐ
+int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
+  // clientからの通信を処理
+  // std::cout << "Socket: " << fd_ << std::endl;
+  uint32_t event_mask = *(static_cast<uint32_t *>(data));
+  if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
+    // エラーイベント keep runningエラーを出力はしつつ、クライアントには500
+    // Internal Server Errorを返す
+    std::cerr << "Keep Running Error: EPOLLERR or EPOLLHUP" << std::endl;
+
+    // TODO: HTTP 500 Internal Server Error を、クライアントのresponse_
+    // dequeに追加する
+
+    return FAILURE;
+  }
+  if (event_mask & EPOLLIN) {
+    // 受信(Todo: OnReadable(0))
+    std::cout << fd_ << ": EPOLLIN" << std::endl;
+    if (OnReadable(epoll) == FAILURE) {
+      return FAILURE;
+    }
+  }
+  if (event_mask & EPOLLOUT) {
+    // send_buffer_からの送信。HTTPリクエストにエンティティボディが無い場合はsend_buffer_には何も入っていない。ただし、一度send()のステップを踏んで、送信完了と合流する
+    std::cout << fd_ << ": EPOLLOUT" << std::endl;
+    if (OnWritable(epoll) == FAILURE) {
+      return FAILURE;
+    }
+  }
+  return SUCCESS;
+}
