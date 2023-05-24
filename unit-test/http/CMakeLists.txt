@@ -1,11 +1,11 @@
 set(TEST_FILES Test.cpp)
 
-# =================================== General  =================================== #
+# =================================== Header =================================== #
 
-add_executable(general ${TEST_FILES})
-target_link_libraries(general PRIVATE MyHttpLib MyUtilsLib MyServerLib Boost::unit_test_framework)
-target_include_directories(general PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/http)
-add_test(NAME general COMMAND general)
+add_executable(header ${TEST_FILES})
+target_link_libraries(header PRIVATE MyHttpLib MyUtilsLib MyServerLib Boost::unit_test_framework)
+target_include_directories(header PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/http)
+add_test(NAME header COMMAND header)
 enable_testing()
 
 # =================================== Status  =================================== #
@@ -22,4 +22,12 @@ add_executable(body ${TEST_FILES})
 target_link_libraries(body PRIVATE MyHttpLib MyUtilsLib MyServerLib Boost::unit_test_framework)
 target_include_directories(body PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/http)
 add_test(NAME body COMMAND body)
+enable_testing()
+
+# =================================== Genaral  =================================== #
+
+add_executable(general ${TEST_FILES})
+target_link_libraries(general PRIVATE MyHttpLib MyUtilsLib MyServerLib Boost::unit_test_framework)
+target_include_directories(general PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/http)
+add_test(NAME general COMMAND general)
 enable_testing()

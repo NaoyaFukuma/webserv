@@ -9,8 +9,8 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 
-//#include "Request.hpp"
-#include "../../srcs/http/Request.hpp"
+#include "Request.hpp"
+#include "SocketBuff.hpp"
 
 //// リクエストメッセージのdefine
 //#define REQUEST_MESSAGE R"(GET /index.html HTTP/1.1
@@ -24,7 +24,7 @@
 //Connection: keep-alive
 //)"
 
-BOOST_AUTO_TEST_CASE(General) {
+BOOST_AUTO_TEST_CASE(ParseHeader) {
   Request test;
   test.ParseHeader("Header:          \t Value1,Value2,Value3");
 
@@ -117,4 +117,55 @@ R"({
   test.ParseBody(REQUEST_BODY);
   std::cout << "test.GetBody(): " << test.GetBody() << std::endl;
   BOOST_CHECK_EQUAL(test.GetBody(), REQUEST_BODY);
+}
+
+#include <boost/assign/list_of.hpp>
+
+#define REQUEST "POST /api/v1/users HTTP/1.1\r\n" \
+                "Host: www.example.com\r\n" \
+                "Content-Type: application/json\r\n" \
+                "Content-Length: 81\r\n" \
+                "\r\n" \
+                "{\r\n" \
+                "  \"firstName\": \"John\",\r\n" \
+                "  \"lastName\": \"Doe\",\r\n" \
+                "  \"email\": \"john.doe@example.com\"\r\n" \
+                "}\r\n"
+
+BOOST_AUTO_TEST_CASE(Genaral) {
+  SocketBuff socket_buff;
+  Request test;
+
+  socket_buff.AddString(REQUEST);
+  test.Parse(socket_buff);
+
+  // Expected values
+  std::string expected_method = "POST";
+  std::string expected_uri = "/api/v1/users";
+  Http::Version expected_version = Http::HTTP11;
+  std::string expected_body = "{\r\n  \"firstName\": \"John\",\r\n  \"lastName\": \"Doe\",\r\n  \"email\": \"john.doe@example.com\"\r\n}\r\n";
+  std::vector<std::string> expected_host = boost::assign::list_of("www.example.com");
+  std::vector<std::string> expected_content_type = boost::assign::list_of("application/json");
+  std::vector<std::string> expected_content_length = boost::assign::list_of("81");
+
+  // Assertions
+  BOOST_CHECK_EQUAL(test.GetRequestMessage().request_line.method, expected_method);
+  BOOST_CHECK_EQUAL(test.GetRequestMessage().request_line.uri, expected_uri);
+  BOOST_CHECK_EQUAL(test.GetRequestMessage().request_line.version, expected_version);
+  BOOST_CHECK_EQUAL(test.GetRequestMessage().body, expected_body);
+
+  // Check each header
+  Header headers = test.GetRequestMessage().header;
+  Header::iterator it;
+  for (it = headers.begin(); it != headers.end(); ++it) {
+    if (it->first == "Host") {
+      BOOST_CHECK_EQUAL_COLLECTIONS(it->second.begin(), it->second.end(), expected_host.begin(), expected_host.end());
+    } else if (it->first == "Content-Type") {
+      BOOST_CHECK_EQUAL_COLLECTIONS(it->second.begin(), it->second.end(), expected_content_type.begin(),
+                                    expected_content_type.end());
+    } else if (it->first == "Content-Length") {
+      BOOST_CHECK_EQUAL_COLLECTIONS(it->second.begin(), it->second.end(), expected_content_length.begin(),
+                                    expected_content_length.end());
+    }
+  }
 }
