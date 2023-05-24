@@ -49,14 +49,16 @@ private:
     ParseStatus parse_status_;
     Http::HttpError error_status_;
     int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
-    long long content_length_; // bodyの長さを覚えておくための変数
+    long long body_size_; // bodyの長さを覚えておくための変数
     static const size_t kMaxHeaderSize = 8192; // 8KB
+    static const size_t kMaxBodySize = 1048576; // 1MB
 
     Context context_; // ResolvePath()で設定される
 // DEBUGがdefineされている場合はpublicにする
 #ifdef DEBUG
 public:
 #endif
+
     void ParseLine(const std::string &line);
 
     void ParseRequestLine(const std::string &line);
@@ -77,6 +79,10 @@ public:
 
     // 名前が微妙
     bool JudgeBodyType();
+
+    void ParseChunkedBody(const std::string &line);
+
+    void ParseContentLengthBody(const std::string &line);
 
     std::string ResolveHost();
 
@@ -118,7 +124,9 @@ public:
 
     int GetChunkStatus() const { return chunk_status_; }
 
-    long long GetContentLength() const { return content_length_; }
+    long long GetContentLength() const { return body_size_; }
+
+    std::string GetBody() const { return message_.body; }
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

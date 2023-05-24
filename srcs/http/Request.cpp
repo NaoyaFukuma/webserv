@@ -6,7 +6,7 @@
 Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
-  content_length_ = -1;
+  body_size_ = -1;
 }
 
 Request::~Request() {}
@@ -104,6 +104,7 @@ void Request::ParseRequestLine(const std::string &line) {
     parse_status_ = HEADER;
   }
 }
+
 #include <iostream>
 
 void Request::ParseHeader(const std::string &line) {
@@ -129,7 +130,7 @@ void Request::ParseHeader(const std::string &line) {
   // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
   while (pos < line.size()) {
     if (IsLineEnd(line, pos)) {
-        break;
+      break;
     }
     pos = MovePos(line, pos, " \t");
     header_values.push_back(GetWord(line, pos));
@@ -140,16 +141,38 @@ void Request::ParseHeader(const std::string &line) {
 
 void Request::ParseBody(const std::string &line) {
   if (!JudgeBodyType()) {
-    // error
+    // TODO: error処理
+    return;
   }
+// chunkedの場合
+    if (chunk_status_ > 0) {
+        ParseChunkedBody(line);
+    }
+        // Content-Lengthの場合
+    else {
+        ParseContentLengthBody(line);
+    }
+}
+
+void Request::ParseChunkedBody(const std::string &line) {
   (void )line;
+}
+
+void Request::ParseContentLengthBody(const std::string &line) {
+  if (line.size() <= kMaxBodySize) {
+    message_.body += line;
+  } else {
+    message_.body += line.substr(0, kMaxBodySize);
+  }
 }
 
 bool Request::JudgeBodyType() {
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
+  // どっちもある場合は普通はchunkを優先する
   Header::iterator it_transfer_encoding = message_.header.find("Transfer-Encoding");
   Header::iterator it_content_length = message_.header.find("Content-Length");
 
+  // Transfer-Encodingがある場合
   if (it_transfer_encoding != message_.header.end()) {
     std::vector<std::string> values = it_transfer_encoding->second;
     // values を全部探索
@@ -161,6 +184,7 @@ bool Request::JudgeBodyType() {
       }
     }
   }
+  // Content-Lengthがある場合
   if (it_content_length != message_.header.end()) {
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
@@ -171,7 +195,7 @@ bool Request::JudgeBodyType() {
       // error
       return false;
     } else {
-      content_length_ = content_length;
+      body_size_ = content_length;
       return true;
     }
   }
@@ -187,74 +211,6 @@ std::string Request::GetWord(const std::string &line, std::string::size_type &po
   pos++;
   return word;
 }
-
-// void Request::Clear() { *this = Request(); }
-
-// void Request::ResolvePath(Config config) {
-//   std::string src_uri = Http::DeHexify(message_.request_line.uri);
-//   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
-//     SetError(400);
-//     return;
-//   }
-
-//   // hostを決定
-//   std::string host;
-//   if (!context_.resource_path.uri.host.empty()) {
-//     host = context_.resource_path.uri.host;
-//   }
-//   if (message_.header.find("Host") != message_.header.end()) {
-//     host = message_.header["Host"][0];
-//   }
-
-//   // vserverを決定
-//   std::vector<Vserver> vservers = config.GetServerVec();
-//   if (host.empty()) {
-//     context_.vserver = &vservers[0];
-//   } else {
-//     for (std::vector<Vserver>::iterator itv = vservers.begin();
-//          itv != vservers.end(); itv++) {
-//       for (std::vector<std::string>::iterator its =
-//       itv->server_names_.begin();
-//            its != itv->server_names_.end(); its++) {
-//         if (*its == host) {
-//           context_.vserver = &(*itv);
-//           break;
-//         }
-//       }
-//       if (context_.vserver != NULL) {
-//         break;
-//       }
-//     }
-//     if (context_.vserver == NULL) {
-//       context_.vserver = &vservers[0];
-//     }
-//   }
-
-//   // locationを決定
-//   std::vector<Location> locations = context_.vserver->locations_;
-//   // locationsのpathをキーにmapに変換
-//   std::map<std::string, Location> location_map;
-//   for (std::vector<Location>::iterator it = locations.begin();
-//        it != locations.end(); it++) {
-//     location_map[it->path_] = *it;
-//   }
-//   // context_.resource_path.uri.pathの最後の/までの部分文字列をキーにする
-//   std::string path = context_.resource_path.uri.path;
-//   std::vector<std::string> keys;
-//   for (std::string::iterator it = path.begin(); it != path.end(); it++) {
-//     if (*it == '/') {
-//       keys.push_back(path.substr(0, it - path.begin() + 1));
-//     }
-//   }
-
-//   // "location /"があることを保証するので、必ずキーが存在する
-// }
-
-// std::ostream &operator<<(std::ostream &os, const Request &request) {
-//   RequestMessage m = request.GetRequestMessage();
-//   os << "RequestLine: " << m.request_line.method << " " << m.request_line.uri
-//      << " " << m.request_line.version;
-// }
 
 bool Request::SplitRequestLine(std::vector<std::string> &splited, const std::string &line) {
   // 空白文字で分割
@@ -281,7 +237,7 @@ Request::MovePos(const std::string &line, std::string::size_type start, const st
   return pos;
 }
 
-bool Request::IsLineEnd(const std::string& line, std::string::size_type start) {
+bool Request::IsLineEnd(const std::string &line, std::string::size_type start) {
   while (start < line.size()) {
     if (std::isspace(line[start]) == false) {
       return false;

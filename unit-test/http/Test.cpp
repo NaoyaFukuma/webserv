@@ -93,3 +93,28 @@ BOOST_AUTO_TEST_CASE(BodyType) {
     BOOST_CHECK_EQUAL(test.GetContentLength(), CONTENT_LENGTH);
   }
 }
+
+// 81文字のリクエストヘッダ
+BOOST_AUTO_TEST_CASE(ParseContentLengthBody) {
+  Request test;
+
+  test.SetParseStatus(HEADER);
+  test.ParseHeader("Content-Length: 81\r\n");
+  test.SetParseStatus(BODY);
+  if (!test.JudgeBodyType()) {
+    BOOST_FAIL("2: JudgeBodyType failed");
+  }
+
+  std::string REQUEST_BODY = \
+R"({
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com"
+})";
+
+  BOOST_TEST_MESSAGE(REQUEST_BODY);
+  BOOST_CHECK_EQUAL(test.GetContentLength(), 81);
+  test.ParseBody(REQUEST_BODY);
+  std::cout << "test.GetBody(): " << test.GetBody() << std::endl;
+  BOOST_CHECK_EQUAL(test.GetBody(), REQUEST_BODY);
+}
