@@ -68,3 +68,28 @@ BOOST_AUTO_TEST_CASE(Body) {
 //    test.SetParseStatus(BODY);
   // GetWordで一番初めから切り取る
 }
+
+BOOST_AUTO_TEST_CASE(BodyType) {
+  { /* 1 */
+    Request test;
+
+    test.SetParseStatus(HEADER);
+    BOOST_CHECK_EQUAL(test.GetChunkStatus(), -1);
+    test.ParseHeader("Transfer-Encoding: chunked\r\n");
+    if (!test.JudgeBodyType()) {
+      BOOST_FAIL("1: JudgeBodyType failed");
+    }
+    BOOST_CHECK_EQUAL(test.GetChunkStatus(), true);
+  }
+  { /* 2 */
+    Request test;
+    const static long long CONTENT_LENGTH = 100;
+
+    test.SetParseStatus(HEADER);
+    test.ParseHeader("Content-Length: 100\r\n");
+    if (!test.JudgeBodyType()) {
+      BOOST_FAIL("2: JudgeBodyType failed");
+    }
+    BOOST_CHECK_EQUAL(test.GetContentLength(), CONTENT_LENGTH);
+  }
+}
