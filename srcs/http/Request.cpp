@@ -24,6 +24,8 @@ Request &Request::operator=(const Request &rhs) {
   return *this;
 }
 
+RequestMessage Request::GetRequestMessage() const { return message_; }
+
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
 Http::HttpError Request::GetErrorStatus() const { return error_status_; }
@@ -44,11 +46,6 @@ void Request::Parse(SocketBuff &buffer_) {
          buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
-  (void) buffer_;
-  message_.request_line.method = "GET";
-  message_.request_line.uri = "/index.html";
-  message_.request_line.version = Http::HTTP09;
-  parse_status_ = COMPLETE;
 }
 
 void Request::ParseLine(const std::string &line) {
