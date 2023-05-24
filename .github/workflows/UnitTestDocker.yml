@@ -20,7 +20,8 @@ jobs:
 
       - name: Docker Compose
         run: |
-          make docker
+          cd docker
+          docker-compose up -d
 
       - name: Test
         run: |
