@@ -51,7 +51,7 @@ test_echo:
 unit-test:
 	(mkdir -p unit-test/build && \
 	cd unit-test/build && \
-	cmake .. -DBUILD_CONF_UNIT_TESTS=OFF && \
+	cmake .. && \
 	make 2> ./make_error.log && \
 	if [ "$(TEST_CASE)" != "" ]; then \
 		ctest -V -R $(TEST_CASE); \
