@@ -19,6 +19,7 @@ struct LastEventTime {
 
 // ------------------------------------------------------------------
 // 継承用のクラス
+//    -> ConnScoket, ListenSocket, CgiSocketの３つのクラスへ継承する
 
 class ASocket {
 protected:
@@ -70,43 +71,6 @@ private: // 使用予定なし
   ConnSocket &operator=(const ConnSocket &rhs);
 };
 
-// ------------------------------------------------------------------
-// CGI用のソケット
-
-/*
-HTTPクライアント
-HTTPサーバー CGIクライアント
-CGIスクリプト CGIサーバー
-*/
-
-class CgiSocket : public ASocket {
-private:
-  SocketBuff recv_buffer_;
-  SocketBuff send_buffer_;
-  pid_t pid_;               // CGIスクリプト実行用のプロセスID
-  ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
-  Request http_request_;    // CGI実行要求したHTTPリクエスト
-
-public:
-  CgiSocket(ConnSocket &conn_socket, Request &http_request,
-            const ConfVec &config);
-  ~CgiSocket();
-  CgiSocket *CreatCgiProcess();
-  int OnWritable(Epoll *epoll);
-  int OnReadable(Epoll *epoll);
-  int ProcessSocket(Epoll *epoll, void *data);
-
-private: // 使用予定なし
-  CgiSocket(const CgiSocket &src);
-  CgiSocket &operator=(const CgiSocket &rhs);
-
-  // 内部でしか使わないメソッド
-  void SetSocket(int child_sock, int parent_sock);
-  char **SetMetaVariables();
-  char **SetArgv();
-  void SetCurrentDir(const std::string &cgi_path);
-  Response ParseCgiResponse();
-};
 
 // ------------------------------------------------------------------
 // listen用のソケット
