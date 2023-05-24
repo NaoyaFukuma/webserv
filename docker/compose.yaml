@@ -8,5 +8,6 @@ services:
       - "8080:8080"
     volumes:
       - ../:/app
+      - ../www:/var/www
     restart: on-failure
     container_name: debian
