@@ -1,0 +1,28 @@
+name: Unit Test on Docker
+
+on: [ push ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup GCC
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Docker Compose
+        run: |
+          cd docker
+          docker-compose up -d
+
+      - name: Test
+        run: |
+          docker exec debian /bin/bash -c "make unit-test"
