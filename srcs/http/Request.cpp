@@ -104,6 +104,7 @@ void Request::ParseRequestLine(const std::string &line) {
     parse_status_ = HEADER;
   }
 }
+#include <iostream>
 
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
@@ -127,6 +128,9 @@ void Request::ParseHeader(const std::string &line) {
   // pos+1以降の文字列を','や' 'ごとに分割
   // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
   while (pos < line.size()) {
+    if (IsLineEnd(line, pos)) {
+        break;
+    }
     pos = MovePos(line, pos, " \t");
     header_values.push_back(GetWord(line, pos));
   }
@@ -151,6 +155,7 @@ bool Request::JudgeBodyType() {
     // values を全部探索
     for (std::vector<std::string>::const_iterator it = values.begin(); it != values.end(); ++it) {
       if (*it == "chunked") {
+        // この変数ってchunkかのフラグではない？
         chunk_status_ = true;
         return true;
       }
@@ -274,4 +279,14 @@ Request::MovePos(const std::string &line, std::string::size_type start, const st
     pos++;
   }
   return pos;
+}
+
+bool Request::IsLineEnd(const std::string& line, std::string::size_type start) {
+  while (start < line.size()) {
+    if (std::isspace(line[start]) == false) {
+      return false;
+    }
+    start++;
+  }
+  return true;
 }

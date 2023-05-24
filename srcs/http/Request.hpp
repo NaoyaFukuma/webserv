@@ -71,6 +71,8 @@ public:
 
     std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string &delim);
 
+    bool IsLineEnd(const std::string &line, std::string::size_type pos);
+
     bool SplitRequestLine(std::vector<std::string> &splited, const std::string &line);
 
     // 名前が微妙
@@ -113,6 +115,10 @@ public:
 
     // for test
     void SetParseStatus(ParseStatus status) { parse_status_ = status; }
+
+    int GetChunkStatus() const { return chunk_status_; }
+
+    long long GetContentLength() const { return content_length_; }
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);
