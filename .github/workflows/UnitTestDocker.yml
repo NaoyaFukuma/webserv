@@ -1,0 +1,27 @@
+name: CMake Build and Test
+
+on: [ push ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup GCC
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Docker Compose
+        run: |
+          make docker
+
+      - name: Test
+        run: |
+          make unit-test
