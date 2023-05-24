@@ -21,7 +21,7 @@ Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     parse_status_ = rhs.parse_status_;
-    error_status_ = rhs.error_status_;
+    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
   }
   return *this;
@@ -29,7 +29,7 @@ Request &Request::operator=(const Request &rhs) {
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
-Http::HttpError Request::GetErrorStatus() const { return error_status_; }
+Http::HttpStatus Request::GetStatus() const { return http_status_; }
 
 Context Request::GetContext() const { return context_; }
 
