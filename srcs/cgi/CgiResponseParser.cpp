@@ -17,100 +17,202 @@
 #include <unistd.h>
 #include <vector>
 #include <wait.h>
+#include <fstream>
+#include <algorithm>
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket)
-    : cgi_socket_(cgi_socket), is_local_redirect_(false), is_cgi_redirect_(false) {}
+    : cgi_socket_(cgi_socket) {
+}
 
 // recv_buffer_内のCGIレスポンスからResponseを構築する
 void CgiResponseParser::ParseCgiResponse() {
-  size_t header_len = 0;            // ヘッダーの総合計長 maxは32KB
-  bool with_body = false;           // ボディを持つかどうか
-  size_t actual_content_length = 0; // 実際のボディの長さ maxは1MB
-  size_t header_content_length = 0; // ヘッダー内のContent-Lengthの値
+  size_t header_len = 0; // ヘッダーの総合計長 maxは32KB
 
   // HTTPリクエストからHTTP versionを取得し、response_messageに設定
-  this->cgi_socket_.cgi_response_.message_.version_ =
-      this->cgi_socket_.cgi_request_.message_.request_line.version;
+  this->http_response_.SetVersion(
+      this->cgi_socket_.GetRequestMessage().request_line.version);
 
   // HTTPリクエストのデフォルトのstatus codeを設定
-  this->cgi_socket_.cgi_response_.message_.status_code_ = 200;
-  this->cgi_socket_.cgi_response_.message_.status_message_ = "OK";
-
+  this->http_response_.SetResponseStatus(200);
 
   // recv_buffer_から直接1行づつ取得する
   std::string line;
-  while (this->cgi_socket_.recv_buffer_.GetUtillCRLF(line)) {
-    // 1行が空行だったら、ヘッダーの終わりなので、ヘッダーの終わりを設定する
+  while (this->cgi_socket_.GetRecvBuffer().GetUntilCRLF(line)) {
+    // 空行だったらヘッダーの終わり
     if (line.empty()) {
       break;
     }
-
-    if (!IsValidtHeaderLine(header_len, line.length())) {
+    // 文字数、文字種、ヘッダーの総合計長をチェック
+    if (!IsValidHeaderLine(line, header_len)) {
       // 500 Internal Server Error
-      SetInternalServerError();
-      break;
+      this->http_response_.SetResponseStatus(500);
+      return;
     }
 
-    // key と valueに分ける
+    // ヘッダーフィールドを分解して格納
     std::pair<std::string, std::string> header_pair = splitHeader(line);
-    // valueを','で分ける
     std::vector<std::string> header_values =
-        splitHeaderValue(header_pair.second);
-
-    // keyによって処理を分ける
-    if (header_pair.first == "Status") {
-      // status codeとreason phraseを設定
-    } else if (header_pair.first == "Location") {
-      // local redirectかを判定 相対パスの場合はlocal redirect
-      if (header_pair.second[0] == '/') {
-        this->is_local_redirect_ = true; // local redirect のフラグを立てておく
-      }
-    } else if (header_pair.first == "Content-Length") { // content-lengthの場合
-      with_body = true;
-      if (ws_strtoi(&header_content_length, header_pair.second) == false) {
-        // 500 Internal Server Error
-        SetInternalServerError(response_message);
-        break;
-      }
-      if (header_content_length > this->kMaxContentLength) {
-        // 500 Internal Server Error
-        SetInternalServerError(response_message);
-        break;
-      }
-    } else { // それ以外の場合は、そのままresponse_ヘッダーに設定
-    }
+        splitValue(header_pair.second);
+    this->http_response_.SetHeader(header_pair.first, header_values);
   }
 
-  // ボディがあれば、ボディを取得してresponse_messageに設定する。長さも確認
-  if (with_body) {
-    // バッファに残っているのはボディのはずなので、まずはボディの長さを取得しチェック
-    actual_content_length = this->cgi_socket_.recv_buffer_.GetBuffSize();
+  if (this->cgi_socket_.GetRecvBuffer().GetBuffSize() != 0) {
+    // ボディがあるということなので、Content-Lengthを取得する
+    if (this->http_response_.HasHeader("Content-Length")) {
+      // 500 Internal Server Error ボディがあるのにContent-Lengthがない
+      this->http_response_.SetResponseStatus(500);
+      return;
+    }
+    std::vector<std::string> content_length_values =
+        this->http_response_.GetHeader("Content-Length");
+    size_t header_content_length; // ヘッダー内のContent-Lengthの値
+    ws_strtoi(&header_content_length, content_length_values[0]);
+    if (header_content_length > this->kMaxBodyLength) {
+      // 500 Internal Server Error
+      this->http_response_.SetResponseStatus(500);
+      return;
+    }
+    size_t actual_content_length = this->cgi_socket_.GetRecvBuffer().GetBuffSize();
     if (header_content_length != actual_content_length) {
       // 500 Internal Server Error
-      SetInternalServerError(response_message);
-      break;
+      this->http_response_.SetResponseStatus(500);
+      return;
     }
-    // ボディをreponseに移す
-    // TODO:
+    this->http_response_.SetBody(this->cgi_socket_.GetRecvBuffer().GetString());
   }
 
-  if (is_local_redirect_) {
-    // HTTPリクエストのコピーを作成し、pathなどをlocal redirectのpathに変更する
-    this->cgi_socket_.cgi_request_.message_.request_line.path =
-        this->cgi_socket_.cgi_request_.message_.request_line.path;
-    // local redirectのpathを解決する
-
-
-    // リソースがcgi
-
-    // リソースが静的ファイル
-    // そのリソースを取得できれば、200 OKとしボディを設定する
-    // そのリソースが取得できれば、404 Not Foundとする
+  if (this->http_response_.HasHeader("Status")) {
+    // Statusヘッダーがある場合は、その値を使う
+    std::vector<std::string> status_values =
+        this->http_response_.GetHeader("Status");
+    int status_code;
+    ws_strtoi(&status_code, status_values[0]);
+    if (status_values.size() == 1) {
+      // Statusヘッダーの値が1つ -> status code のい
+      this->http_response_.SetResponseStatus(status_code);
+    } else {
+      // Statusヘッダーの値が2つ -> status code と status message
+      this->http_response_.SetResponseStatus(status_code);
+      // this->http_response_.SetResponseStatus(status_code, status_values[1]);
+    }
   }
 
+  if (this->http_response_.HasHeader("Location")) {
+    // Location
+    // ヘッダーがある場合で、かつ、相対URLの場合は、ローカルリダイレクト
+    std::vector<std::string> location_values =
+        this->http_response_.GetHeader("Location");
+    if (location_values[0].find("http://") == std::string::npos) {
+      this->ParseLocationPath(location_values[0]);
+      if (!this->cgi_socket_.GetContext().is_cgi) {
+        // ローカルリダイレクト先が静的リソースなので、取得してHTTPレスポンスのボディとする。ファイルストリームで開いて
+        // ファイルサイズを取得して、そのサイズ分だけ読み込む
+        std::ifstream ifs(this->cgi_socket_.GetContext().resource_path.server_path.c_str(),
+                          std::ios::binary);
+        if (!ifs) {
+          // 500 Internal Server Error
+          this->http_response_.SetResponseStatus(500);
+          return;
+        }
+        // sizeを取得
+        size_t body_size = ifs.seekg(0, std::ios::end).tellg();
+        // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
+        if (body_size > this->kMaxBodyLength) {
+          // 500 Internal Server Error
+          this->http_response_.SetResponseStatus(500);
+          return;
+        }
+        std::string body;
+        body.resize(body_size);
+        ifs.seekg(0, std::ios::beg).read(&body[0], body.size());
+        this->http_response_.SetBody(body);
+        this->http_response_.SetResponseStatus(200);
+        // content-typeを設定
+        this->http_response_.SetHeader(
+            "Content-Type",
+            std::vector<std::string>(1, ws_get_mime_type(this->cgi_socket_.GetContext().resource_path.server_path)));
+
+        // content-lengthを設定
+        std::stringstream ss;
+        ss << body_size;
+        this->http_response_.SetHeader("Content-Length", std::vector<std::string>(1,ss.str()));
+      }
+    }
+  }
 }
 
 // parserメソッド郡
+void CgiResponseParser::ParseLocationPath(std::string &path) {
+  Context &context = this->cgi_socket_.GetContext();
+
+  // fragment, query, pathが大元のHTTPリクエストのままなので更新
+  if (path.find('#') != std::string::npos) {
+    context.resource_path.uri.fragment = path.substr(path.find('#') + 1);
+    path = path.substr(0, path.find('#'));
+  } else {
+    context.resource_path.uri.fragment = "";
+  }
+
+  if (path.find('?') !=
+      std::string::npos) { // pathに'?'がある場合、クエリとして取り出しておく
+    context.resource_path.uri.query = path.substr(path.find('?') + 1);
+    path = path.substr(0, path.find('?'));
+  } else {
+    context.resource_path.uri.query = "";
+  }
+
+  context.resource_path.uri.path = path;
+
+  // root は、HTTPリクエストに束縛される
+  std::string &root = context.location.root_;
+
+  // pathからlocation以降（path_info )を除去して、rootを付与
+  std::string concat = root + '/' + path.substr(context.location.path_.size());
+
+  // cgi_extensionsがない場合、path_infoはなく、concatをserver_pathとする
+  if (context.location.cgi_extensions_.empty()) {
+    context.resource_path.server_path = concat;
+    context.resource_path.path_info = "";
+    context.is_cgi = false;
+    return;
+  }
+
+  // cgi_extensionsがある場合
+  for (std::vector<std::string>::iterator ite =
+           context.location.cgi_extensions_.begin();
+       ite != context.location.cgi_extensions_.end(); ite++) {
+    std::string cgi_extension = *ite;
+
+    // concatの'/'ごとにextensionを確認
+    for (std::string::iterator its = concat.begin(); its != concat.end();
+         its++) {
+      if (*its == '/') {
+        std::string partial_path = concat.substr(0, its - concat.begin());
+        if (ws_exist_cgi_file(partial_path, cgi_extension)) {
+          context.resource_path.server_path =
+              concat.substr(0, its - concat.begin());
+          context.resource_path.path_info =
+              concat.substr(its - concat.begin());
+          context.is_cgi = true;
+          return;
+        }
+      }
+    }
+    // concatが/で終わらない場合、追加でチェックが必要
+    // concatは '/'を含むので、size() > 0が保証されている
+    if (concat[concat.size() - 1] != '/' &&
+        ws_exist_cgi_file(concat, cgi_extension)) {
+      context.resource_path.server_path = concat;
+      context.is_cgi = true;
+      return;
+    }
+  }
+
+  context.resource_path.server_path = concat;
+  context.resource_path.path_info = "";
+  context.is_cgi = false;
+  return;
+}
 
 // IsValidメソッド郡
 bool CgiResponseParser::IsValidHeaderLine(const std::string &line,
@@ -161,7 +263,7 @@ bool CgiResponseParser::IsValidtHeaderLineFormat(const std::string &line) {
     return false;
   }
   std::pair<std::string, std::string> kv = splitHeader(line);
-  return isValidHeaderKey(kv.first) && isValidHeaderValue(kv.second);
+  return IsValidHeaderKey(kv.first) && IsValidHeaderValue(kv.second);
 }
 
 bool CgiResponseParser::IsValidHeaderKey(const std::string &key) {
@@ -170,6 +272,7 @@ bool CgiResponseParser::IsValidHeaderKey(const std::string &key) {
 }
 
 bool CgiResponseParser::IsValidHeaderValue(const std::string &value) {
+  (void)value;
   // Value can contain arbitrary TEXT, so we don't need to validate it here
   return true;
 }
@@ -187,20 +290,6 @@ bool CgiResponseParser::IsValidToken(const std::string &token) {
   // 有効な文字種以外のポジションを返す、つまりnpos以外が返ってきたら、
   // 有効な文字種以外があるということなので、falseを返す
   return token.find_first_not_of(validChars) == std::string::npos;
-}
-
-// Parseメソッド郡
-bool CgiResponseParser::ParseHeader(const std::string &line, Header &header) {
-  std::pair<std::string, std::string> kv = splitHeader(line);
-  header.key = kv.first;
-  header.value = kv.second;
-  return true;
-}
-
-// HTTPレスポンスを構築するメソッド郡
-void CgiResponseParser::SetInternalErrorResponse(
-    ResponseMessage &response_message) {
-  // TODO: tfujiwara
 }
 
 // utilityメソッド郡
@@ -238,5 +327,18 @@ std::string CgiResponseParser::trim(const std::string &str) {
 }
 
 // parseの結果を返すメソッド郡
-bool CgiResponseParser::IsRedirectCgi() { return is_redirect_cgi_; }
+bool CgiResponseParser::IsRedirectCgi() { return this->cgi_socket_.GetContext().is_cgi; }
 
+
+Response CgiResponseParser::GetHttpResponse() {
+  return this->http_response_;
+}
+
+Request CgiResponseParser::GetHttpRequestForCgi() {
+  // ローカルリダイレクト先がcgiの場合HTTPクライアントからの大元のリクエストを一部書き換えたHTTPリクエストに変換してCGIを実行する
+  Request new_request;
+
+  new_request.SetContext(this->cgi_socket_.GetContext());
+  new_request.SetMessage(this->cgi_socket_.GetRequestMessage());
+  return new_request;
+}

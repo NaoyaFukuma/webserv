@@ -196,7 +196,7 @@ void ConnSocket::SetIpPort(const struct sockaddr_in &addr) {
   ip_port_.second = oss.str();
 }
 
-void ConnSocket::PushResponse(Response &response) {
+void ConnSocket::PushResponse(Response response) {
   responses_.push_back(response);
 }
 

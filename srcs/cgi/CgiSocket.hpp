@@ -41,7 +41,7 @@ typedef std::map<std::string, std::vector<std::string> > Header;
 struct RequestMessage {
   RequestLine request_line; // 一部更新
   Header header; // 更新
-  std::string body; // そのまま
+  std::string body; // 更新
 };
 
 enum ParseStatus {
@@ -73,22 +73,6 @@ struct CgiRequest
   Context context_;
 };
 
-/*
-struct ResponseMessage {
-  Http::Version version_;
-  int status_code_;
-  std::string status_message_;
-  std::map<std::string, std::string> header_;
-  std::string body_;
-};
-*/
-
-struct CgiResponse
-{
-  ResponseMessage message_;
-};
-
-
 class CgiSocket : public ASocket {
 private:
   SocketBuff recv_buffer_;
@@ -97,12 +81,11 @@ private:
   ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
   CgiRequest cgi_request_;  // HTTPリクエストから抜粋した
                             //CGIスクリプトに渡すリクエスト情報
-  CgiResponse cgi_response_; // CGIスクリプトから受け取ったレスポンス情報
 
 // ----------------  in CgiSocket.cpp  ------------------
 public:
   // CGI実行要求したクライアント、そのHTTPリクエスト情報
-  CgiSocket(ConnSocket *conn_socket, Request http_request);
+  CgiSocket(ConnSocket *conn_socket, Request &http_request);
   ~CgiSocket();
   // EPOLLイベントのハンドラー
   int ProcessSocket(Epoll *epoll, void *data);
@@ -114,13 +97,20 @@ public:
 // ----------------  in CreatCgiProcess.cpp  ------------------
 public:
   CgiSocket *CreatCgiProcess();
+  Context &GetContext();
+  RequestMessage &GetRequestMessage();
+  SocketBuff &GetSendBuffer() {
+    return send_buffer_;
+  }
+  SocketBuff &GetRecvBuffer() {
+    return recv_buffer_;
+  }
+
 private:
   void SetSocket(int child_sock, int parent_sock);
   char **SetMetaVariables();
   char **SetArgv();
   void SetCurrentDir(const std::string &cgi_path);
-  Context GetContext();
-  RequestMessage GetRequestMessage();
 
 
 private: // 使用予定なし

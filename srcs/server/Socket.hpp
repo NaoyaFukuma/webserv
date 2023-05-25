@@ -64,7 +64,7 @@ public:
   int ProcessSocket(Epoll *epoll, void *data);
   void AddResponse(const Response &response);
   void SetIpPort(const struct sockaddr_in &addr);
-  void PushResponse(Response &response);
+  void PushResponse(Response response);
   std::pair<std::string, std::string> GetIpPort() const;
 
 private: // 使用予定なし

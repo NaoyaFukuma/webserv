@@ -343,7 +343,7 @@ void Request::ResolveResourcePath() {
          its++) {
       if (*its == '/') {
         std::string partial_path = concat.substr(0, its - concat.begin());
-        if (ExistCgiFile(partial_path, cgi_extension)) {
+        if (ws_exist_cgi_file(partial_path, cgi_extension)) {
           context_.resource_path.server_path =
               concat.substr(0, its - concat.begin());
           context_.resource_path.path_info =
@@ -356,7 +356,7 @@ void Request::ResolveResourcePath() {
     // concatが/で終わらない場合、追加でチェックが必要
     // concatは '/'を含むので、size() > 0が保証されている
     if (concat[concat.size() - 1] != '/' &&
-        ExistCgiFile(concat, cgi_extension)) {
+        ws_exist_cgi_file(concat, cgi_extension)) {
       context_.resource_path.server_path = concat;
       context_.is_cgi = true;
       return;
@@ -367,16 +367,6 @@ void Request::ResolveResourcePath() {
   context_.resource_path.path_info = "";
   context_.is_cgi = false;
   return;
-}
-
-// partial_pathがcgi_extensionで終わり、かつregular
-// fileであれば、cgiとして実行する
-bool Request::ExistCgiFile(const std::string &path,
-                           const std::string &extension) const {
-  struct stat path_stat;
-  stat(path.c_str(), &path_stat);
-  return (extension == "." || end_with(path, extension)) &&
-         S_ISREG(path_stat.st_mode);
 }
 
 // for unit-test

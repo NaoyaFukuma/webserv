@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <vector>
 
+bool ws_exist_cgi_file(const std::string &path,
+                           const std::string &extension);
+std::string ws_get_mime_type(const std::string &filename);
 ssize_t ws_split(std::vector<std::string> &dst, const std::string &src,
                  const char delim);
 bool ws_inet_addr(uint32_t &dst, std::string ip);

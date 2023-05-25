@@ -1,5 +1,6 @@
 #include "Response.hpp"
 #include "Socket.hpp"
+#include "CgiSocket.hpp"
 #include "Epoll.hpp"
 #include <sys/epoll.h>
 
@@ -30,7 +31,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   if (request.GetContext().is_cgi) {
     // CGI
     CgiSocket *cgi_socket = new CgiSocket(socket, request);
-    ASocket *sock = cgi_socket.CreatCgiProcess();
+    ASocket *sock = cgi_socket->CreatCgiProcess();
     if (sock == NULL) {
       delete cgi_socket;
       // エラー処理 クライアントへ500 Internal Server Errorを返す
@@ -61,9 +62,4 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
   //   // 静的ファイル
   //   ProcessStatic(request, socket, epoll);
   // }
-}
-
-void Response::SetResponseMessage(ResponseMessage message) {
-  this->message_ = message;
-  this->process_status_ = DONE;
 }

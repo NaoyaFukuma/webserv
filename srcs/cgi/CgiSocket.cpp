@@ -29,10 +29,10 @@
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
 CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
-    : conn_socket_(conn_socket), {
-  this->send_buffer_.AddString(http_request_.GetRequestMessage().body.c_str());
-  this->cgi_request_.context_ =  http_request_.GetContext();
-  this->cgi_request_.message_ = http_request_.GetRequestMessage();
+    : ASocket(conn_socket->GetConf()), conn_socket_(conn_socket) {
+  this->send_buffer_.AddString(http_request.GetRequestMessage().body);
+  this->cgi_request_.context_ =  http_request.GetContext();
+  this->cgi_request_.message_ = http_request.GetRequestMessage();
 };
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
@@ -79,10 +79,10 @@ int CgiSocket::OnReadable(Epoll *epoll) {
     cgi_res_parser.ParseCgiResponse();
 
     if (cgi_res_parser.IsRedirectCgi()) { // CGIがローカルリダイレクトでさらにCGIスクリプトを実行
-      Request new_http_request = cgi_res_parser.GetHttpRequest();
+      Request new_http_request = cgi_res_parser.GetHttpRequestForCgi();
       CgiSocket *new_cgi_socket = new CgiSocket(this->conn_socket_, new_http_request);
 
-      ASocket *cgi_socket = new_cgi_socket.CreatCgiProcess();
+      ASocket *cgi_socket = new_cgi_socket->CreatCgiProcess();
       if (cgi_socket == NULL) {
         delete new_cgi_socket;
         // 500 Internal Server Errorをhttp responseに追加する
@@ -91,8 +91,7 @@ int CgiSocket::OnReadable(Epoll *epoll) {
       uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
       epoll->Add(new_cgi_socket, event_mask);
     } else { // http responseを作成できる
-      Response http_response = this->GetHttpResponse();
-      this->conn_socket_->PushResponse(http_response);
+      this->conn_socket_->PushResponse(cgi_res_parser.GetHttpResponse());
       uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
       epoll->Add(this->conn_socket_, event_mask);
     }
@@ -180,6 +179,6 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   return SUCCESS;
 }
 
-Context CgiSocket::GetContext() { return this->cgi_request_.context_; }
+Context &CgiSocket::GetContext() { return this->cgi_request_.context_; }
 
-RequestMessage CgiSocket::GetRequestMessage() { return this->cgi_request_.message_; }
+RequestMessage &CgiSocket::GetRequestMessage() { return this->cgi_request_.message_; }

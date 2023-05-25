@@ -2,6 +2,7 @@
 #define CGI_RESPONSE_PARSER_HPP_
 
 #include "Request.hpp"
+#include "CgiSocket.hpp"
 #include "Response.hpp"
 #include <string>
 
@@ -9,9 +10,6 @@ class CgiResponseParser {
 private:
   CgiSocket &cgi_socket_;  // CGIと通信したソケット
   Response http_response_; // http response
-  Request http_request_;   // local redirect用
-  bool is_local_redirect_;       // local redirect用
-  bool is_cgi_redirect_;         // cgi redirect用
 
   // 各種長さの制限に使う定数
   // ヘッダー１行の最大文字数 8KB = 8 * 1024 = 8192
@@ -27,10 +25,17 @@ public:
   ~CgiResponseParser();
   void ParseCgiResponse();
 
+  // parseの結果を返すメソッド郡
+  bool IsRedirectCgi();
+  Response GetHttpResponse();
+  Request GetHttpRequestForCgi();
+
 private:
   // parserメソッド郡
+  void ParseLocationPath(std::string &path);
+
   // IsValidメソッド郡
-  bool IsValidHeaderLine(const std::string &line);
+  bool IsValidHeaderLine(const std::string &line, size_t &header_len);
   bool IsValidtHeaderLineLength(const std::string &line);
   bool IsValidtHeaderLength(size_t &header_len, size_t line_len);
   bool IsValidtHeaderLineFormat(const std::string &line);
@@ -38,18 +43,12 @@ private:
   bool IsValidHeaderValue(const std::string &value);
   bool IsValidToken(const std::string &token);
 
-  // HTTPレスポンスを構築するメソッド郡
-  void SetInternalErrorResponse();
-
   // utilityメソッド郡
   std::pair<std::string, std::string>
     splitHeader(const std::string &headerLine);
-  std::vector<std::string> CgiResponseParser::splitValue(const std::string &value);
+  std::vector<std::string> splitValue(const std::string &value);
   std::string trim(const std::string &str);
 
-  // parseの結果を返すメソッド郡
-  bool IsRedirectCgi();
-  Response GetResponse();
 
 private:
   CgiResponseParser(); // デフォルトコンストラクタ禁止
