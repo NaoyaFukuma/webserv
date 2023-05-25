@@ -1,4 +1,5 @@
 #include "CgiSocket.hpp"
+#include "CgiResponseParser.hpp"
 #include "Epoll.hpp"
 #include "Http.hpp"
 #include "Request.hpp"
@@ -27,8 +28,8 @@
 */
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
-CgiSocket::CgiSocket(ConnSocket &conn_socket, Request &http_request)
-    : conn_socket_(&conn_socket), http_request_(http_request) {
+CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
+    : conn_socket_(conn_socket), http_request_(http_request) {
   this->send_buffer_.AddString(http_request_.GetRequestMessage().body.c_str());
 };
 
@@ -65,29 +66,39 @@ int CgiSocket::OnReadable(Epoll *epoll) {
   // this->last_event_.in_time = time(NULL); //
   // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
 
-  switch (recv_result) {
-  case 0: // CGIレスポンスを受信しバッファにためた。あえてまだParseはしない。finパケットを受信し、EOFを読み込んだら（case
-          // -1）Parseする
-    break;
+   // 0 ならCGIレスポンスを受信しバッファにためて、あえてまだParseはしない。
+   // -1 はfinパケットを受信したことを意味し、Parseに入る
+  if (recv_result == 0) {
+    return SUCCESS;
+  } else {
+   // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、
+   // HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
+    CgiResponseParser cgi_res_parser(*this);
+    cgi_res_parser.ParseCgiResponse();
 
-  case -1: // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
-    // parseし、HTTPレスポンスを作成する
-    Response http_response = this->ParseCgiResponse();
+    if (cgi_res_parser.IsRedirectCgi()) { // CGIがローカルリダイレクトでさらにCGIスクリプトを実行
+      Request new_http_request = cgi_res_parser.GetHttpRequest();
+      CgiSocket *new_cgi_socket = new CgiSocket(this->conn_socket_, new_http_request);
 
-    // HTTPレスポンスをdequeに追加する
-    this->conn_socket_->PushResponse(http_response);
+      ASocket *cgi_socket = new_cgi_socket.CreatCgiProcess();
+      if (cgi_socket == NULL) {
+        delete new_cgi_socket;
+        // 500 Internal Server Errorをhttp responseに追加する
 
-    // EpollにEPOLLOUT追加でADDする
-    uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
-    epoll->Add(this->conn_socket_, event_mask);
-
+      }
+      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
+      epoll->Add(new_cgi_socket, event_mask);
+    } else { // http responseを作成できる
+      Response http_response = this->GetHttpResponse();
+      this->conn_socket_->PushResponse(http_response);
+      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
+      epoll->Add(this->conn_socket_, event_mask);
+    }
+  }
     return FAILURE;
     // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
     // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
     // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
-  }
-
-  return SUCCESS;
 }
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる

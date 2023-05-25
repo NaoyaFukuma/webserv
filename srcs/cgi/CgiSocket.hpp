@@ -39,7 +39,7 @@ private:
 // ----------------  in CgiSocket.cpp  ------------------
 public:
   // CGI実行要求したクライアント、そのHTTPリクエスト情報
-  CgiSocket(ConnSocket &conn_socket, Request &http_request);
+  CgiSocket(ConnSocket *conn_socket, Request http_request);
   ~CgiSocket();
   // EPOLLイベントのハンドラー
   int ProcessSocket(Epoll *epoll, void *data);

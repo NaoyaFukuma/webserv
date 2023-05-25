@@ -26,9 +26,10 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   // request.ResolvePath(config);
   if (request.GetContext().is_cgi) {
     // CGI
-    CgiSocket cgi_socket(*socket, request, socket->GetConf());
+    CgiSocket *cgi_socket = new CgiSocket(socket, request);
     ASocket *sock = cgi_socket.CreatCgiProcess();
     if (sock == NULL) {
+      delete cgi_socket;
       // エラー処理 クライアントへ500 Internal Server Errorを返す
       return;
     }

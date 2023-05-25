@@ -1,5 +1,5 @@
-#include "CgiSocket.hpp"
 #include "CgiResponseParser.hpp"
+#include "CgiSocket.hpp"
 #include "Epoll.hpp"
 #include "Http.hpp"
 #include "Request.hpp"
@@ -19,14 +19,14 @@
 #include <wait.h>
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket)
-    : cgi_socket_(cgi_socket) {}
+    : cgi_socket_(cgi_socket), is_cgi_redirect_(false) {}
 
 // recv_buffer_内のCGIレスポンスからResponseを構築する
-Response CgiResponseParser::ParseCgiResponse() {
-  size_t header_len = 0;     // ヘッダーの総合計長 maxは32KB
-  bool is_body = false;      // ボディを持つかどうか
-  size_t content_length = 0; // ボディの長さ maxは1MB
-  Response http_response;    // 成果物の入れ物
+void CgiResponseParser::ParseCgiResponse() {
+  size_t header_len = 0;            // ヘッダーの総合計長 maxは32KB
+  bool with_body = false;           // ボディを持つかどうか
+  size_t actual_content_length = 0; // 実際のボディの長さ maxは1MB
+  size_t header_content_length = 0; // ヘッダー内のContent-Lengthの値
 
   // 一度のParseで完結するので先にDONEを設定
   // TODO:
@@ -34,6 +34,9 @@ Response CgiResponseParser::ParseCgiResponse() {
   // HTTPリクエストからHTTP versionを取得し、response_messageに設定
   // response_message.version_ =
   //     this->http_request_.GetRequestMessage().request_line.version;
+
+  // HTTPリクエストのデフォルトのstatus codeを設定
+  // response_message.status_code_ = 200;
 
   // recv_buffer_から直接1行づつ取得する
   std::string line;
@@ -49,44 +52,55 @@ Response CgiResponseParser::ParseCgiResponse() {
       break;
     }
 
-    //key と valueに分ける
+    // key と valueに分ける
     std::pair<std::string, std::string> header_pair = splitHeader(line);
     // valueを','で分ける
-    std::vector<std::string> header_values = splitHeaderValue(header_pair.second);
+    std::vector<std::string> header_values =
+        splitHeaderValue(header_pair.second);
 
     // keyによって処理を分ける
-    if (header_pair.first == "Status") { // statusの場合
+    if (header_pair.first == "Status") {
 
-    } else if () { // locationの場合
-      // local redirect
-
-      // client redirect
-
-    } else if () { // content-typeの場合
-
-    } else if () { // content-lengthの場合
-      is_body = true;
-
-    } else if () { // set-cookieの場合
-
+    } else if (header_pair.first == "Location") {
+      // local redirectかを判定 相対パスの場合はlocal redirect
+      if (header_pair.second[0] == '/') {
+        this->is_local_redirect_ = true; // local redirect のフラグを立てておく
+      }
+    } else if (header_pair.first == "Content-Length") { // content-lengthの場合
+      with_body = true;
+      if (ws_strtoi(&header_content_length, header_pair.second) == false) {
+        // 500 Internal Server Error
+        SetInternalServerError(response_message);
+        break;
+      }
+      if (header_content_length > this->kMaxContentLength) {
+        // 500 Internal Server Error
+        SetInternalServerError(response_message);
+        break;
+      }
     } else { // それ以外の場合は、そのままresponse_に設定
-
     }
   }
 
   // ボディがあれば、ボディを取得してresponse_messageに設定する。長さも確認
-  if (is_body) {
-
+  if (with_body) {
+    // バッファに残っているのはボディのはずなので、まずはボディの長さを取得しチェック
+    actual_content_length = this->cgi_socket_.recv_buffer_.GetBuffSize();
+    if (header_content_length != actual_content_length) {
+      // 500 Internal Server Error
+      SetInternalServerError(response_message);
+      break;
+    }
+    // ボディをreponseに移す
+    // TODO:
   }
-  return http_response;
 }
 
 // parserメソッド郡
 
-
-
 // IsValidメソッド郡
-bool CgiResponseParser::IsValidHeaderLine(const std::string &line, size_t &header_len) {
+bool CgiResponseParser::IsValidHeaderLine(const std::string &line,
+                                          size_t &header_len) {
   if (line.empty()) {
     std::cerr << "Keep Running Error: CGI response header line is empty"
               << std::endl;
@@ -167,7 +181,6 @@ bool CgiResponseParser::ParseHeader(const std::string &line, Header &header) {
   header.key = kv.first;
   header.value = kv.second;
   return true;
-
 }
 
 // HTTPレスポンスを構築するメソッド郡
@@ -175,8 +188,6 @@ void CgiResponseParser::SetInternalErrorResponse(
     ResponseMessage &response_message) {
   // TODO: tfujiwara
 }
-
-
 
 // utilityメソッド郡
 std::pair<std::string, std::string>
@@ -191,7 +202,8 @@ CgiResponseParser::splitHeader(const std::string &headerLine) {
   }
 }
 
-std::vector<std::string> splitValue(const std::string &value) {
+std::vector<std::string>
+CgiResponseParser::splitValue(const std::string &value) {
   std::istringstream iss(value);
   std::string item;
   std::vector<std::string> result;
@@ -202,7 +214,7 @@ std::vector<std::string> splitValue(const std::string &value) {
 }
 
 // 前後の空白文字(半角スペースと水平タブ)を削除するtrim関数
-std::string trim(const std::string &str) {
+std::string CgiResponseParser::trim(const std::string &str) {
   const std::size_t strBegin = str.find_first_not_of(" \t");
   if (strBegin == std::string::npos)
     return ""; // 空白文字のみの場合は空文字列を返す
@@ -210,3 +222,7 @@ std::string trim(const std::string &str) {
   const std::size_t strRange = strEnd - strBegin + 1;
   return str.substr(strBegin, strRange);
 }
+
+// parseの結果を返すメソッド郡
+bool CgiResponseParser::IsRedirectCgi() { return is_redirect_cgi_; }
+

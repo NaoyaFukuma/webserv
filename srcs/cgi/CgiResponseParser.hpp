@@ -7,7 +7,10 @@
 
 class CgiResponseParser {
 private:
-  CgiSocket &cgi_socket_; // CGIとの通信用ソケット, recv_buffer_, request_を利用する
+  CgiSocket &cgi_socket_;  // CGIと通信したソケット
+  Response http_response_; // http response
+  Request http_request_;   // local redirect用
+  bool is_cgi_redirect_;       // local redirect用
 
   // 各種長さの制限に使う定数
   // ヘッダー１行の最大文字数 8KB = 8 * 1024 = 8192
@@ -21,7 +24,7 @@ public:
   // ---------  in CgiResponseParser.cpp  ------------------
   CgiResponseParser(CgiSocket &cgi_socket);
   ~CgiResponseParser();
-  Response ParseCgiResponse();
+  void ParseCgiResponse();
 
 private:
   // parserメソッド郡
@@ -39,7 +42,13 @@ private:
 
   // utilityメソッド郡
   std::pair<std::string, std::string>
-  splitHeader(const std::string &headerLine);
+    splitHeader(const std::string &headerLine);
+  std::vector<std::string> CgiResponseParser::splitValue(const std::string &value);
+  std::string trim(const std::string &str);
+
+  // parseの結果を返すメソッド郡
+  bool IsRedirectCgi();
+  Response GetResponse();
 
 private:
   CgiResponseParser(); // デフォルトコンストラクタ禁止
