@@ -24,8 +24,11 @@ private:
   Http::Version version_;
   int status_code_;
   std::string status_message_;
-  std::map<std::string, std::string> header_;
+  Header header_;
   std::string body_;
+
+  void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessGET(Request &request, ConnSocket *socket, Epoll *epoll);
 
 public:
   Response();
