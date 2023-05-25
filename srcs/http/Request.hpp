@@ -85,7 +85,7 @@ public:
 
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
-  Http::HttpStatus GetStatus() const;
+  Http::HttpStatus GetRequestStatus() const;
   void SetRequestStatus(Http::HttpStatus status);
 
   void Parse(SocketBuff &buffer_);

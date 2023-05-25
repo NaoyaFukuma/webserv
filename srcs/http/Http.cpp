@@ -125,3 +125,92 @@ int Http::Hex2Char(char c) {
   else
     return 0;
 }
+
+Http::HttpStatus::HttpStatus() : status_code(-1), message(""){};
+
+Http::HttpStatus::HttpStatus(int status_code, std::string message)
+    : status_code(status_code), message(message){};
+
+Http::HttpStatus::HttpStatus(int status_code)
+    : status_code(status_code), message("") {
+  std::map<int, std::string>::const_iterator it =
+      kDefaultStatusMessage.find(status_code);
+  if (it != kDefaultStatusMessage.end()) {
+    message = it->second;
+  }
+};
+
+const std::map<int, std::string> Http::HttpStatus::kDefaultStatusMessage =
+    init_default_error_message();
+
+std::map<int, std::string> init_default_error_message() {
+  std::map<int, std::string> m;
+  m[100] = "Continue";
+  m[101] = "Switching Protocols";
+  m[102] = "Processing";  // WebDAV; RFC 2518
+  m[103] = "Early Hints"; // RFC 8297
+
+  m[200] = "OK";
+  m[201] = "Created";
+  m[202] = "Accepted";
+  m[203] = "Non-Authoritative Information";
+  m[204] = "No Content";
+  m[205] = "Reset Content";
+  m[206] = "Partial Content";
+  m[207] = "Multi-Status";     // WebDAV; RFC 4918
+  m[208] = "Already Reported"; // WebDAV; RFC 5842
+  m[226] = "IM Used";          // RFC 3229
+
+  m[300] = "Multiple Choices";
+  m[301] = "Moved Permanently";
+  m[302] = "Found";
+  m[303] = "See Other";
+  m[304] = "Not Modified";
+  m[305] = "Use Proxy";
+  m[306] = "Switch Proxy"; // Deprecated
+  m[307] = "Temporary Redirect";
+  m[308] = "Permanent Redirect"; // RFC 7538
+
+  m[400] = "Bad Request";
+  m[401] = "Unauthorized";
+  m[402] = "Payment Required";
+  m[403] = "Forbidden";
+  m[404] = "Not Found";
+  m[405] = "Method Not Allowed";
+  m[406] = "Not Acceptable";
+  m[407] = "Proxy Authentication Required";
+  m[408] = "Request Timeout";
+  m[409] = "Conflict";
+  m[410] = "Gone";
+  m[411] = "Length Required";
+  m[412] = "Precondition Failed";
+  m[413] = "Payload Too Large";
+  m[414] = "URI Too Long";
+  m[415] = "Unsupported Media Type";
+  m[416] = "Range Not Satisfiable";
+  m[417] = "Expectation Failed";
+  m[418] = "I'm a teapot";         // April Fools' joke, RFC 2324
+  m[421] = "Misdirected Request";  // RFC 7540
+  m[422] = "Unprocessable Entity"; // WebDAV; RFC 4918
+  m[423] = "Locked";               // WebDAV; RFC 4918
+  m[424] = "Failed Dependency";    // WebDAV; RFC 4918
+  m[425] = "Too Early";            // RFC 8470
+  m[426] = "Upgrade Required";
+  m[428] = "Precondition Required";           // RFC 6585
+  m[429] = "Too Many Requests";               // RFC 6585
+  m[431] = "Request Header Fields Too Large"; // RFC 6585
+  m[451] = "Unavailable For Legal Reasons";   // RFC 7725
+
+  m[500] = "Internal Server Error";
+  m[501] = "Not Implemented";
+  m[502] = "Bad Gateway";
+  m[503] = "Service Unavailable";
+  m[504] = "Gateway Timeout";
+  m[505] = "HTTP Version Not Supported";
+  m[506] = "Variant Also Negotiates";         // RFC 2295
+  m[507] = "Insufficient Storage";            // WebDAV; RFC 4918
+  m[508] = "Loop Detected";                   // WebDAV; RFC 5842
+  m[510] = "Not Extended";                    // RFC 2774
+  m[511] = "Network Authentication Required"; // RFC 6585
+  return m;
+}

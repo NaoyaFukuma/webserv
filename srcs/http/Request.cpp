@@ -29,17 +29,15 @@ Request &Request::operator=(const Request &rhs) {
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
-Http::HttpStatus Request::GetStatus() const { return http_status_; }
+Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
+
+void Request::SetRequestStatus(Http::HttpStatus status) {
+  http_status_ = status;
+}
 
 Context Request::GetContext() const { return context_; }
 
 Header Request::GetHeaderMap() const { return message_.header; }
-
-// void Request::SetError(int error_status) {
-//   Clear();
-//   error_status_ = error_status;
-//   parse_status_ = ERROR;
-// }
 
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;

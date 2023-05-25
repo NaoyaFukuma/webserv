@@ -29,14 +29,11 @@ private:
   const static std::map<int, std::string> kDefaultStatusMessage;
 
 public:
-  HttpStatus() : status_code(-1), message("") {}
-
-  HttpStatus(int status_code, std::string message)
-      : status_code(status_code), message(message) {}
-
+  HttpStatus();
+  HttpStatus(int status_code, std::string message);
   // Todo: messageはkDefaultErrorMessageから取得するようにする
   // Todo: HTTPErrorの時のheaderやbodyはどうなるかを調査する
-  HttpStatus(int status_code) : status_code(status_code), message("") {}
+  HttpStatus(int status_code);
 };
 
 std::map<int, std::string> init_default_error_message();
