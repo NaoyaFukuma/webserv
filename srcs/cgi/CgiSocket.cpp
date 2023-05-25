@@ -29,7 +29,7 @@
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
 CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
-    : ASocket(conn_socket->GetConf()), conn_socket_(conn_socket) {
+    : ASocket(conn_socket->GetConfVec()), conn_socket_(conn_socket) {
   this->send_buffer_.AddString(http_request.GetRequestMessage().body);
   this->cgi_request_.context_ =  http_request.GetContext();
   this->cgi_request_.message_ = http_request.GetRequestMessage();

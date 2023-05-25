@@ -76,7 +76,7 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
     return;
   }
   // Todo: resolvepathはrequest parserの時点で行う
-  request.ResolvePath(socket->GetConfig());
+  request.ResolvePath(socket->GetConfVec());
   const Context &context = request.GetContext();
   if (context.location.return_.return_type_ != RETURN_EMPTY) {
     ProcessReturn(request, socket, epoll);

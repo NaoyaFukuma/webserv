@@ -26,13 +26,11 @@ ASocket::~ASocket() {
   }
 }
 
-ConfVec ASocket::GetConf() const { return config_; }
+ConfVec ASocket::GetConfVec() const { return config_; }
 
 int ASocket::GetFd() const { return fd_; }
 
 void ASocket::SetFd(int fd) { fd_ = fd; }
-
-ConfVec ASocket::GetConfig() const { return config_; }
 
 bool ASocket::IsTimeout(const time_t &threshold) const {
   time_t now = time(NULL);

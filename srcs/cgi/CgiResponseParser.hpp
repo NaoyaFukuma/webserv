@@ -25,16 +25,16 @@ public:
   ~CgiResponseParser();
   void ParseCgiResponse();
 
-  // parseの結果を返すメソッド郡
+  // parseの結果を返すメソッド
   bool IsRedirectCgi();
   Response GetHttpResponse();
   Request GetHttpRequestForCgi();
 
 private:
-  // parserメソッド郡
+  // parserメソッド
   void ParseLocationPath(std::string &path);
 
-  // IsValidメソッド郡
+  // IsValidメソッド
   bool IsValidHeaderLine(const std::string &line, size_t &header_len);
   bool IsValidtHeaderLineLength(const std::string &line);
   bool IsValidtHeaderLength(size_t &header_len, size_t line_len);
@@ -43,7 +43,7 @@ private:
   bool IsValidHeaderValue(const std::string &value);
   bool IsValidToken(const std::string &token);
 
-  // utilityメソッド郡
+  // utilityメソッド
   std::pair<std::string, std::string>
     splitHeader(const std::string &headerLine);
   std::vector<std::string> splitValue(const std::string &value);

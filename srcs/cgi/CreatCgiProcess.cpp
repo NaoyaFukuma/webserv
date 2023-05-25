@@ -128,7 +128,7 @@ char **CgiSocket::SetMetaVariables() {
       "SERVER_NAME=" + this->GetContext().resource_path.uri.path);
   // SERVER_PORT
   std::stringstream ss;
-  ss << ntohl(this->conn_socket_->GetConf()[0].listen_.sin_port);
+  ss << ntohl(this->conn_socket_->GetConfVec()[0].listen_.sin_port);
   meta_variables.push_back("SERVER_PORT=" + ss.str());
 
   // SERVER_PROTOCOL
