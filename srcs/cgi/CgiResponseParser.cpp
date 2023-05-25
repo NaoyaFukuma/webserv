@@ -19,7 +19,7 @@
 #include <wait.h>
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket)
-    : cgi_socket_(cgi_socket), is_cgi_redirect_(false) {}
+    : cgi_socket_(cgi_socket), is_local_redirect_(false), is_cgi_redirect_(false) {}
 
 // recv_buffer_内のCGIレスポンスからResponseを構築する
 void CgiResponseParser::ParseCgiResponse() {
@@ -28,15 +28,14 @@ void CgiResponseParser::ParseCgiResponse() {
   size_t actual_content_length = 0; // 実際のボディの長さ maxは1MB
   size_t header_content_length = 0; // ヘッダー内のContent-Lengthの値
 
-  // 一度のParseで完結するので先にDONEを設定
-  // TODO:
-
   // HTTPリクエストからHTTP versionを取得し、response_messageに設定
-  // response_message.version_ =
-  //     this->http_request_.GetRequestMessage().request_line.version;
+  this->cgi_socket_.cgi_response_.message_.version_ =
+      this->cgi_socket_.cgi_request_.message_.request_line.version;
 
   // HTTPリクエストのデフォルトのstatus codeを設定
-  // response_message.status_code_ = 200;
+  this->cgi_socket_.cgi_response_.message_.status_code_ = 200;
+  this->cgi_socket_.cgi_response_.message_.status_message_ = "OK";
+
 
   // recv_buffer_から直接1行づつ取得する
   std::string line;
@@ -48,7 +47,7 @@ void CgiResponseParser::ParseCgiResponse() {
 
     if (!IsValidtHeaderLine(header_len, line.length())) {
       // 500 Internal Server Error
-      SetInternalServerError(response_message);
+      SetInternalServerError();
       break;
     }
 
@@ -60,7 +59,7 @@ void CgiResponseParser::ParseCgiResponse() {
 
     // keyによって処理を分ける
     if (header_pair.first == "Status") {
-
+      // status codeとreason phraseを設定
     } else if (header_pair.first == "Location") {
       // local redirectかを判定 相対パスの場合はlocal redirect
       if (header_pair.second[0] == '/') {
@@ -78,7 +77,7 @@ void CgiResponseParser::ParseCgiResponse() {
         SetInternalServerError(response_message);
         break;
       }
-    } else { // それ以外の場合は、そのままresponse_に設定
+    } else { // それ以外の場合は、そのままresponse_ヘッダーに設定
     }
   }
 
@@ -94,6 +93,21 @@ void CgiResponseParser::ParseCgiResponse() {
     // ボディをreponseに移す
     // TODO:
   }
+
+  if (is_local_redirect_) {
+    // HTTPリクエストのコピーを作成し、pathなどをlocal redirectのpathに変更する
+    this->cgi_socket_.cgi_request_.message_.request_line.path =
+        this->cgi_socket_.cgi_request_.message_.request_line.path;
+    // local redirectのpathを解決する
+
+
+    // リソースがcgi
+
+    // リソースが静的ファイル
+    // そのリソースを取得できれば、200 OKとしボディを設定する
+    // そのリソースが取得できれば、404 Not Foundとする
+  }
+
 }
 
 // parserメソッド郡

@@ -381,3 +381,5 @@ bool Request::ExistCgiFile(const std::string &path,
 
 // for unit-test
 void Request::SetMessage(RequestMessage message) { message_ = message; }
+void Request::SetContext(Context context) { context_ = context; }
+

@@ -28,13 +28,76 @@ HTTPサーバー CGIクライアント
 CGIスクリプト CGIサーバー
 */
 
+
+/*
+struct RequestLine {
+  std::string method; // そのまま
+  std::string uri; // 更新
+  Http::Version version; // そのまま
+};
+
+typedef std::map<std::string, std::vector<std::string> > Header;
+
+struct RequestMessage {
+  RequestLine request_line; // 一部更新
+  Header header; // 更新
+  std::string body; // そのまま
+};
+
+enum ParseStatus {
+  INIT,
+  HEADER,
+  BODY,
+  COMPLETE,
+  ERROR,
+};
+
+struct ResourcePath {
+  Http::URI uri; // 更新
+  std::string server_path; // 更新
+  std::string path_info; // 更新
+};
+
+struct Context {
+  Vserver vserver; // そのまま
+  std::string server_name; // そのまま
+  Location location; // そのまま
+  ResourcePath resource_path; // 更新
+  bool is_cgi; // 更新
+};
+*/
+
+struct CgiRequest
+{
+  RequestMessage message_;
+  Context context_;
+};
+
+/*
+struct ResponseMessage {
+  Http::Version version_;
+  int status_code_;
+  std::string status_message_;
+  std::map<std::string, std::string> header_;
+  std::string body_;
+};
+*/
+
+struct CgiResponse
+{
+  ResponseMessage message_;
+};
+
+
 class CgiSocket : public ASocket {
 private:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
   pid_t pid_;               // CGIスクリプト実行用のプロセスID
   ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
-  Request http_request_;    // CGI実行要求したHTTPリクエスト
+  CgiRequest cgi_request_;  // HTTPリクエストから抜粋した
+                            //CGIスクリプトに渡すリクエスト情報
+  CgiResponse cgi_response_; // CGIスクリプトから受け取ったレスポンス情報
 
 // ----------------  in CgiSocket.cpp  ------------------
 public:
@@ -56,6 +119,8 @@ private:
   char **SetMetaVariables();
   char **SetArgv();
   void SetCurrentDir(const std::string &cgi_path);
+  Context GetContext();
+  RequestMessage GetRequestMessage();
 
 
 private: // 使用予定なし

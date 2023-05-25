@@ -29,8 +29,10 @@
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
 CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
-    : conn_socket_(conn_socket), http_request_(http_request) {
+    : conn_socket_(conn_socket), {
   this->send_buffer_.AddString(http_request_.GetRequestMessage().body.c_str());
+  this->cgi_request_.context_ =  http_request_.GetContext();
+  this->cgi_request_.message_ = http_request_.GetRequestMessage();
 };
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
@@ -177,3 +179,7 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   }
   return SUCCESS;
 }
+
+Context CgiSocket::GetContext() { return this->cgi_request_.context_; }
+
+RequestMessage CgiSocket::GetRequestMessage() { return this->cgi_request_.message_; }

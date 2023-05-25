@@ -49,11 +49,11 @@ CgiSocket *CgiSocket::CreatCgiProcess() {
     char **env = this->SetMetaVariables();
     char **argv = this->SetArgv();
     this->SetCurrentDir(
-        this->http_request_.GetContext().resource_path.server_path);
+        this->GetContext().resource_path.server_path);
 
     // CGIスクリプトを実行
     if (execve(
-            this->http_request_.GetContext().resource_path.server_path.c_str(),
+            this->GetContext().resource_path.server_path.c_str(),
             argv, env) < 0) {
       // 子プロセス内でのエラーは例外を投げてすぐ子プロセスを終了させる
       throw std::runtime_error(
@@ -118,14 +118,14 @@ char **CgiSocket::SetMetaVariables() {
   // REQUEST_METHOD
   meta_variables.push_back(
       "REQUEST_METHOD=" +
-      this->http_request_.GetRequestMessage().request_line.method);
+      this->GetRequestMessage().request_line.method);
   // SCRIPT_NAME
   meta_variables.push_back(
       "SCRIPT_NAME=" +
-      this->http_request_.GetContext().resource_path.server_path);
+      this->GetContext().resource_path.server_path);
   // SERVER_NAME
   meta_variables.push_back(
-      "SERVER_NAME=" + this->http_request_.GetContext().resource_path.uri.path);
+      "SERVER_NAME=" + this->GetContext().resource_path.uri.path);
   // SERVER_PORT
   std::stringstream ss;
   ss << ntohl(this->conn_socket_->GetConf()[0].listen_.sin_port);
@@ -133,7 +133,7 @@ char **CgiSocket::SetMetaVariables() {
 
   // SERVER_PROTOCOL
   enum Http::Version ver =
-      this->http_request_.GetRequestMessage().request_line.version;
+      this->GetRequestMessage().request_line.version;
   std::string version;
   switch (ver) {
   case Http::HTTP09:
@@ -155,14 +155,14 @@ char **CgiSocket::SetMetaVariables() {
   // bodyのサイズをstringに変換して、メタ変数に追加
   ss.str("");
   ss.clear();
-  ss << this->http_request_.GetRequestMessage().body.size();
+  ss << this->GetRequestMessage().body.size();
   meta_variables.push_back("CONTENT_LENGTH=" + ss.str());
   // PATH_INFO
   meta_variables.push_back(
-      "PATH_INFO=" + this->http_request_.GetContext().resource_path.path_info);
+      "PATH_INFO=" + this->GetContext().resource_path.path_info);
   // QUERY_STRING
   std::string query_string =
-      this->http_request_.GetContext().resource_path.uri.query;
+      this->GetContext().resource_path.uri.query;
   // '&'が含まれている場合にのみ環境変数に追加、含まれない場合は"QUERY_STRING="と設定、別の関数でコマンドライン引数とする
   if (query_string.find('&') != std::string::npos) {
     // '%'があったので、%デコードを行い環境変数に設定
@@ -174,25 +174,25 @@ char **CgiSocket::SetMetaVariables() {
   // REMOTE_HOST これは対応しない RFC3875 MAY
   // AUTH_TYPE これは対応しない RFC3875 MAY
   // CONTENT_TYPE
-  if (this->http_request_.GetRequestMessage().header.find("Content-Type") !=
-      this->http_request_.GetRequestMessage().header.end()) {
+  if (this->GetRequestMessage().header.find("Content-Type") !=
+      this->GetRequestMessage().header.end()) {
     meta_variables.push_back(
         "CONTENT_TYPE=" +
-        this->http_request_.GetRequestMessage().header["Content-Type"][0]);
+        this->GetRequestMessage().header["Content-Type"][0]);
   } else {
     meta_variables.push_back("CONTENT_TYPE=");
   }
 
   // PATH_TRANSLATED
-  std::string path = this->http_request_.GetContext().resource_path.server_path;
+  std::string path = this->GetContext().resource_path.server_path;
   path = path.substr(0, path.find_last_of('/'));
-  path += this->http_request_.GetContext().resource_path.path_info;
+  path += this->GetContext().resource_path.path_info;
   meta_variables.push_back("PATH_TRANSLATED=" + path);
   // REMOTE_IDENT これは対応しない RFC3875 MAY
   // REMOTE_USER これは対応しない RFC3875 MAY
   // SCRIPT_FILENAME
   meta_variables.push_back("SCRIPT_FILENAME=" +
-                           this->http_request_.GetContext().server_name);
+                           this->GetContext().server_name);
 
   // TODO: 他のメタ変数はこれから追加
 
@@ -214,10 +214,10 @@ char **CgiSocket::SetArgv() {
 
   // 実行ファイルのパス
   argv.push_back(
-      this->http_request_.GetContext().resource_path.server_path.c_str());
+      this->GetContext().resource_path.server_path.c_str());
 
   std::string query_string =
-      this->http_request_.GetContext().resource_path.uri.query;
+      this->GetContext().resource_path.uri.query;
   // '&'が含まれている場合にのみ環境変数に追加、含まれない場合は"QUERY_STRING="と設定、この関数でコマンドライン引数とする
   if (query_string.find('&') == std::string::npos) {
     // %が無いので、argvに追加

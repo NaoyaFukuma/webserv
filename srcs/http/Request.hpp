@@ -9,17 +9,17 @@
 #include <vector>
 
 struct RequestLine {
-  std::string method;
-  std::string uri;
-  Http::Version version;
+  std::string method; // そのまま
+  std::string uri; // 更新
+  Http::Version version; // そのまま
 };
 
 typedef std::map<std::string, std::vector<std::string> > Header;
 
 struct RequestMessage {
-  RequestLine request_line;
-  Header header;
-  std::string body;
+  RequestLine request_line; // 一部更新
+  Header header; // 更新
+  std::string body; // そのまま
 };
 
 enum ParseStatus {
@@ -31,17 +31,17 @@ enum ParseStatus {
 };
 
 struct ResourcePath {
-  Http::URI uri;
-  std::string server_path;
-  std::string path_info;
+  Http::URI uri; // 更新
+  std::string server_path; // 更新
+  std::string path_info; // 更新
 };
 
 struct Context {
-  Vserver vserver;
-  std::string server_name;
-  Location location;
-  ResourcePath resource_path;
-  bool is_cgi;
+  Vserver vserver; // そのまま
+  std::string server_name; // そのまま
+  Location location; // そのまま
+  ResourcePath resource_path; // 更新
+  bool is_cgi; // 更新
 };
 
 class Request {
@@ -101,6 +101,7 @@ public:
 
   // for unit-test
   void SetMessage(RequestMessage message);
+  void SetContext(Context context); // CGIから使用
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

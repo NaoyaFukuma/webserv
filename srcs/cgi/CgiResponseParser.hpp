@@ -10,7 +10,8 @@ private:
   CgiSocket &cgi_socket_;  // CGIと通信したソケット
   Response http_response_; // http response
   Request http_request_;   // local redirect用
-  bool is_cgi_redirect_;       // local redirect用
+  bool is_local_redirect_;       // local redirect用
+  bool is_cgi_redirect_;         // cgi redirect用
 
   // 各種長さの制限に使う定数
   // ヘッダー１行の最大文字数 8KB = 8 * 1024 = 8192
@@ -38,7 +39,7 @@ private:
   bool IsValidToken(const std::string &token);
 
   // HTTPレスポンスを構築するメソッド郡
-  void SetInternalErrorResponse(ResponseMessage &response_message);
+  void SetInternalErrorResponse();
 
   // utilityメソッド郡
   std::pair<std::string, std::string>
