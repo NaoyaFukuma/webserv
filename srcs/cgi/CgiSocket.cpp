@@ -123,7 +123,7 @@ int CgiSocket::OnWritable(Epoll *epoll) {
   }
   case 1: { // 送信完了
     // EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
-    uint32_t event_mask = EPOLLIN | EPOLLRDHUP | EPOLLET;
+    uint32_t event_mask = EPOLLIN | EPOLLET;
     epoll->Mod(this->GetFd(), event_mask);
     // UNIXドメインソケットの全二重通信の送信側を閉じるこれにより、CGIスクリプト側のread()がEOFを検知することができる
     if (shutdown(this->GetFd(), SHUT_WR) < 0) {
