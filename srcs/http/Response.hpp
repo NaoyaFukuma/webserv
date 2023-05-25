@@ -28,7 +28,8 @@ private:
   std::string body_;
 
   void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
-  void ProcessGET(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessGET(Request &request);
+  void ProcessFile(Request &request, const std::string &path);
 
 public:
   Response();
@@ -38,6 +39,8 @@ public:
 
   std::string GetString();
   ProcessStatus GetProcessStatus() const;
+  std::vector<std::string> GetHeader(const std::string &key);
+  bool HasHeader(const std::string &key) const;
 
   void SetResponseStatus(Http::HttpStatus status);
   void SetVersion(Http::Version version);
