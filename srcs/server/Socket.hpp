@@ -32,6 +32,7 @@ public:
 
   int GetFd() const;
   void SetFd(int fd);
+  ConfVec GetConfig() const;
   bool IsTimeout(const time_t &threshold) const;
   virtual int ProcessSocket(Epoll *epoll, void *data) = 0;
 
