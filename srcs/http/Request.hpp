@@ -50,8 +50,10 @@ private:
     Http::HttpError error_status_;
     int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
     long long body_size_; // bodyの長さを覚えておくための変数
-    static const size_t kMaxHeaderSize = 8192; // 8KB
-    static const size_t kMaxBodySize = 1048576; // 1MB
+    static const size_t kMaxHeaderLineLength = 8192; // 8KB // ヘッダーの1行の最大長さ
+    static const size_t kMaxHeaderSize = 32768; // 32KB // ヘッダー全体の最大長さ
+    static const size_t kMaxBodySize = 1048576; // 1MB // bodyの最大長さ
+    static const size_t kMaxUriLength = 2048;
 
     Context context_; // ResolvePath()で設定される
 // DEBUGがdefineされている場合はpublicにする
