@@ -15,18 +15,17 @@ enum ProcessStatus {
   DONE,
 };
 
-struct ResponseMessage {
+struct ResponseMessage {};
+
+class Response {
+private:
+  ProcessStatus process_status_;
+
   Http::Version version_;
   int status_code_;
   std::string status_message_;
   std::map<std::string, std::string> header_;
   std::string body_;
-};
-
-class Response {
-private:
-  ProcessStatus process_status_;
-  ResponseMessage message_;
 
 public:
   Response();
@@ -36,7 +35,12 @@ public:
 
   std::string GetString();
   ProcessStatus GetProcessStatus() const;
-  void SetResponseMessage(ResponseMessage message);
+
+  void SetResponseStatus(Http::HttpStatus status);
+  void SetVersion(Http::Version version);
+  void SetHeader(std::string key, std::string value);
+  void SetBody(std::string body);
+
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);
 };

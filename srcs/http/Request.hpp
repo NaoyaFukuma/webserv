@@ -48,7 +48,7 @@ class Request {
 private:
   RequestMessage message_;
   ParseStatus parse_status_;
-  Http::HttpError error_status_;
+  Http::HttpStatus http_status_;
   int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
   long long content_length_; // bodyの長さを覚えておくための変数
   static const size_t kMaxHeaderSize = 8192; // 8KB
@@ -85,9 +85,8 @@ public:
 
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
-  Http::HttpError GetErrorStatus() const;
-  void SetError(int status, std::string message);
-  void SetError(int status);
+  Http::HttpStatus GetRequestStatus() const;
+  void SetRequestStatus(Http::HttpStatus status);
 
   void Parse(SocketBuff &buffer_);
   void Clear();
@@ -105,7 +104,5 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);
-
-std::map<int, std::string> init_default_error_message();
 
 #endif

@@ -21,7 +21,7 @@ Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     parse_status_ = rhs.parse_status_;
-    error_status_ = rhs.error_status_;
+    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
   }
   return *this;
@@ -29,19 +29,17 @@ Request &Request::operator=(const Request &rhs) {
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
-Http::HttpError Request::GetErrorStatus() const { return error_status_; }
+Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
+
+void Request::SetRequestStatus(Http::HttpStatus status) {
+  http_status_ = status;
+}
 
 RequestMessage Request::GetRequestMessage() const { return message_; }
 
 Context Request::GetContext() const { return context_; }
 
 Header Request::GetHeaderMap() const { return message_.header; }
-
-// void Request::SetError(int error_status) {
-//   Clear();
-//   error_status_ = error_status;
-//   parse_status_ = ERROR;
-// }
 
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
