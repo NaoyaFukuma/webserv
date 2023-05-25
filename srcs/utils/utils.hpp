@@ -22,13 +22,13 @@ template <typename T> T mul_assert_overflow(T lhs, T rhs);
 
 bool end_with(const std::string &str, const std::string &query);
 
-enum filetype {
+enum FileType {
   FILE_UNKNOWN,
   FILE_REGULAR,
   FILE_DIRECTORY,
   FILE_OTHERS,
 };
 
-filetype get_filetype(const std::string &path);
+FileType get_filetype(const std::string &path);
 
 #endif

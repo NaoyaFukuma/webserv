@@ -119,7 +119,7 @@ bool end_with(const std::string &str, const std::string &query) {
   return false;
 }
 
-filetype get_filetype(const std::string &path) {
+FileType get_filetype(const std::string &path) {
   struct stat s;
 
   if (stat(path.c_str(), &s) == 0) {

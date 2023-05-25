@@ -5,6 +5,7 @@
 #include <sys/epoll.h>
 #include "Epoll.hpp"
 #include "Socket.hpp"
+#include "utils.hpp"
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -26,6 +27,14 @@ Response &Response::operator=(const Response &src) {
 std::string Response::GetString() { return "hoge"; }
 
 ProcessStatus Response::GetProcessStatus() const { return process_status_; }
+
+std::vector<std::string> Response::GetHeader(const std::string &key) {
+  return header_[key];
+}
+
+bool Response::HasHeader(const std::string &key) const {
+  return header_.find(key) != header_.end();
+}
 
 void Response::SetResponseStatus(Http::HttpStatus status) {
   status_code_ = status.status_code;
@@ -112,7 +121,7 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
                              Epoll *epoll) {
   RequestMessage message = request.GetRequestMessage();
   if (message.request_line.method == "GET") {
-    ProcessGET(request, socket, epoll);
+    ProcessGET(request);
   } else if (message.request_line.method == "DELETE") {
     // ProcessDELETE(request, socket, epoll);
   } else {
@@ -123,23 +132,61 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
   process_status_ = DONE;
 }
 
-void Response::ProcessGET(Request &request, ConnSocket *socket, Epoll *epoll) {
+void Response::ProcessGET(Request &request) {
   // 指定されたpathがディレクトリだった場合、index, autoindexを解決する
   // indexの解決: location path + index -> 存在しなければautoindexのチェック
   // autoindexの解決:
-  if (request.GetContext().resource_path is directory) {
-    // processdirectory
-    // indexの解決
-    if (index in location && IsExist(location.path + index)) {
-      ProcessFile(location.path + index);
-    } else if (autoindex in location) {
-      SetBody(autoindex());
+  Context context = request.GetContext();
+  std::string path = context.resource_path.server_path;
+  FileType ftype = get_filetype(path);
+
+  if (ftype == FileType::FILE_DIRECTORY) {
+    if (!context.location.index_.empty() &&
+        get_filetype(path + '/' + context.location.index_) ==
+            FileType::FILE_REGULAR) {
+      ProcessFile(request, path + '/' + context.location.index_);
+    } else if (context.location.autoindex_) {
+      // Todo: autoindex
     } else {
       // 404 Not Found
+      SetResponseStatus(Http::HttpStatus(404));
     }
-  } else if (IsExist(request.GetContext().resource_path) is file) {
-    ProcessFile(request.GetContext().resource_path);
+  } else if (ftype == FileType::FILE_REGULAR) {
+    ProcessFile(request, path);
   } else {
     // 404 Not Found
+    SetResponseStatus(Http::HttpStatus(404));
+  }
+}
+
+void Response::ProcessFile(Request &request, const std::string &path) {
+  // Check If headers.
+  iIfMod = IfModSince(hInfo, sBuf.st_mtime);
+  iIfUnmod = IfUnmodSince(hInfo, sBuf.st_mtime);
+  iIfMatch = IfMatch(hInfo, sBuf.st_mtime);
+  iIfNone = IfNone(hInfo, sBuf.st_mtime);
+  iIfRange = IfRange(hInfo, sBuf.st_mtime);
+  iRangeErr = hInfo->FindRanges(sBuf.st_size);
+
+  // Check to make sure any If headers are FALSE.
+  // Either not-modified or no etags matched.
+  if ((iIfMod == FALSE) || (iIfNone == FALSE)) {
+    sClient->Send("HTTP/1.1 304 Not Modified\r\n");
+    iRsp = 304;
+  }
+  // No matching etags or it's been modified.
+  else if ((iIfMatch == FALSE) || (iIfUnmod == FALSE)) {
+    sClient->Send("HTTP/1.1 412 Precondition Failed\r\n");
+    iRsp = 412;
+  }
+  // Resource matched so send just the bytes requested.
+  else if ((iIfRange == TRUE) && (iRangeErr == 0)) {
+    sClient->Send("HTTP/1.1 206 Partial Content\r\n");
+    iRsp = 206;
+  }
+  // Resource didn't match, so send the entire entity.
+  else {
+    sClient->Send("HTTP/1.1 200 OK\r\n");
+    iRsp = 200;
   }
 }
