@@ -52,7 +52,7 @@ unit-test:
 	(mkdir -p unit-test/build && \
 	cd unit-test/build && \
 	cmake .. && \
-	make 2> /dev/null && \
+	make 2> ./make_error.log && \
 	if [ "$(TEST_CASE)" != "" ]; then \
 		ctest -V -R $(TEST_CASE); \
 	else \

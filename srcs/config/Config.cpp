@@ -70,6 +70,7 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
     os << "  location: \n";
     for (size_t j = 0; j < server_vec[i].locations_.size(); ++j) {
       os << "    locations_[" << j << "]:\n";
+      os << "      path: " << server_vec[i].locations_[j].path_ << '\n';
       os << "      match: " << server_vec[i].locations_[j].match_ << '\n';
       os << "      allow_method: ";
       for (std::set<method_type>::iterator it =
@@ -82,16 +83,14 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
          << server_vec[i].locations_[j].client_max_body_size_ << '\n';
       os << "      root: " << server_vec[i].locations_[j].root_ << '\n';
       os << "      index: ";
-      for (size_t k = 0; k < server_vec[i].locations_[j].index_.size(); ++k) {
-        os << server_vec[i].locations_[j].index_[k] << " ";
-      }
+      os << server_vec[i].locations_[j].index_;
       os << '\n';
-
       os << "      cgi_extention: ";
       for (size_t k = 0; k < server_vec[i].locations_[j].cgi_extensions_.size();
            ++k) {
         os << server_vec[i].locations_[j].cgi_extensions_[k] << " ";
       }
+      os << '\n';
 
       os << "      error_pages: ";
       for (size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
