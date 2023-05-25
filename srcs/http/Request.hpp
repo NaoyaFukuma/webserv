@@ -65,7 +65,7 @@ public:
 
     void ParseHeader(const std::string &line);
 
-    void ParseBody(const std::string &line);
+    void ParseBody(SocketBuff &buffer_);
 
     void SetError(int status, std::string message);
 
@@ -80,9 +80,9 @@ public:
     // 名前が微妙
     bool JudgeBodyType();
 
-    void ParseChunkedBody(const std::string &line);
+    void ParseChunkedBody(SocketBuff &buffer_);
 
-    void ParseContentLengthBody(const std::string &line);
+    void ParseContentLengthBody(SocketBuff &buffer_);
 
     std::string ResolveHost();
 

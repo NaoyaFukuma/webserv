@@ -112,9 +112,11 @@ R"({
   "email": "john.doe@example.com"
 })";
 
+  SocketBuff socket_buff;
+  socket_buff.AddString(REQUEST_BODY);
   BOOST_TEST_MESSAGE(REQUEST_BODY);
   BOOST_CHECK_EQUAL(test.GetContentLength(), 81);
-  test.ParseBody(REQUEST_BODY);
+  test.ParseBody(socket_buff);
   std::cout << "test.GetBody(): " << test.GetBody() << std::endl;
   BOOST_CHECK_EQUAL(test.GetBody(), REQUEST_BODY);
 }
@@ -124,13 +126,16 @@ R"({
 #define REQUEST "POST /api/v1/users HTTP/1.1\r\n" \
                 "Host: www.example.com\r\n" \
                 "Content-Type: application/json\r\n" \
-                "Content-Length: 81\r\n" \
+                "Content-Length: 87\r\n" \
                 "\r\n" \
                 "{\r\n" \
                 "  \"firstName\": \"John\",\r\n" \
                 "  \"lastName\": \"Doe\",\r\n" \
                 "  \"email\": \"john.doe@example.com\"\r\n" \
                 "}\r\n"
+
+#define GREEN "\x1b[32m"
+#define RESET "\x1b[0m"
 
 BOOST_AUTO_TEST_CASE(Genaral) {
   SocketBuff socket_buff;
@@ -146,7 +151,7 @@ BOOST_AUTO_TEST_CASE(Genaral) {
   std::string expected_body = "{\r\n  \"firstName\": \"John\",\r\n  \"lastName\": \"Doe\",\r\n  \"email\": \"john.doe@example.com\"\r\n}\r\n";
   std::vector<std::string> expected_host = boost::assign::list_of("www.example.com");
   std::vector<std::string> expected_content_type = boost::assign::list_of("application/json");
-  std::vector<std::string> expected_content_length = boost::assign::list_of("81");
+  std::vector<std::string> expected_content_length = boost::assign::list_of("87");
 
   // Assertions
   BOOST_CHECK_EQUAL(test.GetRequestMessage().request_line.method, expected_method);

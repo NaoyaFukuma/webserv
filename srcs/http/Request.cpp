@@ -1,7 +1,11 @@
 #include "Request.hpp"
 #include "utils.hpp"
 #include <cerrno>
-#include <stdlib.h>
+#include <cstdlib>
+
+#define GREEN "\x1b[32m"
+#define RESET "\x1b[0m"
+#include <iostream>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -43,8 +47,11 @@ Header Request::GetHeaderMap() const { return message_.header; }
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
-         buffer_.GetUntilCRLF(line)) {
+         parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
+  }
+  if (parse_status_ == BODY) {
+    ParseBody(buffer_);
   }
 }
 
@@ -56,13 +63,12 @@ void Request::ParseLine(const std::string &line) {
     case HEADER:
       ParseHeader(line);
       break;
-    case BODY:
-      ParseBody(line);
-      break;
     case COMPLETE:
       break;
     case ERROR:
       // TODO: ここでエラー処理
+      break;
+    default:
       break;
   }
 }
@@ -102,11 +108,10 @@ void Request::ParseRequestLine(const std::string &line) {
   }
 }
 
-#include <iostream>
-
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
-  if (line == "\r\n") {
+
+  if (IsLineEnd(line, 0)) {
     parse_status_ = BODY;
     return;
   }
@@ -136,30 +141,38 @@ void Request::ParseHeader(const std::string &line) {
   message_.header[key] = header_values;
 }
 
-void Request::ParseBody(const std::string &line) {
+void Request::ParseBody(SocketBuff &buffer_) {
   if (!JudgeBodyType()) {
     // TODO: error処理
     return;
   }
 // chunkedの場合
     if (chunk_status_ > 0) {
-        ParseChunkedBody(line);
+        ParseChunkedBody(buffer_);
     }
         // Content-Lengthの場合
     else {
-        ParseContentLengthBody(line);
+        ParseContentLengthBody(buffer_);
     }
 }
 
-void Request::ParseChunkedBody(const std::string &line) {
-  (void )line;
+void Request::ParseChunkedBody(SocketBuff &buffer_) {
+  (void )buffer_;
 }
 
-void Request::ParseContentLengthBody(const std::string &line) {
-  if (line.size() <= kMaxBodySize) {
-    message_.body += line;
-  } else {
-    message_.body += line.substr(0, kMaxBodySize);
+// 型変えたほうが綺麗そう
+void Request::ParseContentLengthBody(SocketBuff &buffer_) {
+  // buffer_の内容をとってくる
+  std::string buffer = buffer_.GetString();
+  if (body_size_ > 0) {
+    // content-lengthまでに長さを制限
+    size_t read_size = static_cast<long long >(buffer.size()) > body_size_ ? body_size_ : buffer.size();
+    // 長さ分だけ追加
+    message_.body.append(buffer, 0, read_size);
+    body_size_ -= static_cast<long long>(read_size);
+  }
+  if (body_size_ < 0) {
+    parse_status_ = COMPLETE;
   }
 }
 
