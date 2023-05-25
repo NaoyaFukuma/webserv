@@ -5,6 +5,7 @@
 
 #define GREEN "\x1b[32m"
 #define RESET "\x1b[0m"
+
 #include <iostream>
 
 Request::Request() {
@@ -147,17 +148,50 @@ void Request::ParseBody(SocketBuff &buffer_) {
     return;
   }
 // chunkedの場合
-    if (chunk_status_ > 0) {
-        ParseChunkedBody(buffer_);
-    }
-        // Content-Lengthの場合
-    else {
-        ParseContentLengthBody(buffer_);
-    }
+  if (chunk_status_ > 0) {
+    ParseChunkedBody(buffer_);
+  }
+    // Content-Lengthの場合
+  else {
+    ParseContentLengthBody(buffer_);
+  }
 }
 
 void Request::ParseChunkedBody(SocketBuff &buffer_) {
-  (void )buffer_;
+  while (chunk_status_) {
+    std::string str_chunk_size;
+    if (!buffer_.GetUntilCRLF(str_chunk_size)) {
+      // TODO: BAD_REQUEST
+      std::cerr << "BAD_REQUEST" << std::endl;
+    }
+    if (str_chunk_size == "0") {
+      chunk_status_ = -1;
+      parse_status_ = COMPLETE;
+      break;
+    }
+    // chunk-sizeを取得
+    // ";"があったらその前の数字だけをchunk_sizeにする // オプションのチャンク拡張を追加することができます->無視
+    std::string::size_type pos = str_chunk_size.find(';');
+    if (pos != std::string::npos) {
+      str_chunk_size = str_chunk_size.substr(0, pos);
+    }
+    // chunk-sizeを16進数から10進数に変換
+    errno = 0;
+    unsigned long long chunk_size = std::strtoull(str_chunk_size.c_str(), NULL, 16);
+    // TODO: あとボディのサイズ超えてたりしたらエラーにする
+    if (errno == ERANGE) {
+      // TODO: BAD_REQUEST
+      std::cerr << "BAD_REQUEST" << std::endl;
+        return;
+    }
+    // chunk-size分だけbodyに追加
+    std::string data;
+    if (!buffer_.GetUntilCRLF(data) || data.size() != chunk_size) {
+      // TODO: BAD_REQUEST
+      std::cerr << "BAD_REQUEST" << std::endl;
+    }
+    message_.body.append(data);
+  }
 }
 
 // 型変えたほうが綺麗そう

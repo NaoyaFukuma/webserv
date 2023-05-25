@@ -121,6 +121,25 @@ R"({
   BOOST_CHECK_EQUAL(test.GetBody(), REQUEST_BODY);
 }
 
+BOOST_AUTO_TEST_CASE(ParseChunkedBodyTest)
+{
+  // Setup
+  SocketBuff buffer_;
+  std::string data = "3\r\n123\r\n0\r\n\r\n";
+  buffer_.AddString(data);
+
+  Request request;
+  request.SetParseStatus(BODY);
+  request.JudgeBodyType();
+
+  // Call the function to test
+  request.ParseChunkedBody(buffer_);
+
+  // Check
+  BOOST_CHECK_EQUAL(request.GetBody(), "123");
+  BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
+}
+
 #include <boost/assign/list_of.hpp>
 
 #define REQUEST "POST /api/v1/users HTTP/1.1\r\n" \
@@ -137,7 +156,7 @@ R"({
 #define GREEN "\x1b[32m"
 #define RESET "\x1b[0m"
 
-BOOST_AUTO_TEST_CASE(Genaral) {
+BOOST_AUTO_TEST_CASE(Genaral1) {
   SocketBuff socket_buff;
   Request test;
 
@@ -173,4 +192,32 @@ BOOST_AUTO_TEST_CASE(Genaral) {
                                     expected_content_length.end());
     }
   }
+}
+
+BOOST_AUTO_TEST_CASE(General2)
+{
+  std::string raw_request =
+          "POST /path/script.cgi HTTP/1.1\r\n"
+          "Host: localhost\r\n"
+          "Transfer-Encoding: chunked\r\n"
+          "\r\n"
+          "4\r\n"
+          "data\r\n"
+          "8\r\n"
+          "datadata\r\n"
+          "12\r\n"
+          "abcdefghijkl\r\n"
+          "0\r\n"
+          "\r\n";
+
+  SocketBuff socket_buffer;
+  socket_buffer.AddString(raw_request);
+
+  Request request;
+  request.Parse(socket_buffer);
+
+  BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
+  BOOST_CHECK_EQUAL(request.GetChunkStatus(), -1);
+  std::cout << "request.GetBody(): " << request.GetBody() << std::endl;
+  BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "datadatadataabcdefghijkl");
 }
