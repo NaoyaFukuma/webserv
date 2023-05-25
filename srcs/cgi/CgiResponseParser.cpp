@@ -24,6 +24,9 @@ CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket)
     : cgi_socket_(cgi_socket) {
 }
 
+CgiResponseParser::~CgiResponseParser() {
+}
+
 // recv_buffer_内のCGIレスポンスからResponseを構築する
 void CgiResponseParser::ParseCgiResponse() {
   size_t header_len = 0; // ヘッダーの総合計長 maxは32KB
