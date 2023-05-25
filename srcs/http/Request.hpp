@@ -74,9 +74,9 @@ public:
     bool JudgeBodyType();
     void ParseChunkedBody(SocketBuff &buffer_);
     void ParseContentLengthBody(SocketBuff &buffer_);
-  
+
     std::string ResolveHost();
-    void ResolveVserver(const Config &config, const std::string &host);
+    void ResolveVserver(const ConfVec &vservers, const std::string &host);
     void ResolveLocation();
     void ResolveResourcePath();
     bool ExistCgiFile(const std::string &path,
@@ -87,13 +87,13 @@ public:
     ~Request();
     Request(const Request &src);
     Request &operator=(const Request &rhs);
-  
+
     RequestMessage GetRequestMessage() const;
     ParseStatus GetParseStatus() const;
     Http::HttpError GetErrorStatus() const;
     void Parse(SocketBuff &buffer_);
     void Clear();
-    void ResolvePath(const Config &config);
+    void ResolvePath(const ConfVec &vservers);
     Context GetContext() const;
     Header GetHeaderMap() const;
     std::string GetWord(const std::string &line, std::string::size_type &pos);
