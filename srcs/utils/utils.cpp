@@ -118,3 +118,23 @@ bool end_with(const std::string &str, const std::string &query) {
   }
   return false;
 }
+
+filetype get_filetype(const std::string &path) {
+  struct stat s;
+
+  if (stat(path.c_str(), &s) == 0) {
+    if (s.st_mode & S_IFDIR) {
+      // it's a directory
+      return FILE_DIRECTORY;
+    } else if (s.st_mode & S_IFREG) {
+      // it's a file
+      return FILE_REGULAR;
+    } else {
+      // something else
+      return FILE_OTHERS;
+    }
+  } else {
+    // error or unknown
+    return FILE_UNKNOWN;
+  }
+}
