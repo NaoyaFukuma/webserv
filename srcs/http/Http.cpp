@@ -143,7 +143,7 @@ Http::HttpStatus::HttpStatus(int status_code)
 const std::map<int, std::string> Http::HttpStatus::kDefaultStatusMessage =
     init_default_error_message();
 
-std::map<int, std::string> init_default_error_message() {
+std::map<int, std::string> Http::init_default_error_message() {
   std::map<int, std::string> m;
   m[100] = "Continue";
   m[101] = "Switching Protocols";
