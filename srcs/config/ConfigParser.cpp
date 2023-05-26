@@ -315,6 +315,16 @@ void ConfigParser::AssertServer(Vserver &server) {
       return;
     }
   }
+  // location path に重複が無いことを保証する
+  std::set<std::string> location_path_set;
+  for (std::vector<Location>::size_type i = 0; i < server.locations_.size();
+       i++) {
+    if (location_path_set.find(server.locations_[i].path_) !=
+        location_path_set.end()) {
+      throw ParserException(ERR_MSG, "location path is duplicated");
+    }
+    location_path_set.insert(server.locations_[i].path_);
+  }
   // for文を抜けてきた場合、/ がないのでエラー
   throw ParserException(ERR_MSG, "location / is not set");
 }
