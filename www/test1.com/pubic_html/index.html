@@ -42,19 +42,56 @@
     <main>
         <h2>About Webserv</h2>
         <p>
-            Webserv is an HTTP server program built on top of the C++ programming language. With a focus on performance
-            and reliability, <strong>Webserv</strong> provides an efficient and robust solution for serving web content.
+            Webserv is an HTTP server program built on top of the C++ programming language. This project is a part of the curriculum at 42Tokyo, an educational institution focused on programming and computer science. With a focus on performance and reliability, <strong>Webserv</strong> provides an efficient and robust solution for serving web content.
         </p>
+        <h2>Technical Details</h2>
+        <p>
+            Webserv is a single-process, single-thread HTTP server that employs the concept of event-driven programming, thereby ensuring efficient I/O multiplexing. The server uses the <strong>epoll</strong> system call provided by the Linux kernel, which is known for handling large numbers of concurrent connections with low CPU overhead. This I/O event notification mechanism allows Webserv to serve multiple requests concurrently within a single thread.
+        </p>
+        <p>
+            In order to maintain the scalability and robustness of the server, the design and implementation take advantage of object-oriented programming (OOP) in C++. Specifically, communication sockets with HTTP clients, communication sockets with CGI scripts, and passive sockets are all encapsulated as separate class entities. This encapsulation provides a clean and modular interface for socket operations.
+        </p>
+        <p>
+            Polymorphism, a fundamental feature of OOP, is employed to standardize the interfaces of these classes. By treating different socket objects polymorphically, we can manage them using a unified interface. This design approach enables efficient integration with the epoll system call and thereby takes full advantage of C++.
+        </p>
+        <p>
+            For the execution of CGI scripts, Webserv utilizes UNIX domain sockets, which allow inter-process communication (IPC) on the same host. This approach enables secure data exchange between the server process and CGI script process.
+        </p>
+
         <h2>Features</h2>
         <p>
-            Our server supports a variety of features, including but not limited to, the handling of GET and POST
-            requests, CGI scripts, automatic redirection, multithreading, and more.
+            <strong>Webserv</strong> is a high-performance HTTP server built on C++. It employs epoll, a scalable I/O event notification mechanism, to provide efficient I/O multiplexing. Our server handles multiple concurrent connections using a single-threaded, event-driven model.
         </p>
-        <h2>Installation</h2>
         <p>
-            To compile the project, clone the repository and run the 'make' command. The server executable will be
-            generated and ready to use.
+            It supports the execution of CGI scripts using UNIX domain sockets, ensuring secure inter-process communication on the same host. Moreover, it supports the handling of GET and POST requests, as well as automatic redirection.
         </p>
+        <p>
+            The server adopts an object-oriented design, encapsulating the communication sockets with HTTP clients, CGI scripts, and passive sockets as separate classes. By employing polymorphism, we offer a unified interface for socket operations, enhancing modularity and scalability.
+        </p>
+        <h2>Additional Resources</h2>
+        <p>
+            For further technical understanding, you can refer to the following external links:
+            <ul>
+                <li><a href="URI_to_be_inserted_later">Epoll Explanation</a></li>
+                <li><a href="URI_to_be_inserted_later">Socket Communication Explanation</a></li>
+                <li><a href="URI_to_be_inserted_later">I/O Multiplexing Explanation</a></li>
+                <li><a href="URI_to_be_inserted_later">HTTP Protocol Explanation</a></li>
+                <li><a href="URI_to_be_inserted_later">CGI Explanation</a></li>
+            </ul>
+        </p>
+        <h2>Webserv Specifications</h2>
+        <p>
+            To understand more about webserv's operational specifications, refer to the following links:
+            <ul>
+                <li><a href="URI_to_be_inserted_later">Configuration File Specifications and Syntax Rules</a></li>
+                <li><a href="URI_to_be_inserted_later">Docker Launch</a></li>
+                <li><a href="URI_to_be_inserted_later">Testing with Browser</a></li>
+                <li><a href="URI_to_be_inserted_later">Testing with Curl</a></li>
+                <li><a href="URI_to_be_inserted_later">External Function</a></li>
+            </ul>
+        </p>
+
+
     </main>
 </body>
 
