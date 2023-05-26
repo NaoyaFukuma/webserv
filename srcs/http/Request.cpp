@@ -117,14 +117,6 @@ void Request::ParseRequestLine(const std::string &line) {
 
 // void Request::Clear() { *this = Request(); }
 
-bool Request::ValidateHeaderSize(const std::string &data) {
-  if (data.size() > kMaxHeaderLineLength || \
-      total_header_size_ + data.size() > kMaxHeaderSize) {
-    return false;
-  }
-  return true;
-}
-
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
 
@@ -326,6 +318,15 @@ bool Request::ValidateRequestSize(Header &header, size_t max_size) {
   if (total_header_size_ > max_size) {
     return false;
   }
+  return true;
+}
+
+bool Request::ValidateHeaderSize(const std::string &data) {
+  if (data.size() > kMaxHeaderLineLength || \
+      total_header_size_ + data.size() > kMaxHeaderSize) {
+    return false;
+  }
+  total_header_size_ += data.size();
   return true;
 }
 
