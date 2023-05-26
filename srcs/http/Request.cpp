@@ -64,6 +64,10 @@ void Request::ParseLine(const std::string &line) {
 }
 
 bool Request::AssertRequestLine(const std::string &line) {
+  if (line.empty() || line.size() > kMaxRequestLineLength) {
+    return false;
+  }
+
   // スペースのチェック
   int space_count = std::count(line.begin(), line.end(), ' ');
   if (space_count != 1 && space_count != 2) {

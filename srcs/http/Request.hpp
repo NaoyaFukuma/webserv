@@ -56,6 +56,7 @@ private:
     static const size_t kMaxHeaderSize = 32768; // 32KB // ヘッダー全体の最大長さ
     static const size_t kMaxBodySize = 1048576; // 1MB // bodyの最大長さ
     static const size_t kMaxUriLength = 2048;
+    static const size_t kMaxRequestLineLength = 8192; // 8KB // リクエストラインの最大長さ
 
     Context context_; // ResolvePath()で設定される
 
