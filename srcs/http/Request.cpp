@@ -142,17 +142,42 @@ void Request::ParseHeader(const std::string &line) {
   // key が正しい文字列がエラー処理?
 
   std::vector<std::string> header_values;
-  // pos+1以降の文字列を','や' 'ごとに分割
+  // pos+1以降の文字列を','ごとに分割してスペースを取り除く
   // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
-  while (pos < line.size()) {
-    if (IsLineEnd(line, pos)) {
-      break;
-    }
-    pos = MovePos(line, pos, " \t");
-    header_values.push_back(GetWord(line, pos));
-  }
+  SplitHeaderValues(header_values, line.substr(pos));
+//  while (pos < line.size()) {
+//    if (IsLineEnd(line, pos)) {
+//      break;
+//    }
+//    pos = MovePos(line, pos, " \t");
+//    header_values.push_back(GetWord(line, pos));
+//  }
   // Headerのkeyとvalueを格納
   message_.header[key] = header_values;
+}
+
+void Request::SplitHeaderValues(std::vector<std::string> &splited, const std::string &line) {
+  // ','でまずはトークンに分解
+  ws_split(splited, line, ',');
+  // トークンごとに前後のスペースを削除
+  std::vector<std::string>::iterator it = splited.begin();
+  while (it != splited.end()) {
+    // 前後のスペース全てを削除
+    Trim(*it, " \t");
+    it++;
+  }
+}
+
+void Request::Trim(std::string &str, const std::string &delim) {
+  // 前後のスペース全てを削除
+  std::string::size_type pos = str.find_first_not_of(delim);
+  if (pos != std::string::npos) {
+    str.erase(0, pos);
+  }
+  pos = str.find_last_not_of(delim);
+  if (pos != std::string::npos) {
+    str.erase(pos + 1);
+  }
 }
 
 void Request::ParseBody(SocketBuff &buffer_) {
@@ -235,6 +260,7 @@ bool Request::JudgeBodyType() {
     // values を全部探索
     for (std::vector<std::string>::const_iterator it = values.begin();
          it != values.end(); ++it) {
+  std::cout << "~~~~~~~~~~~~~~~~~~~~~~" <<  *it <<  "~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
       if (*it == "chunked") {
         // この変数ってchunkかのフラグではない？
         chunk_status_ = true;
