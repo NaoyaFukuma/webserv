@@ -260,7 +260,6 @@ bool Request::JudgeBodyType() {
     // values を全部探索
     for (std::vector<std::string>::const_iterator it = values.begin();
          it != values.end(); ++it) {
-  std::cout << "~~~~~~~~~~~~~~~~~~~~~~" <<  *it <<  "~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
       if (*it == "chunked") {
         // この変数ってchunkかのフラグではない？
         chunk_status_ = true;
