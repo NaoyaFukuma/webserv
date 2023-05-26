@@ -24,5 +24,6 @@ enum FileType {
 };
 
 FileType get_filetype(const std::string &path);
+std::string get_date();
 
 #endif
