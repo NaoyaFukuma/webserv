@@ -163,12 +163,12 @@ char **CgiSocket::SetMetaVariables() {
   // QUERY_STRING
   std::string query_string =
       this->GetContext().resource_path.uri.query;
-  // '&'が含まれている場合にのみ環境変数に追加、含まれない場合は"QUERY_STRING="と設定、別の関数でコマンドライン引数とする
-  if (query_string.find('&') != std::string::npos) {
-    // '%'があったので、%デコードを行い環境変数に設定
+  // '='が含まれていれば環境変数。含まれていなければコマンドライン引数にする。
+  if (query_string.find('=') != std::string::npos) {
+    // '='があったので、%デコードを行い環境変数に設定
     query_string = Http::DeHexify(query_string);
     meta_variables.push_back("QUERY_STRING=" + query_string);
-  } else { // '&'が含まれていないので、"QUERY_STRING="と設定
+  } else { // '='が含まれていないので、"QUERY_STRING="と設定
     meta_variables.push_back("QUERY_STRING=");
   }
   // REMOTE_HOST これは対応しない RFC3875 MAY
@@ -218,9 +218,8 @@ char **CgiSocket::SetArgv() {
 
   std::string query_string =
       this->GetContext().resource_path.uri.query;
-  // '&'が含まれている場合にのみ環境変数に追加、含まれない場合は"QUERY_STRING="と設定、この関数でコマンドライン引数とする
-  if (query_string.find('&') == std::string::npos) {
-    // %が無いので、argvに追加
+  // '='が含まれていれば環境変数。含まれていなければコマンドライン引数にする。
+  if (query_string.find('=') == std::string::npos) {
     // '+'をdemiliterとしてsubstr()し、%デコードを施しargvにpush_back
     std::string delimiter = "+";
     size_t pos = 0;
