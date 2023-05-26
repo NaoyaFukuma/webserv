@@ -80,7 +80,9 @@ private:
   pid_t pid_;               // CGIスクリプト実行用のプロセスID
   ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
   CgiRequest cgi_request_;  // HTTPリクエストから抜粋した
-                            //CGIスクリプトに渡すリクエスト情報
+                            // CGIスクリプトに渡すリクエスト情報
+  bool fin_http_response_;  // HTTPクライアントへのレスポンスを生成したか
+                            // 生成せずにCGIスクリプトが終了した場合に500エラーを返す
 
 // ----------------  in CgiSocket.cpp  ------------------
 public:

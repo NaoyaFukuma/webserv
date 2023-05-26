@@ -29,9 +29,10 @@
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
 CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
-    : ASocket(conn_socket->GetConfVec()), conn_socket_(conn_socket) {
+    : ASocket(conn_socket->GetConfVec()), conn_socket_(conn_socket),
+      fin_http_response_(false) {
   this->send_buffer_.AddString(http_request.GetRequestMessage().body);
-  this->cgi_request_.context_ =  http_request.GetContext();
+  this->cgi_request_.context_ = http_request.GetContext();
   this->cgi_request_.message_ = http_request.GetRequestMessage();
 };
 
@@ -68,38 +69,41 @@ int CgiSocket::OnReadable(Epoll *epoll) {
   // this->last_event_.in_time = time(NULL); //
   // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
 
-   // 0 ならCGIレスポンスを受信しバッファにためて、あえてまだParseはしない。
-   // -1 はfinパケットを受信したことを意味し、Parseに入る
+  // 0 ならCGIレスポンスを受信しバッファにためて、あえてまだParseはしない。
+  // -1 はfinパケットを受信したことを意味し、Parseに入る
   if (recv_result == 0) {
     return SUCCESS;
   } else {
-   // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、
-   // HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
+    // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、
+    // HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
     CgiResponseParser cgi_res_parser(*this);
     cgi_res_parser.ParseCgiResponse();
 
-    if (cgi_res_parser.IsRedirectCgi()) { // CGIがローカルリダイレクトでさらにCGIスクリプトを実行
+    if (cgi_res_parser.IsRedirectCgi()) { // ローカルリダイレクト先がさらにCGIスクリプト
       Request new_http_request = cgi_res_parser.GetHttpRequestForCgi();
-      CgiSocket *new_cgi_socket = new CgiSocket(this->conn_socket_, new_http_request);
+      CgiSocket *new_cgi_socket =
+          new CgiSocket(this->conn_socket_, new_http_request);
 
       ASocket *cgi_socket = new_cgi_socket->CreatCgiProcess();
       if (cgi_socket == NULL) {
         delete new_cgi_socket;
         // 500 Internal Server Errorをhttp responseに追加する
-
       }
       uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
       epoll->Add(new_cgi_socket, event_mask);
+      this->fin_http_response_ = true; // http_responseを作成していないが、リダイレクト先で作成するのでtrue
     } else { // http responseを作成できる
       this->conn_socket_->PushResponse(cgi_res_parser.GetHttpResponse());
-      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
+      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
       epoll->Add(this->conn_socket_, event_mask);
+      this->fin_http_response_ = true;
+      // http_response作成完了。trueにしておかないと500 Internal Server Errorを追加
     }
   }
-    return FAILURE;
-    // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
-    // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
-    // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
+  return FAILURE;
+  // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
+  // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
+  // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
 }
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
@@ -157,22 +161,63 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
     // Internal Server Errorを返す
     std::cerr << "Keep Running Error: EPOLLERR or EPOLLHUP" << std::endl;
 
-    // TODO: HTTP 500 Internal Server Error を、クライアントのresponse_
-    // dequeに追加する
-
+    // HTTP 500 Internal Server Error を、クライアントのresponse_dequeに追加する
+    if (!this->fin_http_response_) {
+      // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
+      // Internal Server Errorを追加する
+      Response http_response;
+      http_response.SetStatusCode(500);
+      http_response.SetReasonPhrase("Internal Server Error");
+      http_response.SetVersion("HTTP/1.1");
+      http_response.SetHeader("Content-Length",
+                              std::vector<std::string>(1, "0"));
+      http_response.SetHeader("Connection",
+                              std::vector<std::string>(1, "close"));
+      this->conn_socket_->PushResponse(http_response);
+      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+      epoll->Add(this->conn_socket_, event_mask);
+    }
     return FAILURE;
   }
   if (event_mask & EPOLLIN) {
     // 受信(Todo: OnReadable(0))
-    std::cout << fd_ << ": EPOLLIN" << std::endl;
     if (OnReadable(epoll) == FAILURE) {
+      if (!this->fin_http_response_) {
+        // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
+        // Internal Server Errorを追加する
+        Response http_response;
+        http_response.SetStatusCode(500);
+        http_response.SetReasonPhrase("Internal Server Error");
+        http_response.SetVersion("HTTP/1.1");
+        http_response.SetHeader("Content-Length",
+                                std::vector<std::string>(1, "0"));
+        http_response.SetHeader("Connection",
+                                std::vector<std::string>(1, "close"));
+        this->conn_socket_->PushResponse(http_response);
+        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+        epoll->Add(this->conn_socket_, event_mask);
+      }
       return FAILURE;
     }
   }
   if (event_mask & EPOLLOUT) {
     // send_buffer_からの送信。HTTPリクエストにエンティティボディが無い場合はsend_buffer_には何も入っていない。ただし、一度send()のステップを踏んで、送信完了と合流する
-    std::cout << fd_ << ": EPOLLOUT" << std::endl;
     if (OnWritable(epoll) == FAILURE) {
+      if (!this->fin_http_response_) {
+        // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
+        // Internal Server Errorを追加する
+        Response http_response;
+        http_response.SetStatusCode(500);
+        http_response.SetReasonPhrase("Internal Server Error");
+        http_response.SetVersion("HTTP/1.1");
+        http_response.SetHeader("Content-Length",
+                                std::vector<std::string>(1, "0"));
+        http_response.SetHeader("Connection",
+                                std::vector<std::string>(1, "close"));
+        this->conn_socket_->PushResponse(http_response);
+        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+        epoll->Add(this->conn_socket_, event_mask);
+      }
       return FAILURE;
     }
   }
@@ -181,4 +226,6 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
 
 Context &CgiSocket::GetContext() { return this->cgi_request_.context_; }
 
-RequestMessage &CgiSocket::GetRequestMessage() { return this->cgi_request_.message_; }
+RequestMessage &CgiSocket::GetRequestMessage() {
+  return this->cgi_request_.message_;
+}
