@@ -1,4 +1,6 @@
 #include "utils.hpp"
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -137,4 +139,11 @@ FileType get_filetype(const std::string &path) {
     // error or unknown
     return FILE_UNKNOWN;
   }
+}
+
+std::string get_date() {
+  std::time_t now = std::time(nullptr);
+  std::stringstream ss;
+  ss << std::put_time(std::gmtime(&now), "%a, %d %b %Y %T GMT");
+  return ss.str();
 }

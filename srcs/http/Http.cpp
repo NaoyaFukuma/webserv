@@ -1,5 +1,18 @@
 #include "Http.hpp"
 
+std::string Http::VersionToString(Version version) {
+  switch (version) {
+  case HTTP09:
+    return "HTTP/0.9";
+  case HTTP10:
+    return "HTTP/1.0";
+  case HTTP11:
+    return "HTTP/1.1";
+  default:
+    return "";
+  }
+}
+
 bool Http::SplitURI(URI &dst, const std::string &src) {
   std::size_t scheme_pos = src.find("://");
   if (scheme_pos != std::string::npos) {

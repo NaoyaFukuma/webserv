@@ -26,7 +26,22 @@ Response &Response::operator=(const Response &src) {
   return *this;
 }
 
-std::string Response::GetString() { return "hoge"; }
+std::string Response::GetString() {
+  std::string ret;
+  ret += Http::VersionToString(version_) + " " + std::to_string(status_code_) +
+         " " + status_message_ + "\r\n";
+  // Todo: vector形式のvalueの扱い方について調べる
+  ret += "Date: " + get_date() + "\r\n";
+  for (Header::iterator ith = header_.begin(); ith != header_.end(); ++ith) {
+    for (std::vector<std::string>::iterator itv = ith->second.begin();
+         itv != ith->second.end(); ++itv) {
+      ret += ith->first + ": " + *itv + "\r\n";
+    }
+  }
+  ret += "\r\n";
+  ret += body_;
+  return ret;
+}
 
 ProcessStatus Response::GetProcessStatus() const { return process_status_; }
 
