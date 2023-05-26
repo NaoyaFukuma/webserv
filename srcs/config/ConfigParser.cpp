@@ -132,9 +132,7 @@ void ConfigParser::ParseLocation(Vserver &server) {
   while (!this->IsEof() && *it_ != '}') {
     this->SkipSpaces();
     std::string token = GetWord();
-    if (token == "match") {
-      ParseMatch(location);
-    } else if (token == "allow_method") {
+    if (token == "allow_method") {
       ParseAllowMethod(location);
     } else if (token == "client_max_body_size") {
       ParseClientMaxBodySize(location);
@@ -158,14 +156,6 @@ void ConfigParser::ParseLocation(Vserver &server) {
   this->Expect('}');
   AssertLocation(location);
   server.locations_.push_back(location);
-}
-
-void ConfigParser::ParseMatch(Location &location) {
-  this->SkipSpaces(true);
-  std::string match_str = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
-  AssertMatch(location.match_, match_str);
 }
 
 void ConfigParser::ParseAllowMethod(Location &location) {
@@ -388,24 +378,9 @@ void ConfigParser::AssertLocation(const Location &location) {
   if (!this->IsValidPath(location.path_)) {
     throw ParserException(ERR_MSG, "location path is invalid");
   }
-  if (location.match_ == PREFIX &&
-      location.path_[location.path_.size() - 1] != '/') {
-    throw ParserException(ERR_MSG, "location path is not end with /");
-  }
   // root ディレクティブが無いとエラー
   if (location.root_.empty()) {
     throw ParserException(ERR_MSG, "root is not set");
-  }
-}
-
-void ConfigParser::AssertMatch(match_type &dest_match,
-                               const std::string &match_str) {
-  if (match_str == "prefix") {
-    dest_match = PREFIX;
-  } else if (match_str == "suffix") {
-    dest_match = SUFFIX;
-  } else {
-    throw ParserException(ERR_MSG, (match_str + " is Invalid match").c_str());
   }
 }
 
