@@ -122,10 +122,10 @@ char **CgiSocket::SetMetaVariables() {
   // SCRIPT_NAME
   meta_variables.push_back(
       "SCRIPT_NAME=" +
-      this->GetContext().resource_path.server_path);
+      this->GetContext().resource_path.uri.path);
   // SERVER_NAME
   meta_variables.push_back(
-      "SERVER_NAME=" + this->GetContext().resource_path.uri.path);
+      "SERVER_NAME=" + this->GetContext().server_name);
   // SERVER_PORT
   std::stringstream ss;
   ss << ntohl(this->conn_socket_->GetConfVec()[0].listen_.sin_port);
@@ -184,15 +184,22 @@ char **CgiSocket::SetMetaVariables() {
   }
 
   // PATH_TRANSLATED
-  std::string path = this->GetContext().resource_path.server_path;
-  path = path.substr(0, path.find_last_of('/'));
-  path += this->GetContext().resource_path.path_info;
-  meta_variables.push_back("PATH_TRANSLATED=" + path);
+  std::string root = this->GetContext().resource_path.root;
+  std::stirng path_info = this->GetContext().resource_path.path_info;
+  // rootの末尾とpath_infoの先頭の'/'の双方を確認し、一つだけ'/'を付与する
+  if (root[root.size() - 1] == '/' && path_info[0] == '/') {
+    path_info = path_info.substr(1);
+  } else if (root[root.size() - 1] != '/' && path_info[0] != '/') {
+    root += '/';
+  } else {
+    // どちらかが'/'であるので、何もしない
+  }
+  meta_variables.push_back("PATH_TRANSLATED=" + root + path_info);
   // REMOTE_IDENT これは対応しない RFC3875 MAY
   // REMOTE_USER これは対応しない RFC3875 MAY
   // SCRIPT_FILENAME
   meta_variables.push_back("SCRIPT_FILENAME=" +
-                           this->GetContext().server_name);
+                           this->GetContext().resource_path.server_path);
 
   // TODO: 他のメタ変数はこれから追加
 
