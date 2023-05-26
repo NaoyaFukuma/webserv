@@ -1,7 +1,47 @@
 #include "utils.hpp"
 #include <iostream>
+#include <map>
 #include <sstream>
+#include <sys/stat.h>
 #include <vector>
+
+// partial_pathがcgi_extensionで終わり、かつregular
+// fileであれば、cgiとして実行する
+bool ws_exist_cgi_file(const std::string &path, const std::string &extension) {
+  struct stat path_stat;
+  stat(path.c_str(), &path_stat);
+  return (extension == "." || end_with(path, extension)) &&
+         S_ISREG(path_stat.st_mode);
+}
+
+// ファイル名からMIMEタイプを取得する関数
+std::string ws_get_mime_type(const std::string &filename) {
+  static std::map<std::string, std::string> extensionToMime;
+  if (extensionToMime.empty()) {
+    extensionToMime[".html"] = "text/html";
+    extensionToMime[".css"] = "text/css";
+    extensionToMime[".js"] = "application/javascript";
+    extensionToMime[".jpg"] = "image/jpeg";
+    extensionToMime[".jpeg"] = "image/jpeg";
+    extensionToMime[".png"] = "image/png";
+    extensionToMime[".gif"] = "image/gif";
+    // 他の拡張子とMIMEタイプの対応もここに追加
+  }
+
+  std::string::size_type dotPos = filename.rfind('.');
+  if (dotPos != std::string::npos) {
+    std::string extension = filename.substr(dotPos);
+    if (extensionToMime.count(extension) > 0) {
+      return extensionToMime[extension];
+    } else {
+      // 拡張子が対応表にない場合、適当なデフォルト値を返すか、エラーを返すなど
+      return "application/octet-stream"; // 一例として、バイナリデータのMIMEタイプを返す
+    }
+  } else {
+    // ファイル名に拡張子がない場合、適当なデフォルト値を返すか、エラーを返すなど
+    return "application/octet-stream"; // 一例として、バイナリデータのMIMEタイプを返す
+  }
+}
 
 ssize_t ws_split(std::vector<std::string> &dst, const std::string &src,
                  const char delim) {
@@ -77,4 +117,24 @@ bool end_with(const std::string &str, const std::string &query) {
     return true;
   }
   return false;
+}
+
+filetype get_filetype(const std::string &path) {
+  struct stat s;
+
+  if (stat(path.c_str(), &s) == 0) {
+    if (s.st_mode & S_IFDIR) {
+      // it's a directory
+      return FILE_DIRECTORY;
+    } else if (s.st_mode & S_IFREG) {
+      // it's a file
+      return FILE_REGULAR;
+    } else {
+      // something else
+      return FILE_OTHERS;
+    }
+  } else {
+    // error or unknown
+    return FILE_UNKNOWN;
+  }
 }

@@ -19,6 +19,7 @@ struct LastEventTime {
 
 // ------------------------------------------------------------------
 // 継承用のクラス
+//    -> ConnScoket, ListenSocket, CgiSocketの３つのクラスへ継承する
 
 class ASocket {
 protected:
@@ -30,6 +31,7 @@ public:
   ASocket(ConfVec config);
   virtual ~ASocket();
 
+  ConfVec GetConfVec() const;
   int GetFd() const;
   void SetFd(int fd);
   bool IsTimeout(const time_t &threshold) const;
@@ -50,6 +52,7 @@ private:
   bool rdhup_; // RDHUPが発生したかどうか
   std::deque<Request> requests_;
   std::deque<Response> responses_;
+  std::pair<std::string, std::string> ip_port_;
 
 public:
   ConnSocket(ConfVec config);
@@ -59,11 +62,15 @@ public:
   int OnWritable(Epoll *epoll);
   int ProcessSocket(Epoll *epoll, void *data);
   void AddResponse(const Response &response);
+  void SetIpPort(const struct sockaddr_in &addr);
+  void PushResponse(Response response);
+  std::pair<std::string, std::string> GetIpPort() const;
 
 private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
   ConnSocket &operator=(const ConnSocket &rhs);
 };
+
 
 // ------------------------------------------------------------------
 // listen用のソケット
