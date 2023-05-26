@@ -21,19 +21,22 @@ enum Version {
   HTTP11,
 };
 
-struct HttpError {
+struct HttpStatus {
   int status_code;
   std::string message;
 
 private:
-  const static std::map<int, std::string> kDefaultErrorMessage;
+  const static std::map<int, std::string> kDefaultStatusMessage;
 
 public:
-  HttpError() : status_code(-1), message("") {}
-
-  HttpError(int status_code, std::string message)
-      : status_code(status_code), message(message) {}
+  HttpStatus();
+  HttpStatus(int status_code, std::string message);
+  // Todo: messageはkDefaultErrorMessageから取得するようにする
+  // Todo: HTTPErrorの時のheaderやbodyはどうなるかを調査する
+  HttpStatus(int status_code);
 };
+
+std::map<int, std::string> init_default_error_message();
 
 bool SplitURI(URI &dst, const std::string &src);
 std::string DeHexify(std::string uri);

@@ -21,7 +21,7 @@ Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     parse_status_ = rhs.parse_status_;
-    error_status_ = rhs.error_status_;
+    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
   }
   return *this;
@@ -29,17 +29,17 @@ Request &Request::operator=(const Request &rhs) {
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
-Http::HttpError Request::GetErrorStatus() const { return error_status_; }
+Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
+
+void Request::SetRequestStatus(Http::HttpStatus status) {
+  http_status_ = status;
+}
+
+RequestMessage Request::GetRequestMessage() const { return message_; }
 
 Context Request::GetContext() const { return context_; }
 
 Header Request::GetHeaderMap() const { return message_.header; }
-
-// void Request::SetError(int error_status) {
-//   Clear();
-//   error_status_ = error_status;
-//   parse_status_ = ERROR;
-// }
 
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
@@ -343,7 +343,7 @@ void Request::ResolveResourcePath() {
          its++) {
       if (*its == '/') {
         std::string partial_path = concat.substr(0, its - concat.begin());
-        if (ExistCgiFile(partial_path, cgi_extension)) {
+        if (ws_exist_cgi_file(partial_path, cgi_extension)) {
           context_.resource_path.server_path =
               concat.substr(0, its - concat.begin());
           context_.resource_path.path_info =
@@ -356,7 +356,7 @@ void Request::ResolveResourcePath() {
     // concatが/で終わらない場合、追加でチェックが必要
     // concatは '/'を含むので、size() > 0が保証されている
     if (concat[concat.size() - 1] != '/' &&
-        ExistCgiFile(concat, cgi_extension)) {
+        ws_exist_cgi_file(concat, cgi_extension)) {
       context_.resource_path.server_path = concat;
       context_.is_cgi = true;
       return;
@@ -369,15 +369,7 @@ void Request::ResolveResourcePath() {
   return;
 }
 
-// partial_pathがcgi_extensionで終わり、かつregular
-// fileであれば、cgiとして実行する
-bool Request::ExistCgiFile(const std::string &path,
-                           const std::string &extension) const {
-  struct stat path_stat;
-  stat(path.c_str(), &path_stat);
-  return (extension == "." || end_with(path, extension)) &&
-         S_ISREG(path_stat.st_mode);
-}
-
 // for unit-test
 void Request::SetMessage(RequestMessage message) { message_ = message; }
+void Request::SetContext(Context context) { context_ = context; }
+

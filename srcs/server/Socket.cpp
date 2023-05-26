@@ -26,6 +26,8 @@ ASocket::~ASocket() {
   }
 }
 
+ConfVec ASocket::GetConfVec() const { return config_; }
+
 int ASocket::GetFd() const { return fd_; }
 
 void ASocket::SetFd(int fd) { fd_ = fd; }
@@ -174,6 +176,32 @@ int ConnSocket::ProcessSocket(Epoll *epoll, void *data) {
   return SUCCESS;
 }
 
+void ConnSocket::SetIpPort(const struct sockaddr_in &addr) {
+  std::ostringstream oss;
+
+  // ipアドレスをntohl()を使用してネットワークバイトオーダからホストバイトオーダに変換
+  oss << ((ntohl(addr.sin_addr.s_addr) >> 24) & 0xff) << "."
+      << ((ntohl(addr.sin_addr.s_addr) >> 16) & 0xff) << "."
+      << ((ntohl(addr.sin_addr.s_addr) >> 8) & 0xff) << "."
+      << (ntohl(addr.sin_addr.s_addr) & 0xff);
+
+  // ip_port_ のfirstにIPアドレス、secondにポート番号を格納
+  ip_port_.first = oss.str();
+
+  // 続いて、port番号を文字列にしてip_port_のsecondに格納
+  oss.str(""); // 一旦リセット
+  oss << ntohs(addr.sin_port);
+  ip_port_.second = oss.str();
+}
+
+void ConnSocket::PushResponse(Response response) {
+  responses_.push_back(response);
+}
+
+std::pair<std::string, std::string> ConnSocket::GetIpPort() const {
+  return ip_port_;
+}
+
 // ------------------------------------------------------------------
 // listen用のソケット
 
@@ -208,12 +236,18 @@ void ListenSocket::Passive() {
 ConnSocket *ListenSocket::Accept() {
   ConnSocket *conn_socket = new ConnSocket(config_);
 
-  int fd = accept(fd_, NULL, NULL);
+  struct sockaddr_in sockaddr_in_instance;
+  socklen_t len = sizeof(sockaddr_in_instance);
+  int fd = accept(
+      fd_, reinterpret_cast<struct sockaddr *>(&sockaddr_in_instance), &len);
+
   if (fd < 0) {
     std::cerr << "Keep Running Error: accept" << std::endl;
     delete conn_socket;
     return NULL;
   }
+  conn_socket->SetIpPort(sockaddr_in_instance);
+
   int yes = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
     delete conn_socket;
