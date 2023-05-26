@@ -26,7 +26,7 @@
 
 BOOST_AUTO_TEST_CASE(ParseHeader) {
   Request test;
-  test.ParseHeader("Header:          \t Value1,Value2,Value3");
+  test.ParseHeader("Header:          \t Value1  ,, \tValue2 ,\t\t\tValue3    ");
 
   Header header_map = test.GetHeaderMap();
   std::cout << "header_map.size(): " << header_map.size() << std::endl;
@@ -34,13 +34,15 @@ BOOST_AUTO_TEST_CASE(ParseHeader) {
 
   std::vector<std::string> values = header_map.at("Header");
   std::cout << "values.size(): " << values.size() << std::endl;
-  BOOST_REQUIRE(values.size() == 3);  // Ensure there are 3 values.
+  BOOST_REQUIRE(values.size() == 4);  // Ensure there are 3 values.
   std::cout << "value[0]: " << values[0] << std::endl;
   BOOST_CHECK_EQUAL(values[0], "Value1");  // Check each value.
   std::cout << "value[1]: " << values[1] << std::endl;
-  BOOST_CHECK_EQUAL(values[1], "Value2");
+  BOOST_CHECK_EQUAL(values[1], "");
   std::cout << "value[2]: " << values[2] << std::endl;
-  BOOST_CHECK_EQUAL(values[2], "Value3");
+  BOOST_CHECK_EQUAL(values[2], "Value2");
+  std::cout << "value[3]: " << values[3] << std::endl;
+  BOOST_CHECK_EQUAL(values[3], "Value3");
 }
 
 BOOST_AUTO_TEST_CASE(Status) {
@@ -75,7 +77,7 @@ BOOST_AUTO_TEST_CASE(BodyType) {
 
     test.SetParseStatus(HEADER);
     BOOST_CHECK_EQUAL(test.GetChunkStatus(), -1);
-    test.ParseHeader("Transfer-Encoding: chunked\r\n");
+    test.ParseHeader("Transfer-Encoding: chunked");
     if (!test.JudgeBodyType()) {
       BOOST_FAIL("1: JudgeBodyType failed");
     }
@@ -86,7 +88,7 @@ BOOST_AUTO_TEST_CASE(BodyType) {
     const static long long CONTENT_LENGTH = 100;
 
     test.SetParseStatus(HEADER);
-    test.ParseHeader("Content-Length: 100\r\n");
+    test.ParseHeader("Content-Length: 100");
     if (!test.JudgeBodyType()) {
       BOOST_FAIL("2: JudgeBodyType failed");
     }
@@ -220,4 +222,9 @@ BOOST_AUTO_TEST_CASE(General2)
   BOOST_CHECK_EQUAL(request.GetChunkStatus(), -1);
   std::cout << "request.GetBody(): " << request.GetBody() << std::endl;
   BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "datadatadataabcdefghijkl");
+}
+
+BOOST_AUTO_TEST_CASE(UtilsTest) {
+  // SplitHeaderValuesをテスト
+
 }
