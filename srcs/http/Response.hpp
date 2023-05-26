@@ -27,6 +27,14 @@ private:
   Header header_;
   std::string body_;
 
+  // 各種長さの制限に使う定数
+  // ヘッダー１行の最大文字数 8KB = 8 * 1024 = 8192
+  static const int kMaxHeaderLineLength = 8192;
+  // ヘッダー全体の最大文字数 32KB = 32 * 1024 = 32768
+  static const int kMaxHeaderLength = 32768;
+  // ボディの最大文字数 1MB = 1024 * 1024 = 1048576
+  static const int kMaxBodyLength = 1048576;
+
   void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessGET(Request &request);
   void ProcessFile(Request &request, const std::string &path);
