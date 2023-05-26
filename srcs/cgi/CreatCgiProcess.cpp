@@ -184,8 +184,8 @@ char **CgiSocket::SetMetaVariables() {
   }
 
   // PATH_TRANSLATED
-  std::string root = this->GetContext().resource_path.root;
-  std::stirng path_info = this->GetContext().resource_path.path_info;
+  std::string root = this->GetContext().location.root_;
+  std::string path_info = this->GetContext().resource_path.path_info;
   // rootの末尾とpath_infoの先頭の'/'の双方を確認し、一つだけ'/'を付与する
   if (root[root.size() - 1] == '/' && path_info[0] == '/') {
     path_info = path_info.substr(1);
