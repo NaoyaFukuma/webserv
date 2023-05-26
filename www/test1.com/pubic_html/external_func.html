@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webserv - External functs</title>
+    <style>
+        body {
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            padding: 20px 0;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        a:hover {
+            color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Webserv - External functs</h1>
+      <ul>
+        <li><a href="http://man7.org/linux/man-pages/man2/execve.2.html">execve</a>: Execute program</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/dup.2.html">dup</a>: Duplicate a file descriptor</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/dup2.2.html">dup2</a>: Duplicate a file descriptor to a desired value</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/pipe.2.html">pipe</a>: Create pipe</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/strerror.3.html">strerror</a>: Return string describing error number</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/gai_strerror.3.html">gai_strerror</a>: Returns an error message for getaddrinfo</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/errno.3.html">errno</a>: Number of last error</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/fork.2.html">fork</a>: Create a child process</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/htons.3.html">htons</a>: Convert host byte order to network byte order (short)</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/htonl.3.html">htonl</a>: Convert host byte order to network byte order (long)</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/ntohs.3.html">ntohs</a>: Convert network byte order to host byte order (short)</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/ntohl.3.html">ntohl</a>: Convert network byte order to host byte order (long)</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/select.2.html">select</a>: Synchronous I/O multiplexing</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/poll.2.html">poll</a>: Wait for some event on a file descriptor</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/epoll_create.2.html">epoll_create</a>: Creates an epoll instance</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/epoll_ctl.2.html">epoll_ctl</a>: Control interface for an epoll descriptor</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/epoll_wait.2.html">epoll_wait</a>: Wait for an I/O event on an epoll file descriptor</li>
+        <li><a href="https://www.freebsd.org/cgi/man.cgi?query=kqueue&sektion=2">kqueue</a>: Provides a generic method of notifying the user when an event happens or a condition holds</li>
+        <li><a href="https://www.freebsd.org/cgi/man.cgi?query=kevent&sektion=2">kevent</a>: Kernel event structure</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/socket.2.html">socket</a>: Create an endpoint for communication</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/accept.2.html">accept</a>: Accept a connection on a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/listen.2.html">listen</a>: Listen for connections on a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/send.2.html">send</a>: Send a message on a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/recv.2.html">recv</a>: Receive a message from a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/bind.2.html">bind</a>: Bind a name to a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/connect.2.html">connect</a>: Initiate a connection on a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/getaddrinfo.3.html">getaddrinfo</a>: Network address and service translation</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/freeaddrinfo.3.html">freeaddrinfo</a>: Free addrinfo structure</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/setsockopt.2.html">setsockopt</a>: Set options on a socket</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/getsockname.2.html">getsockname</a>: Get socket name</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/getprotobyname.3.html">getprotobyname</a>: Get protocol number by name</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/fcntl.2.html">fcntl</a>: File control</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/close.2.html">close</a>: Close a file descriptor</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/read.2.html">read</a>: Read from a file descriptor</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/write.2.html">write</a>: Write to a file descriptor</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/waitpid.2.html">waitpid</a>: Wait for process to change state</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/kill.2.html">kill</a>: Send signal to a process</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/signal.2.html">signal</a>: ANSI C signal handling</li>
+        <li><a href="http://man7.org/linux/man-pages/man2/access.2.html">access</a>: Check user's permissions for a file</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/opendir.3.html">opendir</a>: Open a directory</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/readdir.3.html">readdir</a>: Read a directory</li>
+        <li><a href="http://man7.org/linux/man-pages/man3/closedir.3.html">closedir</a>: Close a directory</li>
+    </ul>
+</body>
+</html>
