@@ -48,7 +48,7 @@ class Request {
 private:
     RequestMessage message_;
     ParseStatus parse_status_;
-    Http::HttpError error_status_;
+//    Http::HttpError error_status_;
     int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
     size_t total_header_size_; // ヘッダーの長さを覚えておくための変数
     long long body_size_; // bodyの長さを覚えておくための変数
@@ -93,7 +93,7 @@ public:
 
     RequestMessage GetRequestMessage() const;
     ParseStatus GetParseStatus() const;
-    Http::HttpError GetErrorStatus() const;
+//    Http::HttpError GetErrorStatus() const;
     void Parse(SocketBuff &buffer_);
     void Clear();
     void ResolvePath(const ConfVec &vservers);

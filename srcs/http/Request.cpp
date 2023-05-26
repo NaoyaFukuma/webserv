@@ -4,9 +4,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <deque>
-#include <iostream>
-#include <stdlib.h>
-#include <sys/stat.h>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -25,7 +22,7 @@ Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     parse_status_ = rhs.parse_status_;
-    http_status_ = rhs.http_status_;
+//    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
   }
   return *this;
@@ -35,13 +32,7 @@ RequestMessage Request::GetRequestMessage() const { return message_; }
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
-Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
-
-void Request::SetRequestStatus(Http::HttpStatus status) {
-  http_status_ = status;
-}
-
-RequestMessage Request::GetRequestMessage() const { return message_; }
+//Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
 
 Context Request::GetContext() const { return context_; }
 
