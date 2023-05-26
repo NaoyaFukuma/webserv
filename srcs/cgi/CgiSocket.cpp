@@ -166,8 +166,7 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
       // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
       // Internal Server Errorを追加する
       Response http_response;
-      http_response.SetStatusCode(500);
-      http_response.SetReasonPhrase("Internal Server Error");
+      http_response.SetStatusCode(500)
       http_response.SetVersion("HTTP/1.1");
       http_response.SetHeader("Content-Length",
                               std::vector<std::string>(1, "0"));
@@ -187,7 +186,6 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
         // Internal Server Errorを追加する
         Response http_response;
         http_response.SetStatusCode(500);
-        http_response.SetReasonPhrase("Internal Server Error");
         http_response.SetVersion("HTTP/1.1");
         http_response.SetHeader("Content-Length",
                                 std::vector<std::string>(1, "0"));
@@ -208,7 +206,6 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
         // Internal Server Errorを追加する
         Response http_response;
         http_response.SetStatusCode(500);
-        http_response.SetReasonPhrase("Internal Server Error");
         http_response.SetVersion("HTTP/1.1");
         http_response.SetHeader("Content-Length",
                                 std::vector<std::string>(1, "0"));
