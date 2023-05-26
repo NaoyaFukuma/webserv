@@ -12,6 +12,8 @@ Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
   body_size_ = -1;
+  total_header_size_ = 0;
+  body_size_ = 0;
 }
 
 Request::~Request() {}
@@ -115,11 +117,24 @@ void Request::ParseRequestLine(const std::string &line) {
 
 // void Request::Clear() { *this = Request(); }
 
+bool Request::ValidateHeaderSize(const std::string &data) {
+  if (data.size() > kMaxHeaderLineLength || \
+      total_header_size_ + data.size() > kMaxHeaderSize) {
+    return false;
+  }
+  return true;
+}
+
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
 
   if (IsLineEnd(line, 0)) {
     parse_status_ = BODY;
+    return;
+  }
+
+  if (!ValidateHeaderSize(line)) {
+    // TODO: エラー処理
     return;
   }
 
@@ -295,6 +310,21 @@ bool Request::IsLineEnd(const std::string &line, std::string::size_type start) {
       return false;
     }
     start++;
+  }
+  return true;
+}
+
+bool Request::ValidateRequestSize(std::string &data, size_t max_size) {
+  if (data.size() > max_size) {
+    return false;
+  }
+  return true;
+}
+
+bool Request::ValidateRequestSize(Header &header, size_t max_size) {
+  (void)header;
+  if (total_header_size_ > max_size) {
+    return false;
   }
   return true;
 }

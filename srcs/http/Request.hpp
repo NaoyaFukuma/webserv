@@ -50,6 +50,7 @@ private:
     ParseStatus parse_status_;
     Http::HttpError error_status_;
     int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+    size_t total_header_size_; // ヘッダーの長さを覚えておくための変数
     long long body_size_; // bodyの長さを覚えておくための変数
     static const size_t kMaxHeaderLineLength = 8192; // 8KB // ヘッダーの1行の最大長さ
     static const size_t kMaxHeaderSize = 32768; // 32KB // ヘッダー全体の最大長さ
@@ -97,6 +98,9 @@ public:
     Context GetContext() const;
     Header GetHeaderMap() const;
     std::string GetWord(const std::string &line, std::string::size_type &pos);
+    bool ValidateRequestSize(std::string &data, size_t max_size);
+    bool ValidateRequestSize(Header &header, size_t max_size);
+    bool ValidateHeaderSize(const std::string &data);
 
     // for test
     void SetParseStatus(ParseStatus status) { parse_status_ = status; }
