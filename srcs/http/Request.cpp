@@ -10,7 +10,6 @@ Request::Request() {
   chunk_status_ = -1;
   body_size_ = -1;
   total_header_size_ = 0;
-  body_size_ = 0;
 }
 
 Request::~Request() {}
@@ -206,7 +205,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     }
     // chunk-sizeを16進数から10進数に変換
     errno = 0;
-    unsigned long long chunk_size = std::strtoull(str_chunk_size.c_str(), NULL, 16);
+    long chunk_size = std::strtol(str_chunk_size.c_str(), NULL, 16);
     // TODO: あとボディのサイズ超えてたりしたらエラーにする
     if (errno == ERANGE) {
       // TODO: BAD_REQUEST
