@@ -6,6 +6,8 @@
 #include "Epoll.hpp"
 #include "Socket.hpp"
 #include "utils.hpp"
+#include <fstream>
+#include <vector>
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -160,33 +162,61 @@ void Response::ProcessGET(Request &request) {
 }
 
 void Response::ProcessFile(Request &request, const std::string &path) {
-  // Check If headers.
-  iIfMod = IfModSince(hInfo, sBuf.st_mtime);
-  iIfUnmod = IfUnmodSince(hInfo, sBuf.st_mtime);
-  iIfMatch = IfMatch(hInfo, sBuf.st_mtime);
-  iIfNone = IfNone(hInfo, sBuf.st_mtime);
-  iIfRange = IfRange(hInfo, sBuf.st_mtime);
-  iRangeErr = hInfo->FindRanges(sBuf.st_size);
+  std::ifstream ifs(path, std::ios::binary);
+  if (!ifs) {
+    // 500 Internal Server Error
+    SetResponseStatus(Http::HttpStatus(500));
+    return;
+  }
+  // sizeを取得
+  size_t body_size = ifs.seekg(0, std::ios::end).tellg();
+  // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
+  if (body_size > kMaxBodyLength) {
+    // 500 Internal Server Error
+    SetResponseStatus(Http::HttpStatus(500));
+    return;
+  }
+  std::string body;
+  body.resize(body_size);
+  ifs.seekg(0, std::ios::beg).read(&body[0], body.size());
+  SetBody(body);
+  SetResponseStatus(200);
+  // content-typeを設定
+  // SetHeader("Content-Type",
+  //           std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
 
-  // Check to make sure any If headers are FALSE.
-  // Either not-modified or no etags matched.
-  if ((iIfMod == FALSE) || (iIfNone == FALSE)) {
-    sClient->Send("HTTP/1.1 304 Not Modified\r\n");
-    iRsp = 304;
-  }
-  // No matching etags or it's been modified.
-  else if ((iIfMatch == FALSE) || (iIfUnmod == FALSE)) {
-    sClient->Send("HTTP/1.1 412 Precondition Failed\r\n");
-    iRsp = 412;
-  }
-  // Resource matched so send just the bytes requested.
-  else if ((iIfRange == TRUE) && (iRangeErr == 0)) {
-    sClient->Send("HTTP/1.1 206 Partial Content\r\n");
-    iRsp = 206;
-  }
-  // Resource didn't match, so send the entire entity.
-  else {
-    sClient->Send("HTTP/1.1 200 OK\r\n");
-    iRsp = 200;
-  }
+  // content-lengthを設定
+  std::stringstream ss;
+  ss << body_size;
+  SetHeader("Content-Length", ss.str());
+
+  // // Check If headers.
+  // iIfMod = IfModSince(hInfo, sBuf.st_mtime);
+  // iIfUnmod = IfUnmodSince(hInfo, sBuf.st_mtime);
+  // iIfMatch = IfMatch(hInfo, sBuf.st_mtime);
+  // iIfNone = IfNone(hInfo, sBuf.st_mtime);
+  // iIfRange = IfRange(hInfo, sBuf.st_mtime);
+  // iRangeErr = hInfo->FindRanges(sBuf.st_size);
+
+  // // Check to make sure any If headers are FALSE.
+  // // Either not-modified or no etags matched.
+  // if ((iIfMod == FALSE) || (iIfNone == FALSE)) {
+  //   sClient->Send("HTTP/1.1 304 Not Modified\r\n");
+  //   iRsp = 304;
+  // }
+  // // No matching etags or it's been modified.
+  // else if ((iIfMatch == FALSE) || (iIfUnmod == FALSE)) {
+  //   sClient->Send("HTTP/1.1 412 Precondition Failed\r\n");
+  //   iRsp = 412;
+  // }
+  // // Resource matched so send just the bytes requested.
+  // else if ((iIfRange == TRUE) && (iRangeErr == 0)) {
+  //   sClient->Send("HTTP/1.1 206 Partial Content\r\n");
+  //   iRsp = 206;
+  // }
+  // // Resource didn't match, so send the entire entity.
+  // else {
+  //   sClient->Send("HTTP/1.1 200 OK\r\n");
+  //   iRsp = 200;
+  // }
 }
