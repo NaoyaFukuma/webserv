@@ -18,7 +18,6 @@ webservで用いる設定ファイルについての解説。
        - [timeout_directive](#timeout_directive)
        - [location_directive](#location_directive)
          - [directive_in_location](#directive_in_location)
-           - [match](#match)
            - [allow_method_directive](#allow_method_directive)
            - [client_max_body_size_directive](#client_max_body_size_directive)
            - [root_directive](#root_directive)
@@ -93,8 +92,7 @@ serverへルーティングしたあと、locationへルーティングできな
 - 項目:
   ```
   directive_in_location:
-    match_directive
-    | allow_method_directive
+    allow_method_directive
     | client_max_body_size_directive
     | root_directive
     | index_directive
@@ -104,14 +102,6 @@ serverへルーティングしたあと、locationへルーティングできな
     | return_directive;
   ```
 - 概要: `location`ブロック内の設定要素を表します。
-
-### match_directive
-- Required: false
-- Multiple: false
-- Syntax: `match_directive: 'match' ('prefix' | 'suffix') END_DIRECTIVE;`
-- 概要: パスのマッチング方法を指定します。`prefix`は接頭辞マッチング、`suffix`は接尾辞マッチングです。
-注）複数指定された場合、エラーとして扱わず、最後に現れた項目の値を採用します。
-指定がない場合、prefixをデフォルト設定として採用。
 
 ### allow_method_directive
 - Required: false

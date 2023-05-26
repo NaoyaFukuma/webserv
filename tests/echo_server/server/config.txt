@@ -3,7 +3,6 @@ server {
   server_name localhost;
 
   location / {
-    match back;
     allow_method GET;
     max_body_size 1M;
 
@@ -19,7 +18,6 @@ server {
   }
 
   location /upload {
-    match prefix;
     allow_method GET POST DELETE;
 
     max_body_size 1M;
@@ -39,7 +37,6 @@ server {
   }
 
   location .php {
-    match back;
     is_cgi on;
     root /home/nginx/cgi_bins;
   }
