@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <deque>
+#include <algorithm>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -40,7 +41,7 @@ Header Request::GetHeaderMap() const { return message_.header; }
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
-         parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
+      parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
   if (parse_status_ == BODY) {
@@ -50,45 +51,75 @@ void Request::Parse(SocketBuff &buffer_) {
 
 void Request::ParseLine(const std::string &line) {
   switch (parse_status_) {
-    case INIT:
-      ParseRequestLine(line);
+    case INIT:ParseRequestLine(line);
       break;
-    case HEADER:
-      ParseHeader(line);
+    case HEADER:ParseHeader(line);
       break;
-    case COMPLETE:
-      break;
+    case COMPLETE:break;
     case ERROR:
       // TODO: ここでエラー処理
       break;
-    default:
-      break;
+    default:break;
   }
+}
+
+bool Request::AssertRequestLine(const std::string &line) {
+  // スペースのチェック
+  int space_count = std::count(line.begin(), line.end(), ' ');
+  if (space_count != 1 && space_count != 2) {
+    return false;
+  }
+
+  // メソッドのチェック
+  std::string::size_type first_space = line.find(' ');
+  if (first_space == std::string::npos) {
+    return false;
+  }
+  std::string method = line.substr(0, first_space);
+  if (method != "GET" && method != "POST" && method != "DELETE") {
+    return false;
+  }
+
+  // HTTPのバージョンのチェック (HTTP/0.9の場合は存在しない)
+  if (space_count == 2) {
+    std::string::size_type last_space = line.rfind(' ');
+    if (last_space == std::string::npos || last_space == first_space) {
+      return false;
+    }
+    std::string version = line.substr(last_space + 1);
+    if (version != "HTTP/1.0" && version != "HTTP/1.1") {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void Request::ParseRequestLine(const std::string &line) {
   std::vector<std::string> splited;
-  SplitRequestLine(splited, line);
+  // フォーマットのチェック
+  // TODO: uri
+  AssertRequestLine(line);
+  ws_split(splited, line, ' ');
+
   // TODO: リクエストが有効かどうかのチェック足す
   // HTTP0.9
+  message_.request_line.method = splited[0];
+  message_.request_line.uri = splited[1];
   if (splited.size() == 2) {
-    message_.request_line.method = splited[0];
     //     if (IsValidMethod(message_.request_line.method) == false) {
     ////       SetError(400);
     //       return;
     //     }
-    message_.request_line.uri = splited[1];
     message_.request_line.version = Http::HTTP09;
     parse_status_ = COMPLETE;
   }
-  // HTTP1.0~
+    // HTTP1.0~
   else {
-    message_.request_line.method = splited[0];
     //     if (IsValidMethod(message_.request_line.method) == false) {
     ////       SetError(400);
     //       return;
     //     }
-    message_.request_line.uri = splited[1];
     if (splited[2] == "HTTP/1.0") {
       message_.request_line.version = Http::HTTP10;
     } else if (splited[2] == "HTTP/1.1") {
@@ -329,7 +360,7 @@ bool Request::ValidateRequestSize(std::string &data, size_t max_size) {
 }
 
 bool Request::ValidateRequestSize(Header &header, size_t max_size) {
-  (void)header;
+  (void) header;
   if (total_header_size_ > max_size) {
     return false;
   }
@@ -389,7 +420,7 @@ void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
     for (ConfVec::const_iterator itv = vservers.begin(); itv != vservers.end();
          itv++) {
       for (std::vector<std::string>::const_iterator its =
-               itv->server_names_.begin();
+          itv->server_names_.begin();
            its != itv->server_names_.end(); its++) {
         if (*its == host) {
           context_.vserver = *itv;
@@ -451,7 +482,7 @@ void Request::ResolveResourcePath() {
 
   // cgi_extensionsがある場合
   for (std::vector<std::string>::iterator ite =
-           context_.location.cgi_extensions_.begin();
+      context_.location.cgi_extensions_.begin();
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 

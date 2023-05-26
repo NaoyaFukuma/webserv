@@ -169,7 +169,8 @@ BOOST_AUTO_TEST_CASE(Genaral1) {
   std::string expected_method = "POST";
   std::string expected_uri = "/api/v1/users";
   Http::Version expected_version = Http::HTTP11;
-  std::string expected_body = "{\r\n  \"firstName\": \"John\",\r\n  \"lastName\": \"Doe\",\r\n  \"email\": \"john.doe@example.com\"\r\n}\r\n";
+  std::string expected_body =
+      "{\r\n  \"firstName\": \"John\",\r\n  \"lastName\": \"Doe\",\r\n  \"email\": \"john.doe@example.com\"\r\n}\r\n";
   std::vector<std::string> expected_host = boost::assign::list_of("www.example.com");
   std::vector<std::string> expected_content_type = boost::assign::list_of("application/json");
   std::vector<std::string> expected_content_length = boost::assign::list_of("87");
@@ -199,18 +200,18 @@ BOOST_AUTO_TEST_CASE(Genaral1) {
 BOOST_AUTO_TEST_CASE(General2)
 {
   std::string raw_request =
-          "POST /path/script.cgi HTTP/1.1\r\n"
-          "Host: localhost\r\n"
-          "Transfer-Encoding: chunked\r\n"
-          "\r\n"
-          "4\r\n"
-          "data\r\n"
-          "8\r\n"
-          "datadata\r\n"
-          "12\r\n"
-          "abcdefghijkl\r\n"
-          "0\r\n"
-          "\r\n";
+      "POST /path/script.cgi HTTP/1.1\r\n"
+      "Host: localhost\r\n"
+      "Transfer-Encoding: chunked\r\n"
+      "\r\n"
+      "4\r\n"
+      "data\r\n"
+      "8\r\n"
+      "datadata\r\n"
+      "12\r\n"
+      "abcdefghijkl\r\n"
+      "0\r\n"
+      "\r\n";
 
   SocketBuff socket_buffer;
   socket_buffer.AddString(raw_request);
@@ -225,6 +226,18 @@ BOOST_AUTO_TEST_CASE(General2)
 }
 
 BOOST_AUTO_TEST_CASE(UtilsTest) {
-  // SplitHeaderValuesをテスト
+  Request req;
+  /* 正常 */
+  BOOST_CHECK(req.AssertRequestLine("GET /index.html HTTP/1.1"));
 
+  BOOST_CHECK(req.AssertRequestLine("POST /index.html HTTP/1.0"));
+
+  /* 無効なメソッド */
+  BOOST_CHECK(!req.AssertRequestLine("GE /index.html"));
+
+  /* スペースの数 */
+  BOOST_CHECK(!req.AssertRequestLine("DELETE     /index.html HTTP/1.1"));
+
+  /* 無効なHTTPのバージョン */
+  BOOST_CHECK(!req.AssertRequestLine("DELETE /index.html HTTP/1.100"));
 }

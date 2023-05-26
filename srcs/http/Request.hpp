@@ -116,6 +116,9 @@ public:
     void SetMessage(RequestMessage message);
     void SetContext(Context context);
 
+    /* 移動させます */
+    bool AssertRequestLine(const std::string &line);
+
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);
