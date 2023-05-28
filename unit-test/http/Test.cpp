@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(Status) {
     Request test;
 
     test.SetParseStatus(HEADER);
-    test.ParseHeader("\r\n");
+    test.ParseHeader("");
     ParseStatus parse_status = test.GetParseStatus();
     BOOST_CHECK_EQUAL(parse_status, BODY);
   }

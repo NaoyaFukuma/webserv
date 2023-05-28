@@ -63,42 +63,6 @@ void Request::ParseLine(const std::string &line) {
   }
 }
 
-bool Request::AssertRequestLine(const std::string &line) {
-  if (line.empty() || line.size() > kMaxRequestLineLength) {
-    return false;
-  }
-
-  // スペースのチェック
-  int space_count = std::count(line.begin(), line.end(), ' ');
-  if (space_count != 1 && space_count != 2) {
-    return false;
-  }
-
-  // メソッドのチェック
-  std::string::size_type first_space = line.find(' ');
-  if (first_space == std::string::npos) {
-    return false;
-  }
-  std::string method = line.substr(0, first_space);
-  if (method != "GET" && method != "POST" && method != "DELETE") {
-    return false;
-  }
-
-  // HTTPのバージョンのチェック (HTTP/0.9の場合は存在しない)
-  if (space_count == 2) {
-    std::string::size_type last_space = line.rfind(' ');
-    if (last_space == std::string::npos || last_space == first_space) {
-      return false;
-    }
-    std::string version = line.substr(last_space + 1);
-    if (version != "HTTP/1.0" && version != "HTTP/1.1") {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 void Request::ParseRequestLine(const std::string &line) {
   std::vector<std::string> splited;
   // フォーマットのチェック
@@ -145,39 +109,30 @@ void Request::ParseRequestLine(const std::string &line) {
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
 
-  if (IsLineEnd(line, 0)) {
+  if (line.empty()) {
     parse_status_ = BODY;
     return;
   }
 
   if (!ValidateHeaderSize(line)) {
-    // TODO: エラー処理
+    parse_status_ = ERROR;
     return;
   }
 
   std::string::size_type pos = line.find(':');
+  // ':'がない
   if (pos == std::string::npos) {
-    // TODO: エラー処理
-    // ':'がない
+    parse_status_ = ERROR;
     return;
   }
   // ':'の前後で分割
   std::string key = line.substr(0, pos);
   pos++;
-  // key が正しい文字列がエラー処理?
 
   std::vector<std::string> header_values;
   // pos+1以降の文字列を','ごとに分割してスペースを取り除く
   // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
   SplitHeaderValues(header_values, line.substr(pos));
-//  while (pos < line.size()) {
-//    if (IsLineEnd(line, pos)) {
-//      break;
-//    }
-//    pos = MovePos(line, pos, " \t");
-//    header_values.push_back(GetWord(line, pos));
-//  }
-  // Headerのkeyとvalueを格納
   message_.header[key] = header_values;
 }
 
@@ -243,15 +198,13 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     long chunk_size = std::strtol(str_chunk_size.c_str(), NULL, 16);
     // TODO: あとボディのサイズ超えてたりしたらエラーにする
     if (errno == ERANGE) {
-      // TODO: BAD_REQUEST
-      std::cerr << "BAD_REQUEST" << std::endl;
+      parse_status_ = ERROR;
       return;
     }
     // chunk-size分だけbodyに追加
     std::string data;
     if (!buffer_.GetUntilCRLF(data) || data.size() != chunk_size) {
-      // TODO: BAD_REQUEST
-      std::cerr << "BAD_REQUEST" << std::endl;
+      parse_status_ = ERROR;
     }
     message_.body.append(data);
   }
@@ -377,6 +330,42 @@ bool Request::ValidateHeaderSize(const std::string &data) {
     return false;
   }
   total_header_size_ += data.size();
+  return true;
+}
+
+bool Request::AssertRequestLine(const std::string &line) {
+  if (line.empty() || line.size() > kMaxRequestLineLength) {
+    return false;
+  }
+
+  // スペースのチェック
+  int space_count = std::count(line.begin(), line.end(), ' ');
+  if (space_count != 1 && space_count != 2) {
+    return false;
+  }
+
+  // メソッドのチェック
+  std::string::size_type first_space = line.find(' ');
+  if (first_space == std::string::npos) {
+    return false;
+  }
+  std::string method = line.substr(0, first_space);
+  if (method != "GET" && method != "POST" && method != "DELETE") {
+    return false;
+  }
+
+  // HTTPのバージョンのチェック (HTTP/0.9の場合は存在しない)
+  if (space_count == 2) {
+    std::string::size_type last_space = line.rfind(' ');
+    if (last_space == std::string::npos || last_space == first_space) {
+      return false;
+    }
+    std::string version = line.substr(last_space + 1);
+    if (version != "HTTP/1.0" && version != "HTTP/1.1") {
+      return false;
+    }
+  }
+
   return true;
 }
 
