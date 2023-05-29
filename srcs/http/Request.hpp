@@ -49,7 +49,8 @@ private:
     RequestMessage message_;
     ParseStatus parse_status_;
 //    Http::HttpError error_status_;
-    int chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+    bool is_chunked;
+    long long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
     size_t total_header_size_; // ヘッダーの長さを覚えておくための変数
     long body_size_; // bodyの長さを覚えておくための変数
     static const size_t kMaxHeaderLineLength = 8192; // 8KB // ヘッダーの1行の最大長さ
@@ -107,7 +108,7 @@ public:
 
     // for test
     void SetParseStatus(ParseStatus status) { parse_status_ = status; }
-    int GetChunkStatus() const { return chunk_status_; }
+    int GetChunkStatus() const { return is_chunked; }
     long long GetContentLength() const { return body_size_; }
     std::string GetBody() const { return message_.body; }
     void SetError(int status, std::string message);

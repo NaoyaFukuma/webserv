@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(BodyType) {
     Request test;
 
     test.SetParseStatus(HEADER);
-    BOOST_CHECK_EQUAL(test.GetChunkStatus(), -1);
+    BOOST_CHECK_EQUAL(test.GetChunkStatus(), false);
     test.ParseHeader("Transfer-Encoding: chunked");
     if (!test.JudgeBodyType()) {
       BOOST_FAIL("1: JudgeBodyType failed");
@@ -135,6 +135,7 @@ BOOST_AUTO_TEST_CASE(ParseChunkedBodyTest)
   request.JudgeBodyType();
 
   // Call the function to test
+  request.ParseChunkedBody(buffer_);
   request.ParseChunkedBody(buffer_);
 
   // Check
@@ -208,7 +209,7 @@ BOOST_AUTO_TEST_CASE(General2)
       "data\r\n"
       "8\r\n"
       "datadata\r\n"
-      "12\r\n"
+      "C\r\n"
       "abcdefghijkl\r\n"
       "0\r\n"
       "\r\n";
@@ -220,9 +221,21 @@ BOOST_AUTO_TEST_CASE(General2)
   request.Parse(socket_buffer);
 
   BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
-  BOOST_CHECK_EQUAL(request.GetChunkStatus(), -1);
+  BOOST_CHECK_EQUAL(request.GetChunkStatus(), true);
   std::cout << "request.GetBody(): " << request.GetBody() << std::endl;
   BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "datadatadataabcdefghijkl");
+
+  if (request.GetParseStatus() == COMPLETE) {
+    std::cout << "COMPLETE" << std::endl;
+  } else if (request.GetParseStatus() == ERROR) {
+    std::cout << "ERROR" << std::endl;
+  } else if (request.GetParseStatus() == BODY) {
+    std::cout << "BODY" << std::endl;
+  } else if (request.GetParseStatus() == ERROR) {
+    std::cout << "ERROR" << std::endl;
+  } else {
+    std::cout << "OTHER" << std::endl;
+  }
 }
 
 BOOST_AUTO_TEST_CASE(UtilsTest) {

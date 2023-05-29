@@ -11,6 +11,7 @@ Request::Request() {
   chunk_status_ = -1;
   body_size_ = -1;
   total_header_size_ = 0;
+  is_chunked = false;
 }
 
 Request::~Request() {}
@@ -44,7 +45,7 @@ void Request::Parse(SocketBuff &buffer_) {
       parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
-  if (parse_status_ == BODY) {
+  while (parse_status_ != ERROR && parse_status_ != COMPLETE) {
     ParseBody(buffer_);
   }
 }
@@ -162,11 +163,11 @@ void Request::Trim(std::string &str, const std::string &delim) {
 
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!JudgeBodyType()) {
-    // TODO: error処理
+    parse_status_ = ERROR;
     return;
   }
 // chunkedの場合
-  if (chunk_status_ > 0) {
+  if (is_chunked) {
     ParseChunkedBody(buffer_);
   }
     // Content-Lengthの場合
@@ -176,37 +177,59 @@ void Request::ParseBody(SocketBuff &buffer_) {
 }
 
 void Request::ParseChunkedBody(SocketBuff &buffer_) {
-  while (chunk_status_) {
-    std::string str_chunk_size;
-    if (!buffer_.GetUntilCRLF(str_chunk_size)) {
-      // TODO: BAD_REQUEST
-      std::cerr << "BAD_REQUEST" << std::endl;
-    }
-    if (str_chunk_size == "0") {
-      chunk_status_ = -1;
-      parse_status_ = COMPLETE;
-      break;
-    }
-    // chunk-sizeを取得
-    // ";"があったらその前の数字だけをchunk_sizeにする // オプションのチャンク拡張を追加することができます->無視
-    std::string::size_type pos = str_chunk_size.find(';');
-    if (pos != std::string::npos) {
-      str_chunk_size = str_chunk_size.substr(0, pos);
-    }
-    // chunk-sizeを16進数から10進数に変換
+  // bufferからCRLFがあるかを探す
+  std::string size_str;
+
+  if (!buffer_.GetUntilCRLF(size_str)) {
+    std::cout << "=============== 1 ===============" << std::endl;
+    std::cout << "size_str: " << size_str << std::endl;
+    parse_status_ = ERROR;
+    return;
+  }
+  std::cout << "size_str: " << size_str << std::endl;
+  // size_strを16進数に変換
+  if (chunk_status_ == -1) {
     errno = 0;
-    long chunk_size = std::strtol(str_chunk_size.c_str(), NULL, 16);
-    // TODO: あとボディのサイズ超えてたりしたらエラーにする
+    chunk_status_ = std::strtoll(size_str.c_str(), NULL, 16);
     if (errno == ERANGE) {
       parse_status_ = ERROR;
       return;
     }
-    // chunk-size分だけbodyに追加
-    std::string data;
-    if (!buffer_.GetUntilCRLF(data) || data.size() != chunk_size) {
+  }
+
+  // chunk_status_が0の場合は、最後のchunk
+  if (chunk_status_ == 0) {
+    parse_status_ = COMPLETE;
+    return;
+  }
+
+  if (chunk_status_ < 0 || chunk_status_ > kMaxBodySize
+      || chunk_status_ + body_size_ > kMaxBodySize) {
+    parse_status_ = ERROR;
+    return;
+  }
+
+  // bufferの中身が足りない場合 // +2はCRLFの分
+  if (buffer_.GetBuffSize() < chunk_status_ + 2) {
+
+  }
+    // 足りてる場合は、追加する文字列を切り取る
+  else if (buffer_.GetBuffSize() > chunk_status_ + 2) {
+    std::string chunk = buffer_.GetString();
+    chunk = chunk.substr(0, chunk_status_ + 2);
+    // その文字列がCRLFで終わっているかを確認
+    // 終わっていない場合は、エラー
+    // 終わっている場合は、bodyに追加
+    // chunk_status_を-1にする
+    if (chunk.rfind("\r\n") != chunk.size() - 2) {
+      //TODO: BAD_REQUEST -> 400
       parse_status_ = ERROR;
+      return;
+    } else {
+      std::string line = buffer_.GetAndErase(chunk_status_ + 2);
+      message_.body.append(line, 0, chunk_status_);
+      chunk_status_ = -1;
     }
-    message_.body.append(data);
   }
 }
 
@@ -221,8 +244,10 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
     message_.body.append(buffer, 0, read_size);
     body_size_ -= static_cast<long long>(read_size);
   }
-  if (body_size_ < 0) {
+  if (body_size_ == 0) {
     parse_status_ = COMPLETE;
+  } else if (body_size_ < 0) {
+
   }
 }
 
@@ -239,8 +264,7 @@ bool Request::JudgeBodyType() {
     for (std::vector<std::string>::const_iterator it = values.begin();
          it != values.end(); ++it) {
       if (*it == "chunked") {
-        // この変数ってchunkかのフラグではない？
-        chunk_status_ = true;
+        is_chunked = true;
         return true;
       }
     }
