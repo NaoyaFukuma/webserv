@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Upload</title>
+</head>
+<body>
+    <h1>Text Upload</h1>
+    <form action="/cgi_bin/UploadCgi.cgi" method="post">
+        <label for="file_name">File Name (Please include the extension):</label><br>
+        <input type="text" id="file_name" name="file_name"><br>
+        <label for="content">Content:</label><br>
+        <textarea id="content" name="content"></textarea><br>
+        <input type="submit" value="Upload">
+    </form>
+    <p><a href="./home.html">Back to Home</a></p>
+</body>
+</html>
