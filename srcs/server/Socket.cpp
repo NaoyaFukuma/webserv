@@ -99,10 +99,12 @@ int ConnSocket::OnReadable(Epoll *epoll) {
 int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end();) {
+    // Todo: rdhup_が立っていたらbreak
     if (it->GetProcessStatus() == DONE) {
       std::cout << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
       std::deque<Response>::iterator tmp = it + 1;
+      // Todo: connection closeならrdhup_を立てる
       responses_.erase(it);
       it = tmp;
     }

@@ -38,6 +38,15 @@ private:
   void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessGET(Request &request);
   void ProcessFile(Request &request, const std::string &path);
+  bool IsValidFile(Request &request, const std::string &path);
+  bool IfModSince(Request &request, const std::string &path);
+  bool IfUnmodSince(Request &request, const std::string &path);
+  bool IfMatch(Request &request, const std::string &path);
+  bool IfNone(Request &request, const std::string &path);
+  bool IfRange(Request &request, const std::string &path);
+  bool FindRanges(Request &request, const std::string &path);
+  std::time_t GetLastModified(const std::string &path);
+  std::string GetEtag(const std::string &path);
 
 public:
   Response();
@@ -52,15 +61,11 @@ public:
 
   void SetResponseStatus(Http::HttpStatus status);
   void SetVersion(Http::Version version);
-  void SetHeader(std::string key, std::vector<std::string>  values);
+  void SetHeader(std::string key, std::vector<std::string> values);
   void SetBody(std::string body);
 
-  std::vector<std::string> GetHeader(std::string key) {
-    return header_[key];
-  }
-  bool HasHeader(std::string key) {
-    return header_.find(key) != header_.end();
-  }
+  std::vector<std::string> GetHeader(std::string key) { return header_[key]; }
+  bool HasHeader(std::string key) { return header_.find(key) != header_.end(); }
 
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);

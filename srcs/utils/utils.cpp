@@ -141,9 +141,23 @@ FileType get_filetype(const std::string &path) {
   }
 }
 
-std::string get_date() {
-  std::time_t now = std::time(nullptr);
+std::string get_date() { return time2str(std::time(NULL)); }
+
+std::time_t str2time(std::string time_str) {
+  std::tm tm = {};
+  std::istringstream ss(time_str);
+
+  ss >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S %Z");
+  if (ss.fail()) {
+    return -1;
+  }
+
+  std::time_t time = std::mktime(&tm);
+  return time;
+}
+
+std::string time2str(std::time_t time) {
   std::stringstream ss;
-  ss << std::put_time(std::gmtime(&now), "%a, %d %b %Y %T GMT");
+  ss << std::put_time(std::gmtime(&time), "%a, %d %b %Y %T GMT");
   return ss.str();
 }

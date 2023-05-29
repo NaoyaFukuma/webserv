@@ -6,8 +6,7 @@
 #include <sys/types.h>
 #include <vector>
 
-bool ws_exist_cgi_file(const std::string &path,
-                           const std::string &extension);
+bool ws_exist_cgi_file(const std::string &path, const std::string &extension);
 std::string ws_get_mime_type(const std::string &filename);
 ssize_t ws_split(std::vector<std::string> &dst, const std::string &src,
                  const char delim);
@@ -31,5 +30,7 @@ enum FileType {
 
 FileType get_filetype(const std::string &path);
 std::string get_date();
+std::time_t str2time(std::string time_str);
+std::string time2str(std::time_t time);
 
 #endif
