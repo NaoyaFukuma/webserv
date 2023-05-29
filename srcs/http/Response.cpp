@@ -198,7 +198,6 @@ void Response::ProcessFile(Request &request, const std::string &path) {
   body.resize(body_size);
   ifs.seekg(0, std::ios::beg).read(&body[0], body.size());
   SetBody(body);
-  SetResponseStatus(200);
   // content-typeを設定
   // SetHeader("Content-Type",
   //           std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
@@ -239,6 +238,7 @@ bool Response::IsValidFile(Request &request, const std::string &path) {
   }
   // Resource didn't match, so send the entire entity.
   else {
+    SetResponseStatus(200);
     return true;
   }
 }
