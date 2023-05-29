@@ -38,8 +38,7 @@ location_directive:
 	'location' PATH '{' directive_in_location+ '}';
 
 directive_in_location:
-  match_directive
-	| allow_method_directive
+	allow_method_directive
 	| client_max_body_size_directive
 	| root_directive
 	| index_directive
@@ -47,8 +46,6 @@ directive_in_location:
 	| error_page_directive
 	| autoindex_directive
 	| return_directive;
-
-match_directive: 'match' ('prefix' | 'suffix') END_DIRECTIVE;
 
 allow_method_directive:
 	'allow_method' METHOD+ END_DIRECTIVE;

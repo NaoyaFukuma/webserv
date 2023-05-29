@@ -33,7 +33,6 @@ BOOST_AUTO_TEST_CASE(OneLine) {
 
   // Check location properties
   BOOST_TEST( location.path_ == "/" );
-  BOOST_TEST( location.match_ == PREFIX ); // Default match type
   BOOST_TEST( location.allow_methods_.count(GET) == 1 );
   BOOST_TEST( location.client_max_body_size_ == 1024 * 1024 ); // Default value 1MB
   BOOST_TEST( location.root_ == "/var/www/html" );

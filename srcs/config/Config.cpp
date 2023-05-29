@@ -18,7 +18,6 @@ Vserver::Vserver() {
 
 // locationディレクティブの設定項目の初期化
 Location::Location() {
-  this->match_ = PREFIX;
   this->allow_methods_.insert(GET);
   this->allow_methods_.insert(POST);
   this->allow_methods_.insert(DELETE);
@@ -71,7 +70,6 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
     for (size_t j = 0; j < server_vec[i].locations_.size(); ++j) {
       os << "    locations_[" << j << "]:\n";
       os << "      path: " << server_vec[i].locations_[j].path_ << '\n';
-      os << "      match: " << server_vec[i].locations_[j].match_ << '\n';
       os << "      allow_method: ";
       for (std::set<method_type>::iterator it =
                server_vec[i].locations_[j].allow_methods_.begin();
