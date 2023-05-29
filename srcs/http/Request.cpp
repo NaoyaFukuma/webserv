@@ -234,11 +234,11 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
 void Request::ParseContentLengthBody(SocketBuff &buffer_) {
   if (buffer_.GetBuffSize() == body_size_) {
     message_.body = buffer_.GetAndErase(body_size_);
+    parse_status_ = COMPLETE;
   } else {
     // TODO: BAD_REQUEST -> 400
     parse_status_ = ERROR;
   }
-  return;
 }
 
 bool Request::JudgeBodyType() {
