@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(General2)
       "4\r\n"
       "data\r\n"
       "8\r\n"
-      "datadata\r\n"
+      "data\r\n\r\n"
       "C\r\n"
       "abcdefghijkl\r\n"
       "0\r\n"
@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(General2)
   BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
   BOOST_CHECK_EQUAL(request.GetChunkStatus(), true);
   std::cout << "request.GetBody(): " << request.GetBody() << std::endl;
-  BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "datadatadataabcdefghijkl");
+  BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "datadata\r\nabcdefghijkl");
 
   if (request.GetParseStatus() == COMPLETE) {
     std::cout << "COMPLETE" << std::endl;

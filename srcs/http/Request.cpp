@@ -181,12 +181,9 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
   std::string size_str;
 
   if (!buffer_.GetUntilCRLF(size_str)) {
-    std::cout << "=============== 1 ===============" << std::endl;
-    std::cout << "size_str: " << size_str << std::endl;
     parse_status_ = ERROR;
     return;
   }
-  std::cout << "size_str: " << size_str << std::endl;
   // size_strを16進数に変換
   if (chunk_status_ == -1) {
     errno = 0;
@@ -235,20 +232,13 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
 
 // 型変えたほうが綺麗そう
 void Request::ParseContentLengthBody(SocketBuff &buffer_) {
-  // buffer_の内容をとってくる
-  std::string buffer = buffer_.GetString();
-  if (body_size_ > 0) {
-    // content-lengthまでに長さを制限
-    size_t read_size = static_cast<long long >(buffer.size()) > body_size_ ? body_size_ : buffer.size();
-    // 長さ分だけ追加
-    message_.body.append(buffer, 0, read_size);
-    body_size_ -= static_cast<long long>(read_size);
+  if (buffer_.GetBuffSize() == body_size_) {
+    message_.body = buffer_.GetAndErase(body_size_);
+  } else {
+    // TODO: BAD_REQUEST -> 400
+    parse_status_ = ERROR;
   }
-  if (body_size_ == 0) {
-    parse_status_ = COMPLETE;
-  } else if (body_size_ < 0) {
-
-  }
+  return;
 }
 
 bool Request::JudgeBodyType() {
