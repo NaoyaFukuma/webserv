@@ -177,9 +177,16 @@ void Response::ProcessGET(Request &request) {
 void Response::ProcessFile(Request &request, const std::string &path) {
   if (IsValidFile() == false) {
     // Todo: if 206, set body by range
-    return;
+    if (status_code_ == 206) {
+      StaticFileBody(path);
+    }
+  } else {
+    // set body by full content of path
+    StaticFileBody(path);
   }
+}
 
+bool Response::StaticFileBody(const std::string &path) {
   std::ifstream ifs(path, std::ios::binary);
   if (!ifs) {
     // 500 Internal Server Error
@@ -187,20 +194,30 @@ void Response::ProcessFile(Request &request, const std::string &path) {
     return;
   }
   // sizeを取得
-  size_t body_size = ifs.seekg(0, std::ios::end).tellg();
+  size_t start;
+  size_t end;
+  if (!ranges_.empty()) {
+    start = ranges_[0].first;
+    end = ranges_[0].second;
+  } else {
+    start = 0;
+    end = ifs.seekg(0, std::ios::end).tellg();
+  }
+  size_t body_size = end - start;
   // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
-  if (body_size > kMaxBodyLength) {
+  if (body_size > kMaxBodyLength || end > ifs.seekg(0, std::ios::end).tellg()) {
     // 500 Internal Server Error
     SetResponseStatus(Http::HttpStatus(500));
     return;
   }
   std::string body;
   body.resize(body_size);
-  ifs.seekg(0, std::ios::beg).read(&body[0], body.size());
+  ifs.seekg(0, std::ios::beg).read(&body[start], body_size);
   SetBody(body);
+
   // content-typeを設定
-  // SetHeader("Content-Type",
-  //           std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
+  SetHeader("Content-Type",
+            std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
 
   // content-lengthを設定
   std::stringstream ss;
@@ -215,8 +232,7 @@ bool Response::IsValidFile(Request &request, const std::string &path) {
   bool iIfMatch = IfMatch(request, path);
   bool iIfNone = IfNone(request, path);
   bool iIfRange = IfRange(request, path);
-  std::vector<std::pair<size_t, size_t>> ranges;
-  bool iFindRange = FindRanges(request, path, ranges);
+  bool iFindRange = FindRanges(request, path);
 
   // Check to make sure any If headers are FALSE.
   // Either not-modified or no etags matched.
@@ -329,8 +345,7 @@ bool Response::IfRange(Request &request, const std::string &path) {
   }
 }
 
-bool Response::FindRanges(std::vector<std::pair<size_t, size_t>> &ranges,
-                          Request &request, const std::string &path) {
+bool Response::FindRanges(Request &request, const std::string &path) {
   if (request.HasHeader("Range") == false ||
       request.GetHeader("Range").empty()) {
     return false;
@@ -380,7 +395,7 @@ bool Response::FindRanges(std::vector<std::pair<size_t, size_t>> &ranges,
     if (range_end > st.st_size - 1) {
       return false;
     }
-    ranges.push_back(std::make_pair(range_start, range_end));
+    ranges_.push_back(std::make_pair(range_start, range_end));
   }
   return true;
 }

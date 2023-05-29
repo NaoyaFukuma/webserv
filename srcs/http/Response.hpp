@@ -15,7 +15,7 @@ enum ProcessStatus {
   DONE,
 };
 
-struct ResponseMessage {};
+typedef std::vector<std::pair<std::size_t, std::size_t>> RangeVec;
 
 class Response {
 private:
@@ -26,6 +26,8 @@ private:
   std::string status_message_;
   Header header_;
   std::string body_;
+
+  RangeVec ranges_;
 
   // 各種長さの制限に使う定数
   // ヘッダー１行の最大文字数 8KB = 8 * 1024 = 8192
