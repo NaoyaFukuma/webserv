@@ -41,11 +41,14 @@ Header Request::GetHeaderMap() const { return message_.header; }
 
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
+
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
       parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
-  ParseBody(buffer_);
+  if (parse_status_ == BODY) {
+    ParseBody(buffer_);
+  }
 }
 
 void Request::ParseLine(const std::string &line) {
@@ -55,8 +58,7 @@ void Request::ParseLine(const std::string &line) {
     case HEADER:ParseHeader(line);
       break;
     case COMPLETE:break;
-    case ERROR:
-      SetRequestStatus(400);
+    case ERROR:SetRequestStatus(400);
       break;
     default:break;
   }
@@ -66,7 +68,10 @@ void Request::ParseRequestLine(const std::string &line) {
   std::vector<std::string> splited;
   // フォーマットのチェック
   // TODO: uri
-  AssertRequestLine(line);
+  if (AssertRequestLine(line) == false) {
+    parse_status_ = ERROR;
+    return;
+  }
   ws_split(splited, line, ' ');
 
   // TODO: リクエストが有効かどうかのチェック足す
@@ -167,9 +172,7 @@ void Request::ParseBody(SocketBuff &buffer_) {
   }
 // chunkedの場合
   if (is_chunked) {
-    while (!buffer_.GetString().empty() && parse_status_ != ERROR) {
-      ParseChunkedBody(buffer_);
-    }
+    ParseChunkedBody(buffer_);
   }
     // Content-Lengthの場合
   else {
@@ -202,6 +205,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     if (buffer_.GetUntilCRLF(line)) {
       if (line.empty()) {
         parse_status_ = COMPLETE;
+        return;
       }
     }
     parse_status_ = ERROR;
@@ -227,7 +231,6 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     // chunk_status_を-1にする
     std::string::size_type pos = chunk.rfind("\r\n");
     if (pos == std::string::npos) {
-      std::cout << "=========================================" << std::endl;
       parse_status_ = ERROR;
       return;
     }
@@ -246,8 +249,8 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
     message_.body = buffer_.GetAndErase(body_size_);
     parse_status_ = COMPLETE;
   } else {
-    // TODO: BAD_REQUEST -> 400
-    parse_status_ = ERROR;
+    // bufferの中身が足りない場合 -> 次のループでまた呼ばれる
+    return;
   }
 }
 

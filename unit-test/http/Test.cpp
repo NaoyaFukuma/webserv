@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(ParseChunkedBodyTest)
 
   // Check
   BOOST_CHECK_EQUAL(request.GetBody(), "123");
-  BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
+  BOOST_CHECK_EQUAL(request.GetParseStatus(), BODY);
 }
 
 #include <boost/assign/list_of.hpp>
