@@ -163,6 +163,7 @@ void Request::Trim(std::string &str, const std::string &delim) {
 
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!JudgeBodyType()) {
+    std::cout << "hoge" << std::endl;
     parse_status_ = ERROR;
     return;
   }
@@ -222,10 +223,12 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
       parse_status_ = ERROR;
       return;
     }
-    std::string buf = buffer_.GetAndErase(chunk_status_ + 2);
-    buf = buf.substr(0, pos);
-    message_.body.append(buf);
-    chunk_status_ = -1;
+    if (pos != chunk.size() - 2) {
+      std::string buf = buffer_.GetAndErase(chunk_status_ + 2);
+      buf = buf.substr(0, pos);
+      message_.body.append(buf);
+      chunk_status_ = -1;
+    }
   }
 }
 
