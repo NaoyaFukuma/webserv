@@ -96,9 +96,7 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
                              Epoll *epoll) {
   // parseの時点でerrorがあった場合はこの時点で返す
   if (request.GetRequestStatus().status_code != -1) {
-    SetResponseStatus(request.GetRequestStatus());
-    process_status_ = DONE;
-    epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+    ProcessError(request, socket, epoll);
     return;
   }
   // Todo: resolvepathはrequest parserの時点で行う
@@ -114,6 +112,13 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
     // 静的ファイル
     ProcessStatic(request, socket, epoll);
   }
+}
+
+void Response::ProcessError(Request &request, ConnSocket *socket,
+                            Epoll *epoll) {
+  SetResponseStatus(request.GetRequestStatus());
+  process_status_ = DONE;
+  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
 }
 
 void Response::ProcessReturn(Request &request, ConnSocket *socket,
