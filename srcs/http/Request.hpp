@@ -4,6 +4,7 @@
 #include "Config.hpp"
 #include "Http.hpp"
 #include "SocketBuff.hpp"
+#include "Response.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -48,9 +49,9 @@ class Request {
 private:
     RequestMessage message_;
     ParseStatus parse_status_;
-//    Http::HttpError error_status_;
+    Http::HttpStatus http_status_;
     bool is_chunked;
-    long long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+    long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
     size_t total_header_size_; // ヘッダーの長さを覚えておくための変数
     long body_size_; // bodyの長さを覚えておくための変数
     static const size_t kMaxHeaderLineLength = 8192; // 8KB // ヘッダーの1行の最大長さ
@@ -120,6 +121,7 @@ public:
 
     /* 移動させます */
     bool AssertRequestLine(const std::string &line);
+    void SetRequestStatus(Http::HttpStatus status);
 
 };
 

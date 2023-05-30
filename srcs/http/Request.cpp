@@ -58,7 +58,7 @@ void Request::ParseLine(const std::string &line) {
       break;
     case COMPLETE:break;
     case ERROR:
-      // TODO: ここでエラー処理
+      SetRequestStatus(400);
       break;
     default:break;
   }
@@ -117,6 +117,7 @@ void Request::ParseHeader(const std::string &line) {
 
   if (!ValidateHeaderSize(line)) {
     parse_status_ = ERROR;
+
     return;
   }
 
@@ -188,7 +189,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
   // size_strを16進数に変換
   if (chunk_status_ == -1) {
     errno = 0;
-    chunk_status_ = std::strtoll(size_str.c_str(), NULL, 16);
+    chunk_status_ = std::strtol(size_str.c_str(), NULL, 16);
     if (errno == ERANGE) {
       parse_status_ = ERROR;
       return;
@@ -265,9 +266,9 @@ bool Request::JudgeBodyType() {
   if (it_content_length != message_.header.end()) {
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
-    // 負の数、strtollのエラーもエラー
+    // 負の数、strtolのエラーもエラー
     errno = 0;
-    long long content_length = std::strtoll(values[0].c_str(), NULL, 10);
+    long content_length = std::strtol(values[0].c_str(), NULL, 10);
     if (values.size() != 1 || errno == ERANGE || content_length < 0) {
       // error
       return false;
@@ -383,6 +384,10 @@ bool Request::AssertRequestLine(const std::string &line) {
   }
 
   return true;
+}
+
+void Request::SetRequestStatus(Http::HttpStatus status) {
+  http_status_ = status;
 }
 
 void Request::ResolvePath(const ConfVec &vservers) {
