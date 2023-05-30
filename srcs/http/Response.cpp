@@ -155,10 +155,9 @@ void Response::ProcessGET(Request &request) {
   std::string path = context.resource_path.server_path;
   FileType ftype = get_filetype(path);
 
-  if (ftype == FileType::FILE_DIRECTORY) {
+  if (ftype == FILE_DIRECTORY) {
     if (!context.location.index_.empty() &&
-        get_filetype(path + '/' + context.location.index_) ==
-            FileType::FILE_REGULAR) {
+        get_filetype(path + '/' + context.location.index_) == FILE_REGULAR) {
       GetFile(request, path + '/' + context.location.index_);
     } else if (context.location.autoindex_) {
       // autoindex
@@ -167,7 +166,7 @@ void Response::ProcessGET(Request &request) {
       // 404 Not Found
       SetResponseStatus(Http::HttpStatus(404));
     }
-  } else if (ftype == FileType::FILE_REGULAR) {
+  } else if (ftype == FILE_REGULAR) {
     GetFile(request, path);
   } else {
     // 404 Not Found
@@ -183,10 +182,10 @@ void Response::ProcessDELETE(Request &request) {
   std::string path = context.resource_path.server_path;
   FileType ftype = get_filetype(path);
 
-  if (ftype == FileType::FILE_DIRECTORY) {
+  if (ftype == FILE_DIRECTORY) {
     // directoryの削除は認めない
     SetResponseStatus(Http::HttpStatus(403));
-  } else if (ftype == FileType::FILE_REGULAR) {
+  } else if (ftype == FILE_REGULAR) {
     DeleteFile(request, path);
   } else {
     // 404 Not Found
@@ -195,14 +194,14 @@ void Response::ProcessDELETE(Request &request) {
 }
 
 void Response::GetFile(Request &request, const std::string &path) {
-  if (IsGetableFile() == false && status_code_ != 206) {
+  if (IsGetableFile(request, path) == false && status_code_ != 206) {
     return;
   }
   StaticFileBody(path);
 }
 
 void Response::DeleteFile(Request &request, const std::string &path) {
-  if (IsDeletableFile() == false) {
+  if (IsDeleteableFile(request, path) == false) {
     return;
   }
   if (unlink(path.c_str()) == -1) {
