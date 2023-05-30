@@ -4,7 +4,6 @@
 #include "Config.hpp"
 #include "Http.hpp"
 #include "SocketBuff.hpp"
-#include "Response.hpp"
 #include <map>
 #include <string>
 #include <vector>

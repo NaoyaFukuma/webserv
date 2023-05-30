@@ -224,7 +224,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
       parse_status_ = ERROR;
       return;
     }
-    if (pos != chunk.size() - 2) {
+    if (pos == chunk.size() - 2) {
       std::string buf = buffer_.GetAndErase(chunk_status_ + 2);
       buf = buf.substr(0, pos);
       message_.body.append(buf);
