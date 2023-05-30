@@ -40,14 +40,26 @@ private:
 
   void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessGET(Request &request);
-  void ProcessFile(Request &request, const std::string &path);
-  bool IsValidFile(Request &request, const std::string &path);
+  void ProcessDELETE(Request &request);
+
+  void GetFile(Request &request, const std::string &path);
+  bool StaticFileBody(const std::string &path);
+  bool IsGetableFile(Request &request, const std::string &path);
+
+  void DeleteFile(request, path);
+  bool IsDeleteableFile(Request &request, const std::string &path);
+
+  void ProcessAutoindex(Request &request, const std::string &path);
+  void ResFileList(DIR *dir);
+
+
   bool IfModSince(Request &request, const std::string &path);
   bool IfUnmodSince(Request &request, const std::string &path);
   bool IfMatch(Request &request, const std::string &path);
   bool IfNone(Request &request, const std::string &path);
   bool IfRange(Request &request, const std::string &path);
   bool FindRanges(Request &request, const std::string &path);
+
   std::time_t GetLastModified(const std::string &path);
   std::string GetEtag(const std::string &path);
 
