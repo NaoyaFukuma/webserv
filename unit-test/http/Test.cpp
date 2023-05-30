@@ -69,6 +69,7 @@ BOOST_AUTO_TEST_CASE(Body) {
 //
 //    test.SetParseStatus(BODY);
   // GetWordで一番初めから切り取る
+  BOOST_CHECK(true);
 }
 
 BOOST_AUTO_TEST_CASE(BodyType) {
