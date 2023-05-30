@@ -140,7 +140,7 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
   if (message.request_line.method == "GET") {
     ProcessGET(request);
   } else if (message.request_line.method == "DELETE") {
-    // ProcessDELETE(request, socket, epoll);
+    ProcessDELETE(request);
   } else {
     // 405 Method Not Allowed
     SetResponseStatus(Http::HttpStatus(405));
@@ -161,7 +161,7 @@ void Response::ProcessGET(Request &request) {
     if (!context.location.index_.empty() &&
         get_filetype(path + '/' + context.location.index_) ==
             FileType::FILE_REGULAR) {
-      ProcessFile(request, path + '/' + context.location.index_);
+      GetFile(request, path + '/' + context.location.index_);
     } else if (context.location.autoindex_) {
       // autoindex
       ProcessAutoindex(request, path);
@@ -170,10 +170,47 @@ void Response::ProcessGET(Request &request) {
       SetResponseStatus(Http::HttpStatus(404));
     }
   } else if (ftype == FileType::FILE_REGULAR) {
-    ProcessFile(request, path);
+    GetFile(request, path);
   } else {
     // 404 Not Found
     SetResponseStatus(Http::HttpStatus(404));
+  }
+}
+
+void Response::ProcessDELETE(Request &request) {
+  // 指定されたpathがディレクトリだった場合、index, autoindexを解決する
+  // indexの解決: location path + index -> 存在しなければautoindexのチェック
+  // autoindexの解決:
+  Context context = request.GetContext();
+  std::string path = context.resource_path.server_path;
+  FileType ftype = get_filetype(path);
+
+  if (ftype == FileType::FILE_DIRECTORY) {
+    // directoryの削除は認めない
+    SetResponseStatus(Http::HttpStatus(403));
+  } else if (ftype == FileType::FILE_REGULAR) {
+    DeleteFile(request, path);
+  } else {
+    // 404 Not Found
+    SetResponseStatus(Http::HttpStatus(404));
+  }
+}
+
+void Response::GetFile(Request &request, const std::string &path) {
+  if (IsGetableFile() == false && status_code_ != 206) {
+    return;
+  }
+  StaticFileBody(path);
+}
+
+void Response::DeleteFile(request, path) {
+  if (IsDeletableFile() == false) {
+    return;
+  }
+  if (unlink(path.c_str()) == -1) {
+    SetResponseStatus(Http::HttpStatus(500));
+  } else {
+    SetResponseStatus(Http::HttpStatus(200));
   }
 }
 
@@ -207,13 +244,6 @@ void Response::ResFileList(DIR *dir) {
   SetResponseStatus(Http::HttpStatus(200));
   SetHeader("Content-Type", "text/html");
   SetBody(ss.str());
-}
-
-void Response::ProcessFile(Request &request, const std::string &path) {
-  if (IsValidFile() == false && status_code_ != 206) {
-    return;
-  }
-  StaticFileBody(path);
 }
 
 bool Response::StaticFileBody(const std::string &path) {
@@ -250,7 +280,7 @@ bool Response::StaticFileBody(const std::string &path) {
             std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
 }
 
-bool Response::IsValidFile(Request &request, const std::string &path) {
+bool Response::IsGetableFile(Request &request, const std::string &path) {
   // Check If headers.
   bool iIfMod = IfModSince(request, path);
   bool iIfUnmod = IfUnmodSince(request, path);
@@ -279,6 +309,21 @@ bool Response::IsValidFile(Request &request, const std::string &path) {
   }
   // Resource didn't match, so send the entire entity.
   else {
+    SetResponseStatus(200);
+    return true;
+  }
+}
+
+bool Response::IsDeleteableFile(Request &request, const std::string &path) {
+  // Check If headers.
+  bool iIfUnmod = IfUnmodSince(request, path);
+  bool iIfMatch = IfMatch(request, path);
+  bool iIfNone = IfNone(request, path);
+
+  if ((iIfUnmod == FALSE) || (iIfMatch == FALSE) || (iIfNone == FALSE)) {
+    SetResponseStatus(412);
+    return false;
+  } else {
     SetResponseStatus(200);
     return true;
   }
