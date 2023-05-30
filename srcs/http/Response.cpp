@@ -94,6 +94,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
 
 void Response::ProcessStatic(Request &request, ConnSocket *socket,
                              Epoll *epoll) {
+  // parseの時点でerrorがあった場合はこの時点で返す
   if (request.GetRequestStatus().status_code != -1) {
     SetResponseStatus(request.GetRequestStatus());
     process_status_ = DONE;
