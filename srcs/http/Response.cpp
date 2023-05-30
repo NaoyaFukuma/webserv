@@ -3,6 +3,7 @@
 #include "Epoll.hpp"
 #include "Socket.hpp"
 #include "utils.hpp"
+#include <dirent.h>
 #include <fstream>
 #include <sys/epoll.h>
 #include <vector>
@@ -161,7 +162,8 @@ void Response::ProcessGET(Request &request) {
             FileType::FILE_REGULAR) {
       ProcessFile(request, path + '/' + context.location.index_);
     } else if (context.location.autoindex_) {
-      // Todo: autoindex
+      // autoindex
+      ProcessAutoindex(request, path);
     } else {
       // 404 Not Found
       SetResponseStatus(Http::HttpStatus(404));
@@ -172,6 +174,38 @@ void Response::ProcessGET(Request &request) {
     // 404 Not Found
     SetResponseStatus(Http::HttpStatus(404));
   }
+}
+
+void Response::ProcessAutoindex(Request &request, const std::string &path) {
+  DIR *dir = opendir(path.c_str());
+  if (dir == NULL) {
+    SetResponseStatus(Http::HttpStatus(500));
+  } else {
+    ResFileList(dir);
+    closedir(dir);
+  }
+}
+
+void Response::ResFileList(DIR *dir) {
+  std::stringstream ss;
+  ss << "<html><head><title>File List</title></head><body>\r\n";
+  ss << "<h1>File List</h1>\r\n";
+  ss << "<ul>\r\n";
+  struct dirent *dp;
+  while ((dp = readdir(dir)) != NULL) {
+    // ディレクトリはスキップ
+    if (dp->d_type == DT_DIR) {
+      continue;
+    }
+    ss << "<li><a href=\"/upload/" << dp->d_name << "\">" << dp->d_name
+       << "</a></li>\r\n";
+  }
+  ss << "</ul>\r\n";
+  ss << "</body></html>\r\n";
+
+  SetResponseStatus(Http::HttpStatus(200));
+  SetHeader("Content-Type", "text/html");
+  SetBody(ss.str());
 }
 
 void Response::ProcessFile(Request &request, const std::string &path) {
@@ -213,11 +247,6 @@ bool Response::StaticFileBody(const std::string &path) {
   // content-typeを設定
   SetHeader("Content-Type",
             std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
-
-  // content-lengthを設定
-  std::stringstream ss;
-  ss << body_size;
-  SetHeader("Content-Length", ss.str());
 }
 
 bool Response::IsValidFile(Request &request, const std::string &path) {
