@@ -175,15 +175,10 @@ void Response::ProcessGET(Request &request) {
 }
 
 void Response::ProcessFile(Request &request, const std::string &path) {
-  if (IsValidFile() == false) {
-    // Todo: if 206, set body by range
-    if (status_code_ == 206) {
-      StaticFileBody(path);
-    }
-  } else {
-    // set body by full content of path
-    StaticFileBody(path);
+  if (IsValidFile() == false && status_code_ != 206) {
+    return;
   }
+  StaticFileBody(path);
 }
 
 bool Response::StaticFileBody(const std::string &path) {
