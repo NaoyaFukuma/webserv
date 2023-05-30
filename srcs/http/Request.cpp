@@ -45,9 +45,7 @@ void Request::Parse(SocketBuff &buffer_) {
       parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
-  while (parse_status_ != ERROR && parse_status_ != COMPLETE) {
-    ParseBody(buffer_);
-  }
+  ParseBody(buffer_);
 }
 
 void Request::ParseLine(const std::string &line) {
@@ -164,13 +162,14 @@ void Request::Trim(std::string &str, const std::string &delim) {
 
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!JudgeBodyType()) {
-    std::cout << "hoge" << std::endl;
     parse_status_ = ERROR;
     return;
   }
 // chunkedの場合
   if (is_chunked) {
-    ParseChunkedBody(buffer_);
+    while (!buffer_.GetString().empty() && parse_status_ != ERROR) {
+      ParseChunkedBody(buffer_);
+    }
   }
     // Content-Lengthの場合
   else {
@@ -179,26 +178,33 @@ void Request::ParseBody(SocketBuff &buffer_) {
 }
 
 void Request::ParseChunkedBody(SocketBuff &buffer_) {
-  // bufferからCRLFがあるかを探す
-  std::string size_str;
-
-  if (!buffer_.GetUntilCRLF(size_str)) {
-    parse_status_ = ERROR;
-    return;
-  }
-  // size_strを16進数に変換
   if (chunk_status_ == -1) {
+    std::string size_str;
+
+    if (!buffer_.GetUntilCRLF(size_str)) {
+      parse_status_ = ERROR;
+      return;
+    }
     errno = 0;
+    // size_strを16進数に変換
     chunk_status_ = std::strtol(size_str.c_str(), NULL, 16);
     if (errno == ERANGE) {
       parse_status_ = ERROR;
       return;
     }
+    return;
   }
 
   // chunk_status_が0の場合は、最後のchunk
   if (chunk_status_ == 0) {
-    parse_status_ = COMPLETE;
+    // 次の行がCRLFでない場合は、エラー
+    std::string line;
+    if (buffer_.GetUntilCRLF(line)) {
+      if (line.empty()) {
+        parse_status_ = COMPLETE;
+      }
+    }
+    parse_status_ = ERROR;
     return;
   }
 
@@ -210,7 +216,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
 
   // bufferの中身が足りない場合 // +2はCRLFの分
   if (buffer_.GetBuffSize() < chunk_status_ + 2) {
-
+    return;
   }
     // 足りてる場合は、追加する文字列を切り取る
   else if (buffer_.GetBuffSize() > chunk_status_ + 2) {
@@ -221,6 +227,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     // chunk_status_を-1にする
     std::string::size_type pos = chunk.rfind("\r\n");
     if (pos == std::string::npos) {
+      std::cout << "=========================================" << std::endl;
       parse_status_ = ERROR;
       return;
     }

@@ -223,7 +223,6 @@ BOOST_AUTO_TEST_CASE(General2)
   BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
   BOOST_CHECK_EQUAL(request.GetChunkStatus(), true);
   std::cout << GREEN << "request.GetBody(): " << request.GetBody() << std::endl;
-  std::cout << GREEN << " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " << std::endl;
   BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "fourdataho\r\nabcdefghijkl");
 
   if (request.GetParseStatus() == COMPLETE) {
