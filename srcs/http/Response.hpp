@@ -5,6 +5,7 @@
 #include "Http.hpp"
 #include "Request.hpp"
 #include <ctime>
+#include <dirent.h>
 #include <map>
 #include <string>
 
@@ -16,7 +17,7 @@ enum ProcessStatus {
   DONE,
 };
 
-typedef std::vector<std::pair<std::size_t, std::size_t> > RangeVec;
+typedef std::vector<std::pair<std::size_t, std::size_t>> RangeVec;
 
 class Response {
 private:
@@ -38,6 +39,9 @@ private:
   // ボディの最大文字数 1MB = 1024 * 1024 = 1048576
   static const int kMaxBodyLength = 1048576;
 
+  void ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);
+
   void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessGET(Request &request);
   void ProcessDELETE(Request &request);
@@ -46,12 +50,11 @@ private:
   bool StaticFileBody(const std::string &path);
   bool IsGetableFile(Request &request, const std::string &path);
 
-  void DeleteFile(request, path);
+  void DeleteFile(Request &request, const std::string &path);
   bool IsDeleteableFile(Request &request, const std::string &path);
 
   void ProcessAutoindex(Request &request, const std::string &path);
   void ResFileList(DIR *dir);
-
 
   bool IfModSince(Request &request, const std::string &path);
   bool IfUnmodSince(Request &request, const std::string &path);
@@ -76,11 +79,11 @@ public:
 
   void SetResponseStatus(Http::HttpStatus status);
   void SetVersion(Http::Version version);
-  void SetHeader(const std::string &key, const std::vector<std::string> &values);
+  void SetHeader(const std::string &key,
+                 const std::vector<std::string> &values);
   void SetBody(std::string body);
 
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
-  void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);
 };
 
 #endif // RESPONSE_HPP_

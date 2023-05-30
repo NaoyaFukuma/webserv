@@ -3,7 +3,6 @@
 #include "Epoll.hpp"
 #include "Socket.hpp"
 #include "utils.hpp"
-#include <dirent.h>
 #include <fstream>
 #include <sys/epoll.h>
 #include <vector>
@@ -59,37 +58,19 @@ void Response::SetResponseStatus(Http::HttpStatus status) {
 
 void Response::SetVersion(Http::Version version) { version_ = version; }
 
-void Response::SetHeader(const std::string &key, const std::vector<std::string> &values) {
+void Response::SetHeader(const std::string &key,
+                         const std::vector<std::string> &values) {
   header_[key] = values;
 }
 
 void Response::SetBody(std::string body) {
-  SetHeader("Content-Length", std::vector<std::string>(1, ws_itostr(body.length())));
+  SetHeader("Content-Length",
+            std::vector<std::string>(1, ws_itostr(body.length())));
   body_ += body;
 }
 
 void Response::ProcessRequest(Request &request, ConnSocket *socket,
                               Epoll *epoll) {
-  // request.ResolvePath(config);
-  if (request.GetContext().is_cgi) {
-    // CGI
-    CgiSocket *cgi_socket = new CgiSocket(socket, request);
-    ASocket *sock = cgi_socket->CreatCgiProcess();
-    if (sock == NULL) {
-      delete cgi_socket;
-      // エラー処理 クライアントへ500 Internal Server Errorを返す
-      return;
-    }
-    uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
-    epoll->Add(sock, event_mask);
-  } else {
-    // 静的ファイル
-    ProcessStatic(request, socket, epoll);
-  }
-}
-
-void Response::ProcessStatic(Request &request, ConnSocket *socket,
-                             Epoll *epoll) {
   // parseの時点でerrorがあった場合はこの時点で返す
   if (request.GetRequestStatus().status_code != -1) {
     ProcessError(request, socket, epoll);
@@ -102,12 +83,25 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
     ProcessReturn(request, socket, epoll);
     return;
   }
-  if (context.is_cgi) {
+  // request.ResolvePath(config);
+  if (request.GetContext().is_cgi) {
     // CGI
   } else {
     // 静的ファイル
     ProcessStatic(request, socket, epoll);
   }
+}
+
+void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
+  CgiSocket *cgi_socket = new CgiSocket(socket, request);
+  ASocket *sock = cgi_socket->CreatCgiProcess();
+  if (sock == NULL) {
+    delete cgi_socket;
+    // エラー処理 クライアントへ500 Internal Server Errorを返す
+    return;
+  }
+  uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
+  epoll->Add(sock, event_mask);
 }
 
 void Response::ProcessError(Request &request, ConnSocket *socket,
@@ -204,7 +198,7 @@ void Response::GetFile(Request &request, const std::string &path) {
   StaticFileBody(path);
 }
 
-void Response::DeleteFile(request, path) {
+void Response::DeleteFile(Request &request, const std::string &path) {
   if (IsDeletableFile() == false) {
     return;
   }
