@@ -86,6 +86,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   // request.ResolvePath(config);
   if (request.GetContext().is_cgi) {
     // CGI
+    ProcessCgi(request, socket, epoll);
   } else {
     // 静的ファイル
     ProcessStatic(request, socket, epoll);
@@ -124,6 +125,8 @@ void Response::ProcessReturn(Request &request, ConnSocket *socket,
   case RETURN_URL:
     SetHeader("Location", std::vector<std::string>(1, return_.return_url_));
     break;
+  default:
+    SetResponseStatus(Http::HttpStatus(500));
   }
   epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
   process_status_ = DONE;

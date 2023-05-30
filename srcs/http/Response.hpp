@@ -41,8 +41,9 @@ private:
 
   void ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);
-
   void ProcessReturn(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessError(Request &request, ConnSocket *socket, Epoll *epoll);
+
   void ProcessGET(Request &request);
   void ProcessDELETE(Request &request);
 
