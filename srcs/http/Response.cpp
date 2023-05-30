@@ -5,7 +5,10 @@
 #include "utils.hpp"
 #include <fstream>
 #include <sys/epoll.h>
+#include <unistd.h>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -243,8 +246,8 @@ void Response::ResFileList(DIR *dir) {
   SetBody(ss.str());
 }
 
-bool Response::StaticFileBody(const std::string &path) {
-  std::ifstream ifs(path, std::ios::binary);
+void Response::StaticFileBody(const std::string &path) {
+  std::ifstream ifs(path.c_str(), std::ios::binary);
   if (!ifs) {
     // 500 Internal Server Error
     SetResponseStatus(Http::HttpStatus(500));
@@ -262,7 +265,8 @@ bool Response::StaticFileBody(const std::string &path) {
   }
   size_t body_size = end - start;
   // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
-  if (body_size > kMaxBodyLength || end > ifs.seekg(0, std::ios::end).tellg()) {
+  if (body_size > kMaxBodyLength ||
+      end > static_cast<size_t>(ifs.seekg(0, std::ios::end).tellg())) {
     // 500 Internal Server Error
     SetResponseStatus(Http::HttpStatus(500));
     return;
@@ -362,7 +366,7 @@ bool Response::IfMatch(Request &request, const std::string &path) {
   }
   std::vector<std::string> if_match_vec = request.GetHeader("If-Match");
   std::string etag = GetEtag(path);
-  for (std::string::iterator if_match = if_match_vec.begin();
+  for (std::vector<std::string>::iterator if_match = if_match_vec.begin();
        if_match != if_match_vec.end(); if_match++) {
     if (*if_match == "*") {
       return true;
@@ -381,7 +385,7 @@ bool Response::IfNone(Request &request, const std::string &path) {
   }
   std::vector<std::string> if_none_vec = request.GetHeader("If-None-Match");
   std::string etag = GetEtag(path);
-  for (std::string::iterator if_none = if_none_vec.begin();
+  for (std::vector<std::string>::iterator if_none = if_none_vec.begin();
        if_none != if_none_vec.end(); if_none++) {
     if (*if_none == "*") {
       return false;
@@ -446,20 +450,20 @@ bool Response::FindRanges(Request &request, const std::string &path) {
       range_start_str = "0";
     }
     if (range_end_str.empty()) {
-      range_end_str = std::to_string(st.st_size - 1);
+      range_end_str = ws_itostr<int>(st.st_size - 1);
     }
     std::size_t range_start;
-    if (ws_strtoi<size_t>(range_start, range_start_str) == false) {
+    if (ws_strtoi<size_t>(&range_start, range_start_str) == false) {
       return false;
     }
     std::size_t range_end;
-    if (ws_strtoi<size_t>(range_end, range_end_str) == false) {
+    if (ws_strtoi<size_t>(&range_end, range_end_str) == false) {
       return false;
     }
     if (range_start > range_end) {
       return false;
     }
-    if (range_end > st.st_size - 1) {
+    if (range_end > static_cast<size_t>(st.st_size - 1)) {
       return false;
     }
     ranges_.push_back(std::make_pair(range_start, range_end));
@@ -477,6 +481,10 @@ std::time_t Response::GetLastModified(const std::string &path) {
 
 std::string Response::GetEtag(const std::string &path) {
   std::stringstream ss;
+  struct stat file_stat;
+  if (stat(path.c_str(), &file_stat) != 0) {
+    return "";
+  }
   ss << std::hex << file_stat.st_mtime << "-" << file_stat.st_size;
   return ss.str();
 }

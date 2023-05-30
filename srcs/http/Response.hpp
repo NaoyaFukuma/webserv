@@ -17,7 +17,7 @@ enum ProcessStatus {
   DONE,
 };
 
-typedef std::vector<std::pair<std::size_t, std::size_t>> RangeVec;
+typedef std::vector<std::pair<std::size_t, std::size_t> > RangeVec;
 
 class Response {
 private:
@@ -48,7 +48,7 @@ private:
   void ProcessDELETE(Request &request);
 
   void GetFile(Request &request, const std::string &path);
-  bool StaticFileBody(const std::string &path);
+  void StaticFileBody(const std::string &path);
   bool IsGetableFile(Request &request, const std::string &path);
 
   void DeleteFile(Request &request, const std::string &path);

@@ -94,6 +94,9 @@ public:
 
   Context GetContext() const;
   Header GetHeaderMap() const;
+  std::vector<std::string> GetHeader(const std::string &key);
+  bool HasHeader(const std::string &key) const;
+
   std::string GetWord(const std::string &line, std::string::size_type &pos);
 
   // for test

@@ -144,11 +144,10 @@ FileType get_filetype(const std::string &path) {
 std::string get_date() { return time2str(std::time(NULL)); }
 
 std::time_t str2time(std::string time_str) {
-  std::tm tm = {};
-  std::istringstream ss(time_str);
+  struct std::tm tm = {};
+  char *result = strptime(time_str.c_str(), "%a, %d %b %Y %H:%M:%S", &tm);
 
-  ss >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S %Z");
-  if (ss.fail()) {
+  if (result == NULL) {
     return -1;
   }
 
@@ -157,7 +156,11 @@ std::time_t str2time(std::string time_str) {
 }
 
 std::string time2str(std::time_t time) {
-  std::stringstream ss;
-  ss << std::put_time(std::gmtime(&time), "%a, %d %b %Y %T GMT");
-  return ss.str();
+  char buffer[128];
+  std::tm *tm = std::gmtime(&time);
+
+  std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %T GMT", tm);
+  std::string str(buffer);
+
+  return str;
 }
