@@ -180,7 +180,9 @@ void Request::ParseBody(SocketBuff &buffer_) {
   }
 // chunkedの場合
   if (is_chunked) {
-    ParseChunkedBody(buffer_);
+    while (!buffer_.GetString().empty() && parse_status_ != ERROR && parse_status_ != COMPLETE) {
+      ParseChunkedBody(buffer_);
+    }
   }
     // Content-Lengthの場合
   else {
