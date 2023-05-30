@@ -13,8 +13,8 @@
 class Epoll; // 相互参照
 
 struct LastEventTime {
-  time_t in_time;
-  time_t out_time;
+  std::time_t in_time;
+  std::time_t out_time;
 };
 
 // ------------------------------------------------------------------
@@ -34,7 +34,7 @@ public:
   ConfVec GetConfVec() const;
   int GetFd() const;
   void SetFd(int fd);
-  bool IsTimeout(const time_t &threshold) const;
+  bool IsTimeout(const std::time_t &threshold) const;
   virtual int ProcessSocket(Epoll *epoll, void *data) = 0;
 
 private: // 使用予定なし
@@ -70,7 +70,6 @@ private: // 使用予定なし
   ConnSocket(const ConnSocket &src);
   ConnSocket &operator=(const ConnSocket &rhs);
 };
-
 
 // ------------------------------------------------------------------
 // listen用のソケット
