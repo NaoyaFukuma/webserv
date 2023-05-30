@@ -161,7 +161,7 @@ void Response::ProcessGET(Request &request) {
       GetFile(request, path + '/' + context.location.index_);
     } else if (context.location.autoindex_) {
       // autoindex
-      ProcessAutoindex(request, path);
+      ProcessAutoindex(path);
     } else {
       // 404 Not Found
       SetResponseStatus(Http::HttpStatus(404));
@@ -211,7 +211,7 @@ void Response::DeleteFile(Request &request, const std::string &path) {
   }
 }
 
-void Response::ProcessAutoindex(Request &request, const std::string &path) {
+void Response::ProcessAutoindex(const std::string &path) {
   DIR *dir = opendir(path.c_str());
   if (dir == NULL) {
     SetResponseStatus(Http::HttpStatus(500));

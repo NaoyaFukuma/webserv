@@ -54,7 +54,7 @@ private:
   void DeleteFile(Request &request, const std::string &path);
   bool IsDeleteableFile(Request &request, const std::string &path);
 
-  void ProcessAutoindex(Request &request, const std::string &path);
+  void ProcessAutoindex(const std::string &path);
   void ResFileList(DIR *dir);
 
   bool IfModSince(Request &request, const std::string &path);
