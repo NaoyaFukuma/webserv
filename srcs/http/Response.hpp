@@ -16,7 +16,7 @@ enum ProcessStatus {
   DONE,
 };
 
-typedef std::vector<std::pair<std::size_t, std::size_t>> RangeVec;
+typedef std::vector<std::pair<std::size_t, std::size_t> > RangeVec;
 
 class Response {
 private:

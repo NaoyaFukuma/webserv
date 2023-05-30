@@ -281,55 +281,8 @@ bool Response::StaticFileBody(const std::string &path) {
   SetBody(body);
 
   // content-typeを設定
-<<<<<<< HEAD
   SetHeader("Content-Type",
             std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
-||||||| parent of 15645d4 (if~~のheaderチェックを追加)
-  // SetHeader("Content-Type",
-  //           std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
-
-  // content-lengthを設定
-  std::stringstream ss;
-  ss << body_size;
-  SetHeader("Content-Length", ss.str());
-
-  // // Check If headers.
-  // iIfMod = IfModSince(hInfo, sBuf.st_mtime);
-  // iIfUnmod = IfUnmodSince(hInfo, sBuf.st_mtime);
-  // iIfMatch = IfMatch(hInfo, sBuf.st_mtime);
-  // iIfNone = IfNone(hInfo, sBuf.st_mtime);
-  // iIfRange = IfRange(hInfo, sBuf.st_mtime);
-  // iRangeErr = hInfo->FindRanges(sBuf.st_size);
-
-  // // Check to make sure any If headers are FALSE.
-  // // Either not-modified or no etags matched.
-  // if ((iIfMod == FALSE) || (iIfNone == FALSE)) {
-  //   sClient->Send("HTTP/1.1 304 Not Modified\r\n");
-  //   iRsp = 304;
-  // }
-  // // No matching etags or it's been modified.
-  // else if ((iIfMatch == FALSE) || (iIfUnmod == FALSE)) {
-  //   sClient->Send("HTTP/1.1 412 Precondition Failed\r\n");
-  //   iRsp = 412;
-  // }
-  // // Resource matched so send just the bytes requested.
-  // else if ((iIfRange == TRUE) && (iRangeErr == 0)) {
-  //   sClient->Send("HTTP/1.1 206 Partial Content\r\n");
-  //   iRsp = 206;
-  // }
-  // // Resource didn't match, so send the entire entity.
-  // else {
-  //   sClient->Send("HTTP/1.1 200 OK\r\n");
-  //   iRsp = 200;
-  // }
-=======
-  // SetHeader("Content-Type",
-  //           std::vector<std::string>(1, ws_get_mime_type(path.c_str())));
-
-  // content-lengthを設定
-  std::stringstream ss;
-  ss << body_size;
-  SetHeader("Content-Length", ss.str());
 }
 
 bool Response::IsValidFile(Request &request, const std::string &path) {
@@ -520,7 +473,6 @@ std::string Response::GetEtag(const std::string &path) {
   std::stringstream ss;
   ss << std::hex << file_stat.st_mtime << "-" << file_stat.st_size;
   return ss.str();
->>>>>>> 15645d4 (if~~のheaderチェックを追加)
 }
 
 bool Response::IsGetableFile(Request &request, const std::string &path) {
@@ -563,7 +515,7 @@ bool Response::IsDeleteableFile(Request &request, const std::string &path) {
   bool iIfMatch = IfMatch(request, path);
   bool iIfNone = IfNone(request, path);
 
-  if ((iIfUnmod == FALSE) || (iIfMatch == FALSE) || (iIfNone == FALSE)) {
+  if ((iIfUnmod == false) || (iIfMatch == false) || (iIfNone == false)) {
     SetResponseStatus(412);
     return false;
   } else {
