@@ -21,6 +21,8 @@ enum Version {
   HTTP11,
 };
 
+std::string VersionToString(Version version);
+
 struct HttpStatus {
   int status_code;
   std::string message;

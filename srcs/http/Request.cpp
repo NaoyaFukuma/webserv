@@ -41,6 +41,14 @@ Context Request::GetContext() const { return context_; }
 
 Header Request::GetHeaderMap() const { return message_.header; }
 
+std::vector<std::string> Request::GetHeader(const std::string &key) {
+  return message_.header[key];
+}
+
+bool Request::HasHeader(const std::string &key) const {
+  return message_.header.find(key) != message_.header.end();
+}
+
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
@@ -372,4 +380,3 @@ void Request::ResolveResourcePath() {
 // for unit-test
 void Request::SetMessage(RequestMessage message) { message_ = message; }
 void Request::SetContext(Context context) { context_ = context; }
-
