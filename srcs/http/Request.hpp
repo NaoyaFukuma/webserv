@@ -121,6 +121,9 @@ public:
     /* 移動させます */
     bool AssertRequestLine(const std::string &line);
     void SetRequestStatus(Http::HttpStatus status);
+  bool HasHeader(const std::string &key) const;
+  std::vector<std::string> GetHeader(const std::string &key);
+  Http::HttpStatus GetRequestStatus() const;
 
 };
 

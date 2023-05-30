@@ -33,7 +33,7 @@ RequestMessage Request::GetRequestMessage() const { return message_; }
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
 
-//Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
+Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
 
 Context Request::GetContext() const { return context_; }
 
