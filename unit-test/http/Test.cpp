@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(General2)
       "Transfer-Encoding: chunked\r\n"
       "\r\n"
       "4\r\n"
-      "data\r\n"
+      "four\r\n"
       "8\r\n"
       "data\r\n\r\n"
       "C\r\n"
@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(General2)
   BOOST_CHECK_EQUAL(request.GetParseStatus(), COMPLETE);
   BOOST_CHECK_EQUAL(request.GetChunkStatus(), true);
   std::cout << "request.GetBody(): " << request.GetBody() << std::endl;
-  BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "datadata\r\nabcdefghijkl");
+  BOOST_CHECK_EQUAL(request.GetRequestMessage().body, "fourdata\r\nabcdefghijkl");
 
   if (request.GetParseStatus() == COMPLETE) {
     std::cout << "COMPLETE" << std::endl;

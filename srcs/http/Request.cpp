@@ -212,21 +212,20 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
   }
     // 足りてる場合は、追加する文字列を切り取る
   else if (buffer_.GetBuffSize() > chunk_status_ + 2) {
-    std::string chunk = buffer_.GetString();
-    chunk = chunk.substr(0, chunk_status_ + 2);
+    std::string chunk = buffer_.GetString().substr(0, chunk_status_ + 2);
     // その文字列がCRLFで終わっているかを確認
     // 終わっていない場合は、エラー
     // 終わっている場合は、bodyに追加
     // chunk_status_を-1にする
-    if (chunk.rfind("\r\n") != chunk.size() - 2) {
-      //TODO: BAD_REQUEST -> 400
+    std::string::size_type pos = chunk.rfind("\r\n");
+    if (pos == std::string::npos) {
       parse_status_ = ERROR;
       return;
-    } else {
-      std::string line = buffer_.GetAndErase(chunk_status_ + 2);
-      message_.body.append(line, 0, chunk_status_);
-      chunk_status_ = -1;
     }
+    std::string buf = buffer_.GetAndErase(chunk_status_ + 2);
+    buf = buf.substr(0, pos);
+    message_.body.append(buf);
+    chunk_status_ = -1;
   }
 }
 
