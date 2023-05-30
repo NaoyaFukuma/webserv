@@ -212,18 +212,18 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     return;
   }
 
-  if (chunk_status_ < 0 || chunk_status_ > kMaxBodySize
-      || chunk_status_ + body_size_ > kMaxBodySize) {
+  if (chunk_status_ < 0 || chunk_status_ > static_cast<long>(kMaxBodySize) \
+      || chunk_status_ + body_size_ > static_cast<long>(kMaxBodySize)) {
     parse_status_ = ERROR;
     return;
   }
 
   // bufferの中身が足りない場合 // +2はCRLFの分
-  if (buffer_.GetBuffSize() < chunk_status_ + 2) {
+  if (static_cast<long>(buffer_.GetBuffSize()) < chunk_status_ + 2) {
     return;
   }
     // 足りてる場合は、追加する文字列を切り取る
-  else if (buffer_.GetBuffSize() > chunk_status_ + 2) {
+  else if (static_cast<long>(buffer_.GetBuffSize()) > chunk_status_ + 2) {
     std::string chunk = buffer_.GetString().substr(0, chunk_status_ + 2);
     // その文字列がCRLFで終わっているかを確認
     // 終わっていない場合は、エラー
@@ -245,7 +245,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
 
 // 型変えたほうが綺麗そう
 void Request::ParseContentLengthBody(SocketBuff &buffer_) {
-  if (buffer_.GetBuffSize() == body_size_) {
+  if (static_cast<long>(buffer_.GetBuffSize()) == body_size_) {
     message_.body = buffer_.GetAndErase(body_size_);
     parse_status_ = COMPLETE;
   } else {
