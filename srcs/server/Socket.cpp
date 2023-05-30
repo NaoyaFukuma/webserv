@@ -32,8 +32,8 @@ int ASocket::GetFd() const { return fd_; }
 
 void ASocket::SetFd(int fd) { fd_ = fd; }
 
-bool ASocket::IsTimeout(const time_t &threshold) const {
-  time_t now = time(NULL);
+bool ASocket::IsTimeout(const std::time_t &threshold) const {
+  std::time_t now = time(NULL);
   // listen socketの場合はtimeoutしない
   if (last_event_.in_time == -1 && last_event_.out_time == -1) {
     return false;
@@ -99,10 +99,12 @@ int ConnSocket::OnReadable(Epoll *epoll) {
 int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end();) {
+    // Todo: rdhup_が立っていたらbreak
     if (it->GetProcessStatus() == DONE) {
       std::cout << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
       std::deque<Response>::iterator tmp = it + 1;
+      // Todo: connection closeならrdhup_を立てる
       responses_.erase(it);
       it = tmp;
     }
