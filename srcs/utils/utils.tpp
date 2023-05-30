@@ -22,6 +22,12 @@ template <typename T> bool ws_strtoi(T *dest, const std::string src) {
   return true;
 }
 
+template <typename T> std::string ws_itostr(const T src) {
+  std::stringstream ss;
+  ss << src;
+  return ss.str();
+}
+
 template <typename T> T mul_assert_overflow(T lhs, T rhs) {
   if (lhs > 0) {
     if (rhs > 0) {

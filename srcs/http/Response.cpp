@@ -27,7 +27,7 @@ Response &Response::operator=(const Response &src) {
 
 std::string Response::GetString() {
   std::string ret;
-  ret += Http::VersionToString(version_) + " " + std::to_string(status_code_) +
+  ret += Http::VersionToString(version_) + " " + ws_itostr<int>(status_code_) +
          " " + status_message_ + "\r\n";
   // Todo: vector形式のvalueの扱い方について調べる
   ret += "Date: " + get_date() + "\r\n";
@@ -59,16 +59,12 @@ void Response::SetResponseStatus(Http::HttpStatus status) {
 
 void Response::SetVersion(Http::Version version) { version_ = version; }
 
-void Response::SetHeader(std::string key, std::string value) {
-  if (header_.find(key) != header_.end()) {
-    header_[key].push_back(value);
-  } else {
-    header_[key] = std::vector<std::string>{value};
-  }
+void Response::SetHeader(const std::string &key, const std::vector<std::string> &values) {
+  header_[key] = values;
 }
 
 void Response::SetBody(std::string body) {
-  SetHeader("Content-Length", std::to_string(body.length()));
+  SetHeader("Content-Length", std::vector<std::string>(1, std::to_string(body.length())));
   body_ += body;
 }
 
@@ -132,7 +128,7 @@ void Response::ProcessReturn(Request &request, ConnSocket *socket,
     SetBody(return_.return_text_);
     break;
   case RETURN_URL:
-    SetHeader("Location", return_.return_url_);
+    SetHeader("Location", std::vector<std::string>(1, return_.return_url_));
     break;
   }
   epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
@@ -247,7 +243,7 @@ void Response::ResFileList(DIR *dir) {
   ss << "</body></html>\r\n";
 
   SetResponseStatus(Http::HttpStatus(200));
-  SetHeader("Content-Type", "text/html");
+  SetHeader("Content-Type", std::vector<std::string>(1, "text/html"));
   SetBody(ss.str());
 }
 
@@ -292,7 +288,6 @@ bool Response::IsValidFile(Request &request, const std::string &path) {
   bool iIfMatch = IfMatch(request, path);
   bool iIfNone = IfNone(request, path);
   bool iIfRange = IfRange(request, path);
-  std::vector<std::pair<size_t, size_t>> ranges;
   bool iFindRange = FindRanges(request, path, ranges);
 
   // Check to make sure any If headers are FALSE.
@@ -309,8 +304,6 @@ bool Response::IsValidFile(Request &request, const std::string &path) {
   // Resource matched so send just the bytes requested.
   else if ((iIfRange == true) && (iFindRange == true)) {
     SetResponseStatus(206);
-    // Todo: set partial
-    // body(バイトレンジを指定している場合、bodyに指定された部分のみを設定する)
     return false;
   }
   // Resource didn't match, so send the entire entity.

@@ -64,7 +64,7 @@ public:
 
   void SetResponseStatus(Http::HttpStatus status);
   void SetVersion(Http::Version version);
-  void SetHeader(std::string key, std::vector<std::string> values);
+  void SetHeader(const std::string &key, const std::vector<std::string> &values);
   void SetBody(std::string body);
 
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);

@@ -16,6 +16,7 @@ void *ws_memset(void *s, int c, size_t n);
 void *ws_memcpy(void *dest, const void *src, size_t n);
 bool ws_isspace(const char c);
 template <typename T> bool ws_strtoi(T *dest, const std::string src);
+template <typename T> std::string ws_itostr(const T src);
 template <typename T> T mul_assert_overflow(T lhs, T rhs);
 
 #include "utils.tpp"
