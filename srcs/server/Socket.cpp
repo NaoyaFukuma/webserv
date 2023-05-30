@@ -32,8 +32,8 @@ int ASocket::GetFd() const { return fd_; }
 
 void ASocket::SetFd(int fd) { fd_ = fd; }
 
-bool ASocket::IsTimeout(const time_t &threshold) const {
-  time_t now = time(NULL);
+bool ASocket::IsTimeout(const std::time_t &threshold) const {
+  std::time_t now = time(NULL);
   // listen socketの場合はtimeoutしない
   if (last_event_.in_time == -1 && last_event_.out_time == -1) {
     return false;

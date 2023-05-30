@@ -1,6 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <ctime>
 #include <stdint.h>
 #include <string>
 #include <sys/types.h>
