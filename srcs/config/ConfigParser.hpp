@@ -41,7 +41,6 @@ private:
   void ParseServerName(Vserver &server);
   void ParseTimeOut(Vserver &server);
   void ParseLocation(Vserver &server);
-  void ParseMatch(Location &location);
   void ParseAllowMethod(Location &location);
   void ParseClientMaxBodySize(Location &location);
   void ParseRoot(Location &location);
@@ -59,7 +58,6 @@ private:
   void AssertServerName(const std::string &server_name);
   void AssertTimeOut(int &timeout, const std::string &timeout_str);
   void AssertLocation(const Location &location);
-  void AssertMatch(match_type &dest_match, const std::string &match_str);
   void AssertAllowMethod(std::set<method_type> &dest_method,
                          const std::string &method_str);
   void AssertAllowMethods(std::set<method_type> &dest_method);

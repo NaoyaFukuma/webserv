@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I/O Multiplexing Explanation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        main {
+            margin: 15px;
+        }
+
+        h1, h2, p {
+            margin: 0 0 15px 0;
+        }
+
+        strong {
+            color: #007BFF;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>I/O Multiplexing Explanation</h1>
+    </header>
+    <main>
+        <h2>About I/O Multiplexing</h2>
+        <p>
+            I/O multiplexing is a mechanism that allows a process to monitor multiple file descriptors to see if they are ready for I/O operations. This is particularly useful in networking where a server might need to handle multiple client connections concurrently. Instead of having each connection block the server, I/O multiplexing allows the server to manage all connections without blocking.
+        </p>
+        <p>
+            There are several system calls that provide I/O multiplexing, including select, poll, and epoll. Select and poll have the disadvantage of scaling poorly with the number of monitored file descriptors, while epoll, available only on Linux, does not have this limitation.
+        </p>
+        <p>
+            For more in-depth understanding, you can refer to these external resources:
+            <ul>
+                <li><a href="http://man7.org/linux/man-pages/man2/select.2.html">Man Page of Select</a></li>
+                <li><a href="http://man7.org/linux/man-pages/man2/poll.2.html">Man Page of Poll</a></li>
+                <li><a href="http://man7.org/linux/man-pages/man7/epoll.7.html">Man Page of Epoll</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/I/O_multiplexing">Wikipedia: I/O Multiplexing</a></li>
+            </ul>
+        </p>
+        <p><a href="./home.html">Back to Home</a></p>
+    </main>
+</body>
+
+</html>

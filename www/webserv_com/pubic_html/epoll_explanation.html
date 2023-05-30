@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epoll Explanation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        main {
+            margin: 15px;
+        }
+
+        h1, h2, p {
+            margin: 0 0 15px 0;
+        }
+
+        strong {
+            color: #007BFF;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Epoll Explanation</h1>
+    </header>
+    <main>
+        <h2>About Epoll</h2>
+        <p>
+            Epoll is a scalable I/O event notification mechanism, first introduced in the Linux 2.6 kernel. It provides an efficient way of handling a large number of file descriptors (like sockets) by allowing a process to monitor multiple file descriptors to see if I/O is possible on any of them.
+        </p>
+        <p>
+            Epoll can be used in edge-triggered or level-triggered mode and it doesn't suffer from the "thundering herd" problem that can affect other I/O multiplexing techniques, making it a preferred choice for high-performance, concurrent applications.
+        </p>
+        <p>
+            For more in-depth understanding, you can refer to these external resources:
+            <ul>
+                <li><a href="http://man7.org/linux/man-pages/man7/epoll.7.html">Man Page of Epoll</a></li>
+                <li><a href="https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_74/rzab6/xepoll.htm">IBM Knowledge Center: Epoll</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Epoll">Wikipedia: Epoll</a></li>
+            </ul>
+        </p>
+        <p><a href="./home.html">Back to Home</a></p>
+    </main>
+</body>
+
+</html>

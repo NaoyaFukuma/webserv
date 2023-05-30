@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Commands Explanation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        main {
+            margin: 15px;
+        }
+        h1, h2, p {
+            margin: 0 0 15px 0;
+        }
+        strong {
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Docker Commands Explanation</h1>
+    </header>
+    <main>
+        <h2>Introduction</h2>
+        <p>
+            Docker is an open-source platform that automates the deployment, scaling, and management of applications. Docker uses containerization technology to isolate applications and their dependencies into a self-contained unit that can run anywhere.
+        </p>
+        <h2>Commands and Their Meanings</h2>
+        <h3>cd docker</h3>
+        <p>
+            <strong>cd</strong> is a command-line command used to change the current working directory in a command-line interface. In this case, <strong>cd docker</strong> is changing the current working directory to the "docker" directory. Ensure that the "docker" directory is present in the current directory before running this command.
+        </p>
+        <h3>docker compose up -d</h3>
+        <p>
+            <strong>docker compose up</strong> is a command used to start and run your entire app. Docker Compose is a tool for defining and running multi-container Docker applications. The <strong>-d</strong> flag is short for <strong>--detach</strong>, which makes Docker to start the containers in the background and leave them running.
+        </p>
+        <h3>docker exec -it debian /bin/bash</h3>
+        <p>
+            <strong>docker exec</strong> command is used to run a new command in a running container. The <strong>-it</strong> option allows you to interact with the container. In this command, <strong>-i</strong> stands for <strong>--interactive</strong> keeps STDIN open and allows you to interact with the container, and <strong>-t</strong> stands for <strong>--tty</strong> allocates a pseudo-TTY. <strong>debian</strong> is the name of the container where you want to execute the command, and <strong>/bin/bash</strong> starts a Bash shell inside the container.
+        </p>
+        <p><a href="./home.html">Back to Home</a></p>
+    </main>
+</body>
+</html>

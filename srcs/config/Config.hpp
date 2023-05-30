@@ -7,12 +7,6 @@
 #include <string>
 #include <vector>
 
-// 複数指定不可の単一のみの設定項目で、複数指定された場合は最後の一つだけ保持する
-enum match_type {
-  PREFIX, // 前方一致
-  SUFFIX, // 後方一致
-};
-
 enum method_type {
   GET,
   POST,
@@ -37,7 +31,6 @@ struct Return {
 struct Location {
   Location();
   std::string path_; // locationのパス
-  match_type match_; // 後方一致は、CGIの場合のみ使用可能
   std::set<method_type> allow_methods_; // GET POST DELETE から１個以上指定
   uint64_t client_max_body_size_;
   // 任意 単一 デフォルト１MB, 0は無制限 制限超え 413
