@@ -67,9 +67,6 @@ public:
   void SetHeader(std::string key, std::vector<std::string> values);
   void SetBody(std::string body);
 
-  std::vector<std::string> GetHeader(std::string key) { return header_[key]; }
-  bool HasHeader(std::string key) { return header_.find(key) != header_.end(); }
-
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessStatic(Request &request, ConnSocket *socket, Epoll *epoll);
 };
