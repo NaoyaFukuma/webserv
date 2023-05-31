@@ -1,10 +1,10 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <algorithm>
 #include <cerrno>
 #include <cstdlib>
-#include <iostream>
 #include <deque>
-#include <algorithm>
+#include <iostream>
 
 Request::Request() {
   parse_status_ = INIT;
@@ -23,7 +23,7 @@ Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     parse_status_ = rhs.parse_status_;
-//    http_status_ = rhs.http_status_;
+    //    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
   }
   return *this;
@@ -51,7 +51,7 @@ void Request::Parse(SocketBuff &buffer_) {
   std::string line;
 
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
-      parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
+         parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
   if (parse_status_ == BODY) {
@@ -61,14 +61,19 @@ void Request::Parse(SocketBuff &buffer_) {
 
 void Request::ParseLine(const std::string &line) {
   switch (parse_status_) {
-    case INIT:ParseRequestLine(line);
-      break;
-    case HEADER:ParseHeader(line);
-      break;
-    case COMPLETE:break;
-    case ERROR:SetRequestStatus(400);
-      break;
-    default:break;
+  case INIT:
+    ParseRequestLine(line);
+    break;
+  case HEADER:
+    ParseHeader(line);
+    break;
+  case COMPLETE:
+    break;
+  case ERROR:
+    SetRequestStatus(400);
+    break;
+  default:
+    break;
   }
 }
 
@@ -94,7 +99,7 @@ void Request::ParseRequestLine(const std::string &line) {
     message_.request_line.version = Http::HTTP09;
     parse_status_ = COMPLETE;
   }
-    // HTTP1.0~
+  // HTTP1.0~
   else {
     //     if (IsValidMethod(message_.request_line.method) == false) {
     ////       SetError(400);
@@ -149,7 +154,8 @@ void Request::ParseHeader(const std::string &line) {
   message_.header[key] = header_values;
 }
 
-void Request::SplitHeaderValues(std::vector<std::string> &splited, const std::string &line) {
+void Request::SplitHeaderValues(std::vector<std::string> &splited,
+                                const std::string &line) {
   // ','でまずはトークンに分解
   ws_split(splited, line, ',');
   // トークンごとに前後のスペースを削除
@@ -178,13 +184,14 @@ void Request::ParseBody(SocketBuff &buffer_) {
     parse_status_ = ERROR;
     return;
   }
-// chunkedの場合
+  // chunkedの場合
   if (is_chunked) {
-    while (!buffer_.GetString().empty() && parse_status_ != ERROR && parse_status_ != COMPLETE) {
+    while (!buffer_.GetString().empty() && parse_status_ != ERROR &&
+           parse_status_ != COMPLETE) {
       ParseChunkedBody(buffer_);
     }
   }
-    // Content-Lengthの場合
+  // Content-Lengthの場合
   else {
     ParseContentLengthBody(buffer_);
   }
@@ -222,8 +229,8 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     return;
   }
 
-  if (chunk_status_ < 0 || chunk_status_ > static_cast<long>(kMaxBodySize) \
-      || chunk_status_ + body_size_ > static_cast<long>(kMaxBodySize)) {
+  if (chunk_status_ < 0 || chunk_status_ > static_cast<long>(kMaxBodySize) ||
+      chunk_status_ + body_size_ > static_cast<long>(kMaxBodySize)) {
     parse_status_ = ERROR;
     return;
   }
@@ -232,7 +239,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
   if (static_cast<long>(buffer_.GetBuffSize()) < chunk_status_ + 2) {
     return;
   }
-    // 足りてる場合は、追加する文字列を切り取る
+  // 足りてる場合は、追加する文字列を切り取る
   else if (static_cast<long>(buffer_.GetBuffSize()) > chunk_status_ + 2) {
     std::string chunk = buffer_.GetString().substr(0, chunk_status_ + 2);
     // その文字列がCRLFで終わっているかを確認
@@ -267,7 +274,8 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
 bool Request::JudgeBodyType() {
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
   // どっちもある場合は普通はchunkを優先する
-  Header::iterator it_transfer_encoding = message_.header.find("Transfer-Encoding");
+  Header::iterator it_transfer_encoding =
+      message_.header.find("Transfer-Encoding");
   Header::iterator it_content_length = message_.header.find("Content-Length");
 
   // Transfer-Encodingがある場合
@@ -310,7 +318,8 @@ std::string Request::GetWord(const std::string &line,
   return word;
 }
 
-bool Request::SplitRequestLine(std::vector<std::string> &splited, const std::string &line) {
+bool Request::SplitRequestLine(std::vector<std::string> &splited,
+                               const std::string &line) {
   // 空白文字で分割
   // 空白は1文字まで
   std::string::size_type pos = 0;
@@ -354,7 +363,7 @@ bool Request::ValidateRequestSize(std::string &data, size_t max_size) {
 }
 
 bool Request::ValidateRequestSize(Header &header, size_t max_size) {
-  (void) header;
+  (void)header;
   if (total_header_size_ > max_size) {
     return false;
   }
@@ -362,7 +371,7 @@ bool Request::ValidateRequestSize(Header &header, size_t max_size) {
 }
 
 bool Request::ValidateHeaderSize(const std::string &data) {
-  if (data.size() > kMaxHeaderLineLength || \
+  if (data.size() > kMaxHeaderLineLength ||
       total_header_size_ + data.size() > kMaxHeaderSize) {
     return false;
   }
@@ -421,14 +430,19 @@ void Request::ResolvePath(const ConfVec &vservers) {
 
   // vserverを決定
   ResolveVserver(vservers, host);
+  std::cout << "vserver: " << context_.server_name << std::endl;
 
   // locationを決定
   ResolveLocation();
+  std::cout << "location: " << context_.location.path_ << std::endl;
 
   Http::DeHexify(context_.resource_path.uri);
 
   // resource_path, is_cgiを決定
   ResolveResourcePath();
+  std::cout << "resource_path: " << context_.resource_path.server_path
+            << std::endl;
+  std::cout << "is_cgi: " << context_.is_cgi << std::endl;
 }
 
 std::string Request::ResolveHost() {
@@ -454,7 +468,7 @@ void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
     for (ConfVec::const_iterator itv = vservers.begin(); itv != vservers.end();
          itv++) {
       for (std::vector<std::string>::const_iterator its =
-          itv->server_names_.begin();
+               itv->server_names_.begin();
            its != itv->server_names_.end(); its++) {
         if (*its == host) {
           context_.vserver = *itv;
@@ -481,12 +495,17 @@ void Request::ResolveLocation() {
   std::deque<std::string> keys;
   for (std::string::const_iterator it = path.begin(); it != path.end(); it++) {
     if (*it == '/') {
-      keys.push_front(path.substr(0, it - path.begin() + 1));
+      if (it == path.begin() || it == path.end() - 1) {
+        keys.push_front(path.substr(0, it - path.begin() + 1));
+      } else {
+        keys.push_front(path.substr(0, it - path.begin()));
+      }
     }
   }
+
   // path != "" (uriの分解時に空文字列の場合は'/'としている)
   if (path[path.size() - 1] != '/') {
-    keys.push_back(path);
+    keys.push_front(path);
   }
 
   // "location /"があることを保証するので、必ずキーが存在する
@@ -502,9 +521,7 @@ void Request::ResolveLocation() {
 void Request::ResolveResourcePath() {
   std::string &root = context_.location.root_;
   std::string &path = context_.resource_path.uri.path;
-
-  // pathからlocationを除去して、rootを付与
-  std::string concat = root + '/' + path.substr(context_.location.path_.size());
+  std::string concat = root + path;
 
   // cgi_extensionsがない場合、path_infoはなく、concatをserver_pathとする
   if (context_.location.cgi_extensions_.empty()) {
@@ -516,10 +533,11 @@ void Request::ResolveResourcePath() {
 
   // cgi_extensionsがある場合
   for (std::vector<std::string>::iterator ite =
-      context_.location.cgi_extensions_.begin();
+           context_.location.cgi_extensions_.begin();
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
+    std::cout << "concat: " << concat << std::endl;
     // concatの'/'ごとにextensionを確認
     for (std::string::iterator its = concat.begin(); its != concat.end();
          its++) {

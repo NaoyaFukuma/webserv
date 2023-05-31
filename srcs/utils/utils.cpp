@@ -10,10 +10,8 @@
 // partial_pathがcgi_extensionで終わり、かつregular
 // fileであれば、cgiとして実行する
 bool ws_exist_cgi_file(const std::string &path, const std::string &extension) {
-  struct stat path_stat;
-  stat(path.c_str(), &path_stat);
-  return (extension == "." || end_with(path, extension)) &&
-         S_ISREG(path_stat.st_mode);
+  return ((extension == "." || end_with(path, extension)) &&
+          get_filetype(path) == FILE_REGULAR);
 }
 
 // ファイル名からMIMEタイプを取得する関数
