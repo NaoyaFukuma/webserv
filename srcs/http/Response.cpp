@@ -5,10 +5,10 @@
 #include "utils.hpp"
 #include <fstream>
 #include <sys/epoll.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -82,6 +82,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   // Todo: resolvepathはrequest parserの時点で行う
   request.ResolvePath(socket->GetConfVec());
   const Context &context = request.GetContext();
+  version_ = request.GetRequestMessage().request_line.version;
   if (context.location.return_.return_type_ != RETURN_EMPTY) {
     ProcessReturn(request, socket, epoll);
     return;

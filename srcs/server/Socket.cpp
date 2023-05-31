@@ -80,9 +80,7 @@ int ConnSocket::OnReadable(Epoll *epoll) {
     if (it->GetParseStatus() == COMPLETE || it->GetParseStatus() == ERROR) {
       responses_.push_back(Response());
       responses_.back().ProcessRequest(*it, this, epoll);
-      std::deque<Request>::iterator tmp = it + 1;
-      requests_.erase(it);
-      it = tmp;
+      it = requests_.erase(it);
     } else {
       it++;
     }
