@@ -516,9 +516,7 @@ void Request::ResolveLocation() {
 void Request::ResolveResourcePath() {
   std::string &root = context_.location.root_;
   std::string &path = context_.resource_path.uri.path;
-
-  // pathからlocationを除去して、rootを付与
-  std::string concat = root + '/' + path.substr(context_.location.path_.size());
+  std::string concat = root + '/' + path;
 
   // cgi_extensionsがない場合、path_infoはなく、concatをserver_pathとする
   if (context_.location.cgi_extensions_.empty()) {
