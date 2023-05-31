@@ -494,9 +494,14 @@ void Request::ResolveLocation() {
   std::deque<std::string> keys;
   for (std::string::const_iterator it = path.begin(); it != path.end(); it++) {
     if (*it == '/') {
-      keys.push_front(path.substr(0, it - path.begin() + 1));
+      if (it == path.begin() || it == path.end() - 1) {
+        keys.push_front(path.substr(0, it - path.begin() + 1));
+      } else {
+        keys.push_front(path.substr(0, it - path.begin()));
+      }
     }
   }
+
   // path != "" (uriの分解時に空文字列の場合は'/'としている)
   if (path[path.size() - 1] != '/') {
     keys.push_front(path);
@@ -515,7 +520,7 @@ void Request::ResolveLocation() {
 void Request::ResolveResourcePath() {
   std::string &root = context_.location.root_;
   std::string &path = context_.resource_path.uri.path;
-  std::string concat = root + '/' + path;
+  std::string concat = root + path;
 
   // cgi_extensionsがない場合、path_infoはなく、concatをserver_pathとする
   if (context_.location.cgi_extensions_.empty()) {
