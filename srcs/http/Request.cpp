@@ -442,6 +442,7 @@ void Request::ResolvePath(const ConfVec &vservers) {
   ResolveResourcePath();
   std::cout << "resource_path: " << context_.resource_path.server_path
             << std::endl;
+  std::cout << "is_cgi: " << context_.is_cgi << std::endl;
 }
 
 std::string Request::ResolveHost() {
@@ -536,6 +537,7 @@ void Request::ResolveResourcePath() {
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
+    std::cout << "concat: " << concat << std::endl;
     // concatの'/'ごとにextensionを確認
     for (std::string::iterator its = concat.begin(); its != concat.end();
          its++) {
