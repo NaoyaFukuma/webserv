@@ -101,10 +101,8 @@ int ConnSocket::OnWritable(Epoll *epoll) {
     if (it->GetProcessStatus() == DONE) {
       std::cout << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
-      std::deque<Response>::iterator tmp = it + 1;
       // Todo: connection closeならrdhup_を立てる
-      responses_.erase(it);
-      it = tmp;
+      it = responses_.erase(it);
     }
   }
   int send_result = send_buffer_.SendSocket(fd_);
