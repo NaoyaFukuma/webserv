@@ -505,7 +505,6 @@ void Request::ResolveLocation() {
   // "location /"があることを保証するので、必ずキーが存在する
   for (std::deque<std::string>::iterator it = keys.begin(); it != keys.end();
        it++) {
-    std::cout << "key: " << *it << std::endl;
     if (location_map.find(*it) != location_map.end()) {
       context_.location = location_map[*it];
       return;
