@@ -262,7 +262,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
 
 // 型変えたほうが綺麗そう
 void Request::ParseContentLengthBody(SocketBuff &buffer_) {
-  if (static_cast<long>(buffer_.GetBuffSize()) == body_size_) {
+  if (static_cast<long>(buffer_.GetBuffSize()) >= body_size_) {
     message_.body = buffer_.GetAndErase(body_size_);
     parse_status_ = COMPLETE;
   } else {
