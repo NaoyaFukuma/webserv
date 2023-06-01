@@ -49,7 +49,7 @@ private:
     RequestMessage message_;
     ParseStatus parse_status_;
     Http::HttpStatus http_status_;
-    bool is_chunked;
+    bool is_chunked_;
     long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
     size_t total_header_size_; // ヘッダーの長さを覚えておくための変数
     long body_size_; // bodyの長さを覚えておくための変数
@@ -108,7 +108,7 @@ public:
 
     // for test
     void SetParseStatus(ParseStatus status) { parse_status_ = status; }
-    int GetChunkStatus() const { return is_chunked; }
+    int GetChunkStatus() const { return is_chunked_; }
     long long GetContentLength() const { return body_size_; }
     std::string GetBody() const { return message_.body; }
     void SetError(int status, std::string message);

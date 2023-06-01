@@ -11,7 +11,7 @@ Request::Request() {
   chunk_status_ = -1;
   body_size_ = -1;
   total_header_size_ = 0;
-  is_chunked = false;
+  is_chunked_ = false;
 }
 
 Request::~Request() {}
@@ -185,7 +185,7 @@ void Request::ParseBody(SocketBuff &buffer_) {
     return;
   }
   // chunkedの場合
-  if (is_chunked) {
+  if (is_chunked_) {
     while (!buffer_.GetString().empty() && parse_status_ != ERROR &&
            parse_status_ != COMPLETE) {
       ParseChunkedBody(buffer_);
@@ -285,7 +285,7 @@ bool Request::JudgeBodyType() {
     for (std::vector<std::string>::const_iterator it = values.begin();
          it != values.end(); ++it) {
       if (*it == "chunked") {
-        is_chunked = true;
+        is_chunked_ = true;
         return true;
       }
     }
