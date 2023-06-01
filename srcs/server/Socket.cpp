@@ -85,11 +85,6 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       it++;
     }
   }
-  // Todo: Responseの状態をDONEにする時に以下の処理を実行する(ProcessRequest)
-  // if (it->GetProcessStatus() == DONE) {
-  //   epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-  //   last_event_.out_time = time(NULL);
-  // }
   return SUCCESS;
 }
 
@@ -103,6 +98,8 @@ int ConnSocket::OnWritable(Epoll *epoll) {
       send_buffer_.AddString(it->GetString());
       // Todo: connection closeならrdhup_を立てる
       it = responses_.erase(it);
+    } else {
+      it++;
     }
   }
   int send_result = send_buffer_.SendSocket(fd_);
