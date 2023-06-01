@@ -87,25 +87,16 @@ void Request::ParseRequestLine(const std::string &line) {
   message_.request_line.method = splited[0];
   message_.request_line.uri = splited[1];
   if (splited.size() == 2) {
-    //     if (IsValidMethod(message_.request_line.method) == false) {
-    ////       SetError(400);
-    //       return;
-    //     }
     message_.request_line.version = Http::HTTP09;
     parse_status_ = COMPLETE;
   }
     // HTTP1.0~
   else {
-    //     if (IsValidMethod(message_.request_line.method) == false) {
-    ////       SetError(400);
-    //       return;
-    //     }
     if (splited[2] == "HTTP/1.0") {
       message_.request_line.version = Http::HTTP10;
     } else if (splited[2] == "HTTP/1.1") {
       message_.request_line.version = Http::HTTP11;
     } else {
-      //       SetError(400);
       return;
     }
     parse_status_ = HEADER;
@@ -175,7 +166,7 @@ void Request::Trim(std::string &str, const std::string &delim) {
 }
 
 void Request::ParseBody(SocketBuff &buffer_) {
-  if (!JudgeBodyType()) {
+  if (!SetBodyType()) {
     parse_status_ = ERROR;
     return;
   }
@@ -274,7 +265,7 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
   }
 }
 
-bool Request::JudgeBodyType() {
+bool Request::SetBodyType() {
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
   // どっちもある場合は普通はchunkを優先する
   Header::iterator it_transfer_encoding =
@@ -319,23 +310,6 @@ std::string Request::GetWord(const std::string &line,
   }
   pos++;
   return word;
-}
-
-bool Request::SplitRequestLine(std::vector<std::string> &splited,
-                               const std::string &line) {
-  // 空白文字で分割
-  // 空白は1文字まで
-  std::string::size_type pos = 0;
-  while (pos < line.size()) {
-    if (std::isspace(line[pos])) {
-      return false;
-    }
-    splited.push_back(GetWord(line, pos));
-  }
-  if (splited.size() != 2 && splited.size() != 3) {
-    return false;
-  }
-  return true;
 }
 
 std::string::size_type Request::MovePos(const std::string &line,

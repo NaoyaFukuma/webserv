@@ -76,9 +76,8 @@ public:
     bool IsLineEnd(const std::string &line, std::string::size_type pos);
     void SplitHeaderValues(std::vector<std::string> &splited, const std::string &line);
     void Trim(std::string &str, const std::string &delim);
-    bool SplitRequestLine(std::vector<std::string> &splited, const std::string &line);
     // 名前が微妙
-    bool JudgeBodyType();
+    bool SetBodyType();
     void ParseChunkedBody(SocketBuff &buffer_);
     void ParseContentLengthBody(SocketBuff &buffer_);
 
