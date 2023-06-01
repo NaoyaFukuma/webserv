@@ -81,9 +81,9 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   }
   // Todo: resolvepathはrequest parserの時点で行う
   request.ResolvePath(socket->GetConfVec());
-  const Context &context = request.GetContext();
   version_ = request.GetRequestMessage().request_line.version;
-  if (context.location.return_.return_type_ != RETURN_EMPTY) {
+  context_ = request.GetContext();
+  if (context_.location.return_.return_type_ != RETURN_EMPTY) {
     ProcessReturn(request, socket, epoll);
     return;
   }
@@ -112,8 +112,9 @@ void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
 void Response::ProcessError(Request &request, ConnSocket *socket,
                             Epoll *epoll) {
   SetResponseStatus(request.GetRequestStatus());
-  process_status_ = DONE;
+  ProcessErrorPage();
   epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+  process_status_ = DONE;
 }
 
 void Response::ProcessReturn(Request &request, ConnSocket *socket,
@@ -147,6 +148,7 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
     // 405 Method Not Allowed
     SetResponseStatus(Http::HttpStatus(405));
   }
+  ProcessErrorPage();
   epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
   process_status_ = DONE;
 }
@@ -201,7 +203,11 @@ void Response::GetFile(Request &request, const std::string &path) {
   if (IsGetableFile(request, path) == false && status_code_ != 206) {
     return;
   }
-  StaticFileBody(path);
+  if (ranges_.empty()) {
+    StaticFileBody(path);
+  } else {
+    StaticFileBody(path, &ranges_[0]);
+  }
 }
 
 void Response::DeleteFile(Request &request, const std::string &path) {
@@ -247,19 +253,23 @@ void Response::ResFileList(DIR *dir) {
   SetBody(ss.str());
 }
 
-void Response::StaticFileBody(const std::string &path) {
+void Response::StaticFileBody(const std::string &path,
+                              std::pair<std::size_t, std::size_t> *range,
+                              bool is_error_page) {
   std::ifstream ifs(path.c_str(), std::ios::binary);
   if (!ifs) {
-    // 500 Internal Server Error
-    SetResponseStatus(Http::HttpStatus(500));
+    if (!is_error_page) {
+      // 500 Internal Server Error
+      SetResponseStatus(Http::HttpStatus(500));
+    }
     return;
   }
   // sizeを取得
-  size_t start;
-  size_t end;
-  if (!ranges_.empty()) {
-    start = ranges_[0].first;
-    end = ranges_[0].second;
+  std::size_t start;
+  std::size_t end;
+  if (range != NULL) {
+    start = (*range).first;
+    end = (*range).second;
   } else {
     start = 0;
     end = ifs.seekg(0, std::ios::end).tellg();
@@ -269,7 +279,9 @@ void Response::StaticFileBody(const std::string &path) {
   if (body_size > kMaxBodyLength ||
       end > static_cast<size_t>(ifs.seekg(0, std::ios::end).tellg())) {
     // 500 Internal Server Error
-    SetResponseStatus(Http::HttpStatus(500));
+    if (!is_error_page) {
+      SetResponseStatus(Http::HttpStatus(500));
+    }
     return;
   }
   std::string body;
@@ -488,4 +500,15 @@ std::string Response::GetEtag(const std::string &path) {
   }
   ss << std::hex << file_stat.st_mtime << "-" << file_stat.st_size;
   return ss.str();
+}
+
+void Response::ProcessErrorPage() {
+  std::string error_page_path;
+  if ((status_code_ / 100 == 4) || (status_code_ / 100 == 5)) {
+    if (context_.location.error_pages_.find(status_code_) !=
+        context_.location.error_pages_.end()) {
+      error_page_path = context_.location.root_ + context_.location.error_pages_[status_code_];
+      StaticFileBody(error_page_path, NULL, true);
+    }
+  }
 }

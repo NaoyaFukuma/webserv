@@ -29,6 +29,7 @@ private:
   Header header_;
   std::string body_;
 
+  Context context_;
   RangeVec ranges_;
 
   // 各種長さの制限に使う定数
@@ -48,7 +49,9 @@ private:
   void ProcessDELETE(Request &request);
 
   void GetFile(Request &request, const std::string &path);
-  void StaticFileBody(const std::string &path);
+  void StaticFileBody(const std::string &path,
+                      std::pair<std::size_t, std::size_t> *range = NULL,
+                      bool is_error_page = false);
   bool IsGetableFile(Request &request, const std::string &path);
 
   void DeleteFile(Request &request, const std::string &path);
@@ -85,6 +88,7 @@ public:
   void SetBody(std::string body);
 
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessErrorPage();
 };
 
 #endif // RESPONSE_HPP_
