@@ -377,6 +377,22 @@ bool Request::AssertRequestLine(const std::string &line) {
     return false;
   }
 
+  // URIのチェック
+  // HTTP/0.9の場合
+  std::string uri;
+  if (space_count == 1) {
+    uri = line.substr(first_space + 1);
+  } else {
+    std::string::size_type second_space = line.find(' ', first_space + 1);
+    if (second_space == std::string::npos) {
+      return false;
+    }
+    uri = line.substr(first_space + 1, second_space - first_space - 1);
+  }
+  if (uri.size() > kMaxUriLength) {
+    return false;
+  }
+
   // HTTPのバージョンのチェック (HTTP/0.9の場合は存在しない)
   if (space_count == 2) {
     std::string::size_type last_space = line.rfind(' ');
