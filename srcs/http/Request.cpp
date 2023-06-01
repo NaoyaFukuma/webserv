@@ -248,7 +248,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     // chunk_status_を-1にする
     std::string::size_type pos = chunk.rfind("\r\n");
     if (pos == std::string::npos) {
-      parse_status_ = ERROR;
+      parse_status_ = BODY;
       return;
     }
     if (pos == chunk.size() - 2) {
