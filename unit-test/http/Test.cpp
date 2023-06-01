@@ -79,8 +79,8 @@ BOOST_AUTO_TEST_CASE(BodyType) {
     test.SetParseStatus(HEADER);
     BOOST_CHECK_EQUAL(test.GetChunkStatus(), false);
     test.ParseHeader("Transfer-Encoding: chunked");
-    if (!test.JudgeBodyType()) {
-      BOOST_FAIL("1: JudgeBodyType failed");
+    if (!test.SetBodyType()) {
+      BOOST_FAIL("1: SetBodyType failed");
     }
     BOOST_CHECK_EQUAL(test.GetChunkStatus(), true);
   }
@@ -90,8 +90,8 @@ BOOST_AUTO_TEST_CASE(BodyType) {
 
     test.SetParseStatus(HEADER);
     test.ParseHeader("Content-Length: 100");
-    if (!test.JudgeBodyType()) {
-      BOOST_FAIL("2: JudgeBodyType failed");
+    if (!test.SetBodyType()) {
+      BOOST_FAIL("2: SetBodyType failed");
     }
     BOOST_CHECK_EQUAL(test.GetContentLength(), CONTENT_LENGTH);
   }
@@ -104,8 +104,8 @@ BOOST_AUTO_TEST_CASE(ParseContentLengthBody) {
   test.SetParseStatus(HEADER);
   test.ParseHeader("Content-Length: 81\r\n");
   test.SetParseStatus(BODY);
-  if (!test.JudgeBodyType()) {
-    BOOST_FAIL("2: JudgeBodyType failed");
+  if (!test.SetBodyType()) {
+    BOOST_FAIL("2: SetBodyType failed");
   }
 
   std::string REQUEST_BODY = \
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(ParseChunkedBodyTest)
 
   Request request;
   request.SetParseStatus(BODY);
-  request.JudgeBodyType();
+  request.SetBodyType();
 
   // Call the function to test
   request.ParseChunkedBody(buffer_);
@@ -254,4 +254,9 @@ BOOST_AUTO_TEST_CASE(UtilsTest) {
 
   /* 無効なHTTPのバージョン */
   BOOST_CHECK(!req.AssertRequestLine("DELETE /index.html HTTP/1.100"));
+
+  /* 長すぎるURI */
+  std::string long_uri;
+  long_uri.assign(8193, 'a');
+  BOOST_CHECK_EQUAL(req.AssertRequestLine("GET " + long_uri + " HTTP/1.1"), false);
 }
