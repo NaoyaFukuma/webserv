@@ -27,7 +27,7 @@ public:
 
   // parseの結果を返すメソッド
   bool IsRedirectCgi();
-  Response GetHttpResponse();
+  Response &GetHttpResponse();
   Request GetHttpRequestForCgi();
 
 private:

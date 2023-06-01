@@ -29,6 +29,9 @@ CgiResponseParser::~CgiResponseParser() {
 
 // recv_buffer_内のCGIレスポンスからResponseを構築する
 void CgiResponseParser::ParseCgiResponse() {
+  std::cout << "ParseCgiResponse() start" << std::endl;
+  this->http_response_.SetProcessStatus(DONE);
+
   size_t header_len = 0; // ヘッダーの総合計長 maxは32KB
 
   // HTTPリクエストからHTTP versionを取得し、response_messageに設定
@@ -38,6 +41,7 @@ void CgiResponseParser::ParseCgiResponse() {
   // HTTPリクエストのデフォルトのstatus codeを設定
   this->http_response_.SetResponseStatus(200);
 
+  std::cout << "CGIからの出力（Parse対象）\n" << this->cgi_socket_.GetRecvBuffer().GetString() << std::endl;
   // recv_buffer_から直接1行づつ取得する
   std::string line;
   while (this->cgi_socket_.GetRecvBuffer().GetUntilCRLF(line)) {
@@ -47,6 +51,7 @@ void CgiResponseParser::ParseCgiResponse() {
     }
     // 文字数、文字種、ヘッダーの総合計長をチェック
     if (!IsValidHeaderLine(line, header_len)) {
+      std::cout << "Invalid Header Line" << std::endl;
       // 500 Internal Server Error
       this->http_response_.SetResponseStatus(500);
       return;
@@ -61,7 +66,8 @@ void CgiResponseParser::ParseCgiResponse() {
 
   if (this->cgi_socket_.GetRecvBuffer().GetBuffSize() != 0) {
     // ボディがあるということなので、Content-Lengthを取得する
-    if (this->http_response_.HasHeader("Content-Length")) {
+    if (!this->http_response_.HasHeader("Content-Length")) {
+      std::cout << "Content-LengthヘッダーがあるのにContent-Lengthがない" << std::endl;
       // 500 Internal Server Error ボディがあるのにContent-Lengthがない
       this->http_response_.SetResponseStatus(500);
       return;
@@ -72,12 +78,28 @@ void CgiResponseParser::ParseCgiResponse() {
     ws_strtoi(&header_content_length, content_length_values[0]);
     if (header_content_length > this->kMaxBodyLength) {
       // 500 Internal Server Error
+      std::cout << "ヘッダー内のContent-Lengthが大きすぎる" << std::endl;
       this->http_response_.SetResponseStatus(500);
       return;
     }
-    size_t actual_content_length = this->cgi_socket_.GetRecvBuffer().GetBuffSize();
-    if (header_content_length != actual_content_length) {
+    std::string body = this->cgi_socket_.GetRecvBuffer().GetString();
+    size_t body_size = body.size();
+    if (body[body_size - 1] == '\n' && body[body_size - 2] == '\r') {
+      // ボディの最後の改行を削除
+      body.erase(body_size - 2, 2);
+    } else {
       // 500 Internal Server Error
+      std::cout << "ボディの最後の改行がない" << std::endl;
+      this->http_response_.SetResponseStatus(500);
+      return;
+    }
+
+
+    if (header_content_length != body_size - 2) {
+      // 500 Internal Server Error
+      std::cout << "header_content_length: " << header_content_length << std::endl;
+      std::cout << "body_size: " << body_size - 2 << std::endl;
+      std::cout << "ヘッダー内のContent-Lengthと実際のボディの長さが一致しない" << std::endl;
       this->http_response_.SetResponseStatus(500);
       return;
     }
@@ -95,9 +117,10 @@ void CgiResponseParser::ParseCgiResponse() {
       this->http_response_.SetResponseStatus(status_code);
     } else {
       // Statusヘッダーの値が2つ -> status code と status message
-      this->http_response_.SetResponseStatus(status_code);
-      // this->http_response_.SetResponseStatus(status_code, status_values[1]);
+      this->http_response_.SetResponseStatus(Http::HttpStatus(status_code, status_values[1]));
     }
+    // HTTPのレスポンスにはStatusヘッダーは不要なので削除
+    this->http_response_.DelHeader("Status");
   }
 
   if (this->http_response_.HasHeader("Location")) {
@@ -113,6 +136,7 @@ void CgiResponseParser::ParseCgiResponse() {
         std::ifstream ifs(this->cgi_socket_.GetContext().resource_path.server_path.c_str(),
                           std::ios::binary);
         if (!ifs) {
+          std::cout << "ローカルリダイレクト先のファイルが開けない" << std::endl;
           // 500 Internal Server Error
           this->http_response_.SetResponseStatus(500);
           return;
@@ -121,6 +145,7 @@ void CgiResponseParser::ParseCgiResponse() {
         size_t body_size = ifs.seekg(0, std::ios::end).tellg();
         // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
         if (body_size > this->kMaxBodyLength) {
+          std::cout << "ローカルリダイレクト先のファイルが大きすぎる" << std::endl;
           // 500 Internal Server Error
           this->http_response_.SetResponseStatus(500);
           return;
@@ -333,7 +358,7 @@ std::string CgiResponseParser::trim(const std::string &str) {
 bool CgiResponseParser::IsRedirectCgi() { return this->cgi_socket_.GetContext().is_cgi; }
 
 
-Response CgiResponseParser::GetHttpResponse() {
+Response &CgiResponseParser::GetHttpResponse() {
   return this->http_response_;
 }
 
