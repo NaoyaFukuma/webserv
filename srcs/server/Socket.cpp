@@ -91,12 +91,11 @@ int ConnSocket::OnReadable(Epoll *epoll) {
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
-       it != responses_.end();) {
-    // Todo: rdhup_が立っていたらbreak
+       it != responses_.end() && !rdhup_;) {
     if (it->GetProcessStatus() == DONE) {
       std::cout << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
-      // Todo: connection closeならrdhup_を立てる
+      rdhup_ = !it->GetIsConnection();
       it = responses_.erase(it);
     } else {
       it++;

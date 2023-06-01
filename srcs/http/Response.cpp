@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <iostream>
 
 Response::Response() { process_status_ = PROCESSING; }
 
@@ -54,6 +55,8 @@ bool Response::HasHeader(const std::string &key) const {
   return header_.find(key) != header_.end();
 }
 
+bool Response::GetIsConnection() const { return connection_; }
+
 void Response::SetResponseStatus(Http::HttpStatus status) {
   status_code_ = status.status_code;
   status_message_ = status.message;
@@ -83,6 +86,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   request.ResolvePath(socket->GetConfVec());
   version_ = request.GetRequestMessage().request_line.version;
   context_ = request.GetContext();
+  connection_ = IsConnection(request);
   if (context_.location.return_.return_type_ != RETURN_EMPTY) {
     ProcessReturn(request, socket, epoll);
     return;
@@ -343,6 +347,21 @@ bool Response::IsDeleteableFile(Request &request, const std::string &path) {
   }
 }
 
+bool Response::IsConnection(Request &request) {
+  Http::Version version = request.GetRequestMessage().request_line.version;
+  Header header = request.GetRequestMessage().header;
+
+  if (version != Http::HTTP11) {
+    return false;
+  }
+  if (request.HasHeader("Connection") == false ||
+      request.GetHeader("Connection").empty()) {
+    return true;
+  }
+  std::string connection = request.GetHeader("Connection")[0];
+  return connection != "close";
+}
+
 bool Response::IfModSince(Request &request, const std::string &path) {
   // If-Modified-Since
   if (request.HasHeader("If-Modified-Since") == false ||
@@ -507,7 +526,8 @@ void Response::ProcessErrorPage() {
   if ((status_code_ / 100 == 4) || (status_code_ / 100 == 5)) {
     if (context_.location.error_pages_.find(status_code_) !=
         context_.location.error_pages_.end()) {
-      error_page_path = context_.location.root_ + context_.location.error_pages_[status_code_];
+      error_page_path = context_.location.root_ +
+                        context_.location.error_pages_[status_code_];
       StaticFileBody(error_page_path, NULL, true);
     }
   }
