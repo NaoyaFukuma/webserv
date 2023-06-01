@@ -70,6 +70,8 @@ public:
     void ParseRequestLine(const std::string &line);
     void ParseHeader(const std::string &line);
     void ParseBody(SocketBuff &buffer_);
+    void ParseChunkSize(SocketBuff &buffer_);
+    void ParseChunkData(SocketBuff &buffer_);
     std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string &delim);
     bool IsLineEnd(const std::string &line, std::string::size_type pos);
     void SplitHeaderValues(std::vector<std::string> &splited, const std::string &line);
