@@ -97,8 +97,8 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   }
 }
 
-void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
-  CgiSocket *cgi_socket = new CgiSocket(socket, request);
+void Response::ProcessCgi(Request &request, const ConnSocket &socket, Epoll *epoll) {
+  CgiSocket *cgi_socket = new CgiSocket(socket, request, *this);
   ASocket *sock = cgi_socket->CreatCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
