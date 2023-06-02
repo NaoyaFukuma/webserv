@@ -75,11 +75,13 @@ public:
   void ParseChunkSize(SocketBuff &buffer_);
   void ParseChunkData(SocketBuff &buffer_);
   void ParseContentLengthBody(SocketBuff &buffer_);
-
+  // parse utiles
   void SplitHeaderValues(std::vector<std::string> &splited, const std::string &line);
   void Trim(std::string &str, const std::string &delim);
   bool SetBodyType();
+  bool AssertRequestLine(const std::string &line);
 
+  // resolve系
   std::string ResolveHost();
   void ResolveVserver(const ConfVec &vservers, const std::string &host);
   void ResolveLocation();
@@ -98,6 +100,10 @@ public:
   void ResolvePath(const ConfVec &vservers);
   Context GetContext() const;
   Header GetHeaderMap() const;
+  void SetRequestStatus(Http::HttpStatus status);
+  std::vector<std::string> GetHeader(const std::string &key);
+  Http::HttpStatus GetRequestStatus() const;
+  bool HasHeader(const std::string &key) const;
 
   // for test
   void SetParseStatus(ParseStatus status) { parse_status_ = status; }
@@ -110,13 +116,6 @@ public:
   // for unit-test
   void SetMessage(RequestMessage message);
   void SetContext(Context context);
-
-  /* 移動させます */
-  bool AssertRequestLine(const std::string &line);
-  void SetRequestStatus(Http::HttpStatus status);
-  bool HasHeader(const std::string &key) const;
-  std::vector<std::string> GetHeader(const std::string &key);
-  Http::HttpStatus GetRequestStatus() const;
 
 };
 
