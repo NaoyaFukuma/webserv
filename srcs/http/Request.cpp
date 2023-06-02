@@ -74,15 +74,12 @@ void Request::ParseLine(const std::string &line) {
 
 void Request::ParseRequestLine(const std::string &line) {
   std::vector<std::string> splited;
-  // フォーマットのチェック
-  // TODO: uri
   if (AssertRequestLine(line) == false) {
     parse_status_ = ERROR;
     return;
   }
   ws_split(splited, line, ' ');
 
-  // TODO: リクエストが有効かどうかのチェック足す
   // HTTP0.9
   message_.request_line.method = splited[0];
   message_.request_line.uri = splited[1];
@@ -103,12 +100,6 @@ void Request::ParseRequestLine(const std::string &line) {
   }
 }
 
-// void Request::ParseHeader(const std::string &line) {}
-
-// void Request::ParseBody(const std::string &line) {}
-
-// void Request::Clear() { *this = Request(); }
-
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
 
@@ -119,7 +110,6 @@ void Request::ParseHeader(const std::string &line) {
 
   if (!ValidateHeaderSize(line)) {
     parse_status_ = ERROR;
-
     return;
   }
 
@@ -205,7 +195,6 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
     parse_status_ = ERROR;
     return;
   }
-  return;
 }
 
 void Request::ParseChunkData(SocketBuff &buffer_) {
