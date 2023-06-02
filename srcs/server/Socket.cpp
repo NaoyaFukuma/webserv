@@ -85,24 +85,20 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       it++;
     }
   }
-  // Todo: Responseの状態をDONEにする時に以下の処理を実行する(ProcessRequest)
-  // if (it->GetProcessStatus() == DONE) {
-  //   epoll->Mod(fd_, EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
-  //   last_event_.out_time = time(NULL);
-  // }
   return SUCCESS;
 }
 
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
-       it != responses_.end();) {
-    // Todo: rdhup_が立っていたらbreak
+       it != responses_.end() && !rdhup_;) {
     if (it->GetProcessStatus() == DONE) {
       std::cout << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
-      // Todo: connection closeならrdhup_を立てる
+      rdhup_ = !it->GetIsConnection();
       it = responses_.erase(it);
+    } else {
+      it++;
     }
   }
   int send_result = send_buffer_.SendSocket(fd_);

@@ -33,6 +33,7 @@ CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
       fin_http_response_(false) {
   this->send_buffer_.AddString(http_request.GetRequestMessage().body);
   this->cgi_request_.context_ = http_request.GetContext();
+  this->cgi_request_.context_.is_cgi = false;
   this->cgi_request_.message_ = http_request.GetRequestMessage();
 };
 
@@ -97,7 +98,7 @@ int CgiSocket::OnReadable(Epoll *epoll) {
     } else {    // http responseを作成できる
       this->conn_socket_->PushResponse(cgi_res_parser.GetHttpResponse());
       uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-      epoll->Add(this->conn_socket_, event_mask);
+      epoll->Mod(this->conn_socket_->GetFd(), event_mask);
       this->fin_http_response_ = true;
       // http_response作成完了。trueにしておかないと500 Internal Server
       // Errorを追加
@@ -159,29 +160,33 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   // clientからの通信を処理
   // std::cout << "Socket: " << fd_ << std::endl;
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
-  if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
-    // エラーイベント keep runningエラーを出力はしつつ、クライアントには500
-    // Internal Server Errorを返す
-    std::cerr << "Keep Running Error: EPOLLERR or EPOLLHUP" << std::endl;
 
-    // HTTP 500 Internal Server Error を、クライアントのresponse_dequeに追加する
-    if (!this->fin_http_response_) {
-      // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
-      // Internal Server Errorを追加する
-      Response http_response;
-      http_response.SetResponseStatus(500);
-      http_response.SetVersion(Http::HTTP11);
-      http_response.SetHeader("Content-Length",
-                              std::vector<std::string>(1, "0"));
-      http_response.SetHeader("Connection",
-                              std::vector<std::string>(1, "close"));
-      this->conn_socket_->PushResponse(http_response);
-      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-      epoll->Add(this->conn_socket_, event_mask);
+  if (event_mask & EPOLLOUT) {
+    std::cout << "FD: " << this->GetFd();
+    std::cout << " CgiSocket::ProcessSocket() EPOLLOUT" << std::endl;
+    // send_buffer_からの送信。HTTPリクエストにエンティティボディが無い場合はsend_buffer_には何も入っていない。ただし、一度send()のステップを踏んで、送信完了と合流する
+    if (OnWritable(epoll) == FAILURE) {
+      if (!this->fin_http_response_) {
+        // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
+        // Internal Server Errorを追加する
+        Response http_response;
+        http_response.SetResponseStatus(500);
+        http_response.SetVersion(Http::HTTP11);
+        http_response.SetHeader("Content-Length",
+                                std::vector<std::string>(1, "0"));
+        http_response.SetHeader("Connection",
+                                std::vector<std::string>(1, "close"));
+        this->conn_socket_->PushResponse(http_response);
+        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+        epoll->Add(this->conn_socket_, event_mask);
+      }
+      return FAILURE;
     }
-    return FAILURE;
   }
+
   if (event_mask & EPOLLIN) {
+    std::cout << "FD: " << this->GetFd();
+    std::cout << " CgiSocket::ProcessSocket() EPOLLIN" << std::endl;
     // 受信(Todo: OnReadable(0))
     if (OnReadable(epoll) == FAILURE) {
       if (!this->fin_http_response_) {
@@ -201,25 +206,32 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
       return FAILURE;
     }
   }
-  if (event_mask & EPOLLOUT) {
-    // send_buffer_からの送信。HTTPリクエストにエンティティボディが無い場合はsend_buffer_には何も入っていない。ただし、一度send()のステップを踏んで、送信完了と合流する
-    if (OnWritable(epoll) == FAILURE) {
-      if (!this->fin_http_response_) {
-        // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
-        // Internal Server Errorを追加する
-        Response http_response;
-        http_response.SetResponseStatus(500);
-        http_response.SetVersion(Http::HTTP11);
-        http_response.SetHeader("Content-Length",
-                                std::vector<std::string>(1, "0"));
-        http_response.SetHeader("Connection",
-                                std::vector<std::string>(1, "close"));
-        this->conn_socket_->PushResponse(http_response);
-        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Add(this->conn_socket_, event_mask);
-      }
-      return FAILURE;
+
+
+  // if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
+  if (event_mask & EPOLLHUP) {
+    std::cout << "FD: " << this->GetFd();
+    std::cout << " CgiSocket::ProcessSocket() EPOLLHUP" << std::endl;
+    // エラーイベント keep runningエラーを出力はしつつ、クライアントには500
+    // Internal Server Errorを返す
+    std::cerr << "Keep Running Error: EPOLLHUP" << std::endl;
+
+    // HTTP 500 Internal Server Error を、クライアントのresponse_dequeに追加する
+    if (!this->fin_http_response_) {
+      // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
+      // Internal Server Errorを追加する
+      Response http_response;
+      http_response.SetResponseStatus(500);
+      http_response.SetVersion(Http::HTTP11);
+      http_response.SetHeader("Content-Length",
+                              std::vector<std::string>(1, "0"));
+      http_response.SetHeader("Connection",
+                              std::vector<std::string>(1, "close"));
+      this->conn_socket_->PushResponse(http_response);
+      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+      epoll->Add(this->conn_socket_, event_mask);
     }
+    return FAILURE;
   }
   return SUCCESS;
 }

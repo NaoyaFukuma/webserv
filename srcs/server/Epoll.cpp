@@ -68,6 +68,7 @@ void Epoll::CheckTimeout() {
        it != fd_to_socket_.end();) {
     if (it->second->IsTimeout(kSocketTimeout)) {
       int fd = it->first;
+      std::cout << "Timeout: " << fd << std::endl;
       it++;
       Del(fd);
     } else {
