@@ -291,16 +291,6 @@ bool Request::SetBodyType() {
   return false;
 }
 
-std::string Request::GetWord(const std::string &line,
-                             std::string::size_type &pos) {
-  std::string word;
-  while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
-    word += line[pos++];
-  }
-  pos++;
-  return word;
-}
-
 bool Request::ValidateHeaderSize(const std::string &data) {
   if (data.size() > kMaxHeaderLineLength ||
       total_header_size_ + data.size() > kMaxHeaderSize) {
