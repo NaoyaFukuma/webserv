@@ -1,5 +1,6 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <Socket.hpp>
 #include <algorithm>
 #include <cerrno>
 #include <cstdlib>
@@ -47,7 +48,7 @@ bool Request::HasHeader(const std::string &key) const {
   return message_.header.find(key) != message_.header.end();
 }
 
-void Request::Parse(SocketBuff &buffer_) {
+void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   std::string line;
 
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
@@ -56,6 +57,10 @@ void Request::Parse(SocketBuff &buffer_) {
   }
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
+  }
+
+  if (parse_status_ == COMPLETE) {
+    ResolvePath(socket->GetConfVec());
   }
 }
 

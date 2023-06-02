@@ -79,8 +79,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
     ProcessError(request, socket, epoll);
     return;
   }
-  // Todo: resolvepathはrequest parserの時点で行う
-  request.ResolvePath(socket->GetConfVec());
+
   const Context &context = request.GetContext();
   version_ = request.GetRequestMessage().request_line.version;
   if (context.location.return_.return_type_ != RETURN_EMPTY) {

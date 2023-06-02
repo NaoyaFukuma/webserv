@@ -72,7 +72,7 @@ int ConnSocket::OnReadable(Epoll *epoll) {
         requests_.back().GetParseStatus() == ERROR) {
       requests_.push_back(Request());
     }
-    requests_.back().Parse(recv_buffer_);
+    requests_.back().Parse(recv_buffer_, this);
   }
 
   for (std::deque<Request>::iterator it = requests_.begin();

@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+class ConnSocket;
+
 struct RequestLine {
   std::string method;    // そのまま
   std::string uri;       // 更新
@@ -96,7 +98,7 @@ public:
 
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
-  void Parse(SocketBuff &buffer_);
+  void Parse(SocketBuff &buffer_, ConnSocket *socket);
   void ResolvePath(const ConfVec &vservers);
   Context GetContext() const;
   Header GetHeaderMap() const;
