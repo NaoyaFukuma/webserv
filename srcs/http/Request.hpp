@@ -80,42 +80,40 @@ public:
   void Trim(std::string &str, const std::string &delim);
   bool SetBodyType();
 
-    std::string ResolveHost();
-    void ResolveVserver(const ConfVec &vservers, const std::string &host);
-    void ResolveLocation();
-    void ResolveResourcePath();
-    bool ExistCgiFile(const std::string &path,
-                    const std::string &extension) const;
+  std::string ResolveHost();
+  void ResolveVserver(const ConfVec &vservers, const std::string &host);
+  void ResolveLocation();
+  void ResolveResourcePath();
+  bool ValidateHeaderSize(const std::string &data);
 
-public:
-    Request();
-    ~Request();
-    Request(const Request &src);
-    Request &operator=(const Request &rhs);
+ public:
+  Request();
+  ~Request();
+  Request(const Request &src);
+  Request &operator=(const Request &rhs);
 
-    RequestMessage GetRequestMessage() const;
-    ParseStatus GetParseStatus() const;
-    void Parse(SocketBuff &buffer_);
-    void ResolvePath(const ConfVec &vservers);
-    Context GetContext() const;
-    Header GetHeaderMap() const;
-    bool ValidateHeaderSize(const std::string &data);
+  RequestMessage GetRequestMessage() const;
+  ParseStatus GetParseStatus() const;
+  void Parse(SocketBuff &buffer_);
+  void ResolvePath(const ConfVec &vservers);
+  Context GetContext() const;
+  Header GetHeaderMap() const;
 
-    // for test
-    void SetParseStatus(ParseStatus status) { parse_status_ = status; }
-    int GetChunkStatus() const { return is_chunked_; }
-    long long GetContentLength() const { return body_size_; }
-    std::string GetBody() const { return message_.body; }
-    void SetError(int status, std::string message);
-    void SetError(int status);
+  // for test
+  void SetParseStatus(ParseStatus status) { parse_status_ = status; }
+  int GetChunkStatus() const { return is_chunked_; }
+  long long GetContentLength() const { return body_size_; }
+  std::string GetBody() const { return message_.body; }
+  void SetError(int status, std::string message);
+  void SetError(int status);
 
-    // for unit-test
-    void SetMessage(RequestMessage message);
-    void SetContext(Context context);
+  // for unit-test
+  void SetMessage(RequestMessage message);
+  void SetContext(Context context);
 
-    /* 移動させます */
-    bool AssertRequestLine(const std::string &line);
-    void SetRequestStatus(Http::HttpStatus status);
+  /* 移動させます */
+  bool AssertRequestLine(const std::string &line);
+  void SetRequestStatus(Http::HttpStatus status);
   bool HasHeader(const std::string &key) const;
   std::vector<std::string> GetHeader(const std::string &key);
   Http::HttpStatus GetRequestStatus() const;
