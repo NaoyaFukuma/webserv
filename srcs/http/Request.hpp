@@ -66,20 +66,19 @@ private:
 public:
 #endif
 
-    void ParseLine(const std::string &line);
-    void ParseRequestLine(const std::string &line);
-    void ParseHeader(const std::string &line);
-    void ParseBody(SocketBuff &buffer_);
-    void ParseChunkSize(SocketBuff &buffer_);
-    void ParseChunkData(SocketBuff &buffer_);
-    std::string::size_type MovePos(const std::string &line, std::string::size_type start, const std::string &delim);
-    bool IsLineEnd(const std::string &line, std::string::size_type pos);
-    void SplitHeaderValues(std::vector<std::string> &splited, const std::string &line);
-    void Trim(std::string &str, const std::string &delim);
-    // 名前が微妙
-    bool SetBodyType();
-    void ParseChunkedBody(SocketBuff &buffer_);
-    void ParseContentLengthBody(SocketBuff &buffer_);
+  // parse系
+  void ParseLine(const std::string &line);
+  void ParseRequestLine(const std::string &line);
+  void ParseHeader(const std::string &line);
+  void ParseBody(SocketBuff &buffer_);
+  void ParseChunkedBody(SocketBuff &buffer_);
+  void ParseChunkSize(SocketBuff &buffer_);
+  void ParseChunkData(SocketBuff &buffer_);
+  void ParseContentLengthBody(SocketBuff &buffer_);
+
+  void SplitHeaderValues(std::vector<std::string> &splited, const std::string &line);
+  void Trim(std::string &str, const std::string &delim);
+  bool SetBodyType();
 
     std::string ResolveHost();
     void ResolveVserver(const ConfVec &vservers, const std::string &host);
@@ -96,15 +95,10 @@ public:
 
     RequestMessage GetRequestMessage() const;
     ParseStatus GetParseStatus() const;
-//    Http::HttpError GetErrorStatus() const;
     void Parse(SocketBuff &buffer_);
-    void Clear();
     void ResolvePath(const ConfVec &vservers);
     Context GetContext() const;
     Header GetHeaderMap() const;
-    std::string GetWord(const std::string &line, std::string::size_type &pos);
-    bool ValidateRequestSize(std::string &data, size_t max_size);
-    bool ValidateRequestSize(Header &header, size_t max_size);
     bool ValidateHeaderSize(const std::string &data);
 
     // for test

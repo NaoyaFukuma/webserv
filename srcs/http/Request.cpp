@@ -301,41 +301,6 @@ std::string Request::GetWord(const std::string &line,
   return word;
 }
 
-std::string::size_type Request::MovePos(const std::string &line,
-                                        std::string::size_type start,
-                                        const std::string &delim) {
-  std::string::size_type pos = start;
-  while (pos < line.size() && delim.find(line[pos]) != std::string::npos) {
-    pos++;
-  }
-  return pos;
-}
-
-bool Request::IsLineEnd(const std::string &line, std::string::size_type start) {
-  while (start < line.size()) {
-    if (std::isspace(line[start]) == false) {
-      return false;
-    }
-    start++;
-  }
-  return true;
-}
-
-bool Request::ValidateRequestSize(std::string &data, size_t max_size) {
-  if (data.size() > max_size) {
-    return false;
-  }
-  return true;
-}
-
-bool Request::ValidateRequestSize(Header &header, size_t max_size) {
-  (void) header;
-  if (total_header_size_ > max_size) {
-    return false;
-  }
-  return true;
-}
-
 bool Request::ValidateHeaderSize(const std::string &data) {
   if (data.size() > kMaxHeaderLineLength ||
       total_header_size_ + data.size() > kMaxHeaderSize) {
