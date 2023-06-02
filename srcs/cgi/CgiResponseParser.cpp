@@ -49,6 +49,7 @@ void CgiResponseParser::ParseCgiResponse() {
     if (!IsValidHeaderLine(line, header_len)) {
       // 500 Internal Server Error
       this->http_response_.SetResponseStatus(500);
+      http_response_.ProcessErrorPage();
       return;
     }
 
@@ -64,6 +65,7 @@ void CgiResponseParser::ParseCgiResponse() {
     if (this->http_response_.HasHeader("Content-Length")) {
       // 500 Internal Server Error ボディがあるのにContent-Lengthがない
       this->http_response_.SetResponseStatus(500);
+      http_response_.ProcessErrorPage();
       return;
     }
     std::vector<std::string> content_length_values =
@@ -73,12 +75,14 @@ void CgiResponseParser::ParseCgiResponse() {
     if (header_content_length > this->kMaxBodyLength) {
       // 500 Internal Server Error
       this->http_response_.SetResponseStatus(500);
+      http_response_.ProcessErrorPage();
       return;
     }
     size_t actual_content_length = this->cgi_socket_.GetRecvBuffer().GetBuffSize();
     if (header_content_length != actual_content_length) {
       // 500 Internal Server Error
       this->http_response_.SetResponseStatus(500);
+      http_response_.ProcessErrorPage();
       return;
     }
     this->http_response_.SetBody(this->cgi_socket_.GetRecvBuffer().GetString());
@@ -115,6 +119,7 @@ void CgiResponseParser::ParseCgiResponse() {
         if (!ifs) {
           // 500 Internal Server Error
           this->http_response_.SetResponseStatus(500);
+          http_response_.ProcessErrorPage();
           return;
         }
         // sizeを取得
@@ -123,6 +128,7 @@ void CgiResponseParser::ParseCgiResponse() {
         if (body_size > this->kMaxBodyLength) {
           // 500 Internal Server Error
           this->http_response_.SetResponseStatus(500);
+          http_response_.ProcessErrorPage();
           return;
         }
         std::string body;
@@ -142,6 +148,7 @@ void CgiResponseParser::ParseCgiResponse() {
       }
     }
   }
+  http_response_.ProcessErrorPage();
 }
 
 // parserメソッド郡
