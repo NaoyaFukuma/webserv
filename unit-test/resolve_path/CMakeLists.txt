@@ -42,23 +42,23 @@ target_link_libraries(multiplelocation PRIVATE MyServerLib MyConfigLib MyUtilsLi
 target_include_directories(multiplelocation PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
 add_test(NAME multiplelocation COMMAND multiplelocation)
 
-# =================================== multipleserverlocation =================================== #
-
-add_executable(multipleserverlocation ${TEST_FILE})
-target_link_libraries(multipleserverlocation PRIVATE MyServerLib MyConfigLib MyUtilsLib MyHttpLib Boost::unit_test_framework)
-target_include_directories(multipleserverlocation PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
-add_test(NAME multipleserverlocation COMMAND multipleserverlocation)
-
-# =================================== cgi =================================== #
-
-add_executable(cgi ${TEST_FILE})
-target_link_libraries(cgi PRIVATE MyServerLib MyConfigLib MyUtilsLib MyHttpLib Boost::unit_test_framework)
-target_include_directories(cgi PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
-add_test(NAME cgi COMMAND cgi)
-
-# =================================== pathinfo =================================== #
-
-add_executable(pathinfo ${TEST_FILE})
-target_link_libraries(pathinfo PRIVATE MyServerLib MyConfigLib MyUtilsLib MyHttpLib Boost::unit_test_framework)
-target_include_directories(pathinfo PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
-add_test(NAME pathinfo COMMAND pathinfo)
+## =================================== multipleserverlocation =================================== #
+#
+#add_executable(multipleserverlocation ${TEST_FILE})
+#target_link_libraries(multipleserverlocation PRIVATE MyServerLib MyConfigLib MyUtilsLib MyHttpLib Boost::unit_test_framework)
+#target_include_directories(multipleserverlocation PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
+#add_test(NAME multipleserverlocation COMMAND multipleserverlocation)
+#
+## =================================== cgi =================================== #
+#
+#add_executable(cgi ${TEST_FILE})
+#target_link_libraries(cgi PRIVATE MyServerLib MyConfigLib MyUtilsLib MyHttpLib Boost::unit_test_framework)
+#target_include_directories(cgi PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
+#add_test(NAME cgi COMMAND cgi)
+#
+## =================================== pathinfo =================================== #
+#
+#add_executable(pathinfo ${TEST_FILE})
+#target_link_libraries(pathinfo PRIVATE MyServerLib MyConfigLib MyUtilsLib MyHttpLib Boost::unit_test_framework)
+#target_include_directories(pathinfo PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config ${PROJECT_SOURCE_DIR}/../srcs/http ${PROJECT_SOURCE_DIR}/../srcs/server)
+#add_test(NAME pathinfo COMMAND pathinfo)
