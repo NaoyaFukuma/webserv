@@ -1,9 +1,7 @@
-set(TEST_INVALID_FILES TestInvalidConf.cpp)
-
-add_executable(test_invalid_configs ${TEST_INVALID_FILES})
-
 # =================================== test_invalid_configs =================================== #
 
+set(TEST_INVALID_FILES TestInvalidConf.cpp)
+add_executable(test_invalid_configs ${TEST_INVALID_FILES})
 target_link_libraries(test_invalid_configs PRIVATE MyConfigLib MyUtilsLib Boost::unit_test_framework)
 target_include_directories(test_invalid_configs PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/config)
 add_test(NAME test_invalid_configs COMMAND test_invalid_configs)

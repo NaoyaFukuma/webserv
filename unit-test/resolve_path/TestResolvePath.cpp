@@ -1,5 +1,5 @@
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE ResolvePath
+#define BOOST_TEST_MAIN
 #include "Config.hpp"
 #include "Request.hpp"
 #include "ConfigParser.hpp"
@@ -7,13 +7,13 @@
 
 BOOST_AUTO_TEST_CASE(SimpleConfig) {
   Config config;
-  config.ParseConfig("../../config/test_config_files/valid/Simple.conf");
+  config.ParseConfig("../../test_config_files/valid/Simple.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
-                                             .uri = "/test/index.html",
-                                             .version = Http::HTTP11},
-                            .header = {},
-                            .body = ""};
+      .uri = "/test/index.html",
+      .version = Http::HTTP11},
+      .header = {},
+      .body = ""};
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
@@ -22,13 +22,13 @@ BOOST_AUTO_TEST_CASE(SimpleConfig) {
 
 BOOST_AUTO_TEST_CASE(SimpleConfigWithoutSlash) {
   Config config;
-  config.ParseConfig("../../config/test_config_files/valid/Simple.conf");
+  config.ParseConfig("../../test_config_files/valid/Simple.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
-                                             .uri = "test/index.html",
-                                             .version = Http::HTTP11},
-                            .header = {},
-                            .body = ""};
+      .uri = "test/index.html",
+      .version = Http::HTTP11},
+      .header = {},
+      .body = ""};
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
@@ -37,13 +37,13 @@ BOOST_AUTO_TEST_CASE(SimpleConfigWithoutSlash) {
 
 BOOST_AUTO_TEST_CASE(MultipleLocation) {
   Config config;
-  config.ParseConfig("../../config/test_config_files/valid/MultipleRoute.conf");
+  config.ParseConfig("../../test_config_files/valid/MultipleRoute.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
-                                             .uri = "/b/a/index.html",
-                                             .version = Http::HTTP11},
-                            .header = {},
-                            .body = ""};
+      .uri = "/b/a/index.html",
+      .version = Http::HTTP11},
+      .header = {},
+      .body = ""};
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
@@ -52,13 +52,13 @@ BOOST_AUTO_TEST_CASE(MultipleLocation) {
 
 BOOST_AUTO_TEST_CASE(MultipleServerLocation) {
   Config config;
-  config.ParseConfig("../../config/test_config_files/valid/Complex.conf");
+  config.ParseConfig("../../test_config_files/valid/Complex.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
-                                             .uri = "/files/index.html",
-                                             .version = Http::HTTP11},
-                            .header = {{"Host", {"localhost"}}},
-                            .body = ""};
+      .uri = "/files/index.html",
+      .version = Http::HTTP11},
+      .header = {{"Host", {"localhost"}}},
+      .body = ""};
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
@@ -86,10 +86,10 @@ BOOST_AUTO_TEST_CASE(PathInfo) {
   config.ParseConfig("../../resolve_path/test_config_files/cgi.conf");
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
-                                             .uri = "/cgi/cgi.py/path/info",
-                                             .version = Http::HTTP11},
-                            .header = {{"Host", {"cgi"}}},
-                            .body = ""};
+      .uri = "/cgi/cgi.py/path/info",
+      .version = Http::HTTP11},
+      .header = {{"Host", {"cgi"}}},
+      .body = ""};
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
