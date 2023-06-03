@@ -59,7 +59,8 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
     ParseBody(buffer_);
   }
 
-  if (parse_status_ == COMPLETE) {
+  // socket = NULL -> DEBUG用
+  if (socket && parse_status_ == COMPLETE) {
     ResolvePath(socket->GetConfVec());
   }
 }

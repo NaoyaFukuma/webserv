@@ -98,7 +98,7 @@ public:
 
   RequestMessage GetRequestMessage() const;
   ParseStatus GetParseStatus() const;
-  void Parse(SocketBuff &buffer_, ConnSocket *socket);
+  void Parse(SocketBuff &buffer_, ConnSocket *socket = NULL);
   void ResolvePath(const ConfVec &vservers);
   Context GetContext() const;
   Header GetHeaderMap() const;
