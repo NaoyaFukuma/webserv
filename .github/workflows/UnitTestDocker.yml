@@ -25,4 +25,4 @@ jobs:
 
       - name: Test
         run: |
-          docker exec debian /bin/bash -c "make unit-test"
+          docker exec ubuntu /bin/bash -c "make unit-test"
