@@ -11,6 +11,16 @@ set(TEST_FILE TestResolvePath.cpp)
 
 enable_testing()
 
+# set absolute path
+get_filename_component(ABS_PATH1 ../test_config_files/valid/Simple.conf ABSOLUTE)
+add_definitions(-DSIMPLECONF_PATH="${ABS_PATH1}")
+
+get_filename_component(ABS_PATH2 ../test_config_files/valid/MultipleRoute.conf ABSOLUTE)
+add_definitions(-DMULTIROUTECONF_PATH="${ABS_PATH2}")
+
+get_filename_component(ABS_PATH3 ../test_config_files/valid/Complex.conf ABSOLUTE)
+add_definitions(-DCOMPLEXCONF_PATH="${ABS_PATH3}")
+
 # =================================== simpleconfig =================================== #
 
 add_executable(simpleconfig ${TEST_FILE})

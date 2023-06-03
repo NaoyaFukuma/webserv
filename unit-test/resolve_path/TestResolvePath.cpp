@@ -5,9 +5,11 @@
 #include "ConfigParser.hpp"
 #include <boost/test/included/unit_test.hpp>
 
+/* you have to use cmake to run this test */
+
 BOOST_AUTO_TEST_CASE(SimpleConfig) {
   Config config;
-  config.ParseConfig("../../test_config_files/valid/Simple.conf");
+  config.ParseConfig(SIMPLECONF_PATH);
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
       .uri = "/test/index.html",
@@ -22,7 +24,7 @@ BOOST_AUTO_TEST_CASE(SimpleConfig) {
 
 BOOST_AUTO_TEST_CASE(SimpleConfigWithoutSlash) {
   Config config;
-  config.ParseConfig("../../test_config_files/valid/Simple.conf");
+  config.ParseConfig(SIMPLECONF_PATH);
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
       .uri = "test/index.html",
@@ -37,7 +39,7 @@ BOOST_AUTO_TEST_CASE(SimpleConfigWithoutSlash) {
 
 BOOST_AUTO_TEST_CASE(MultipleLocation) {
   Config config;
-  config.ParseConfig("../../test_config_files/valid/MultipleRoute.conf");
+  config.ParseConfig(MULTIROUTECONF_PATH);
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
       .uri = "/b/a/index.html",
@@ -52,7 +54,7 @@ BOOST_AUTO_TEST_CASE(MultipleLocation) {
 
 BOOST_AUTO_TEST_CASE(MultipleServerLocation) {
   Config config;
-  config.ParseConfig("../../test_config_files/valid/Complex.conf");
+  config.ParseConfig(COMPLEXCONF_PATH);
   Request request;
   RequestMessage message = {.request_line = {.method = "GET",
       .uri = "/files/index.html",
@@ -93,7 +95,7 @@ BOOST_AUTO_TEST_CASE(PathInfo) {
   request.SetMessage(message);
   request.ResolvePath(config.GetServerVec());
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.server_path,
-                    "/app/unit-test/resolve_path/test_cgi_bin/cgi.py");
+                    "/app/unit-test/resolve_path/test_cgi_bin/cgi.conf");
   BOOST_CHECK_EQUAL(request.GetContext().resource_path.path_info, "/path/info");
   BOOST_CHECK_EQUAL(request.GetContext().is_cgi, true);
 }
