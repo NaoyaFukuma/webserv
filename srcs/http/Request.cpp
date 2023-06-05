@@ -10,7 +10,7 @@
 Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
-  body_size_ = -1;
+  total_body_size_ = -1;
   total_header_size_ = 0;
   is_chunked_ = false;
 }
@@ -60,13 +60,23 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   }
 
   // socket = NULL -> DEBUG用
-  if (socket && parse_status_ == COMPLETE) {
-    ResolvePath(socket->GetConfVec());
-  }
+  if (socket) {
+    if (parse_status_ == COMPLETE) {
+      ResolvePath(socket->GetConfVec());
+    }
 
-  if (!AssertUrlPath()) {
-    http_status_ = 400;
-    parse_status_ = ERROR;
+    uint64_t client_max_body_size = socket->GetConfVec()[0].locations_[0].client_max_body_size_;
+    if (!AssertSize(total_body_size_, static_cast<long>(client_max_body_size))) {
+      SetRequestStatus(413);
+      parse_status_ = ERROR;
+      return;
+    }
+
+    if (!AssertUrlPath()) {
+      SetRequestStatus(400);
+      parse_status_ = ERROR;
+      return;
+    }
   }
 }
 
@@ -208,6 +218,14 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   }
 }
 
+template<typename T>
+bool Request::AssertSize(const T &actual_size, const T &max_allowed_size) {
+  if (actual_size > max_allowed_size) {
+    return false;
+  }
+  return true;
+}
+
 void Request::ParseChunkData(SocketBuff &buffer_) {
   // chunk_status_が0の場合は、最後のchunk
   if (chunk_status_ == 0) {
@@ -224,7 +242,7 @@ void Request::ParseChunkData(SocketBuff &buffer_) {
   }
 
   if (chunk_status_ < 0 || chunk_status_ > static_cast<long>(kMaxBodySize) ||
-      chunk_status_ + body_size_ > static_cast<long>(kMaxBodySize)) {
+      chunk_status_ + total_body_size_ > static_cast<long>(kMaxBodySize)) {
     parse_status_ = ERROR;
     return;
   }
@@ -256,8 +274,8 @@ void Request::ParseChunkData(SocketBuff &buffer_) {
 
 // 型変えたほうが綺麗そう
 void Request::ParseContentLengthBody(SocketBuff &buffer_) {
-  if (static_cast<long>(buffer_.GetBuffSize()) >= body_size_) {
-    message_.body = buffer_.GetAndErase(body_size_);
+  if (static_cast<long>(buffer_.GetBuffSize()) >= total_body_size_) {
+    message_.body = buffer_.GetAndErase(total_body_size_);
     parse_status_ = COMPLETE;
   } else {
     // bufferの中身が足りない場合 -> 次のループでまた呼ばれる
@@ -295,7 +313,7 @@ bool Request::SetBodyType() {
       // error
       return false;
     } else {
-      body_size_ = content_length;
+      total_body_size_ = content_length;
       return true;
     }
   }
@@ -391,7 +409,7 @@ void Request::SetRequestStatus(Http::HttpStatus status) {
 void Request::ResolvePath(const ConfVec &vservers) {
   std::string src_uri = message_.request_line.uri;
   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
-    http_status_ = 400;
+    SetRequestStatus(400);
     return;
   }
   // hostを決定

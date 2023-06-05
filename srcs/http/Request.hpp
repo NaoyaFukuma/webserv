@@ -53,8 +53,8 @@ private:
     Http::HttpStatus http_status_;
     bool is_chunked_;
     long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
-    size_t total_header_size_; // ヘッダーの長さを覚えておくための変数
-    long body_size_; // bodyの長さを覚えておくための変数
+    long total_header_size_; // ヘッダーの長さを覚えておくための変数
+    long total_body_size_; // bodyの長さを覚えておくための変数
     static const size_t kMaxHeaderLineLength = 8192; // 8KB // ヘッダーの1行の最大長さ
     static const size_t kMaxHeaderSize = 32768; // 32KB // ヘッダー全体の最大長さ
     static const size_t kMaxBodySize = 1048576; // 1MB // bodyの最大長さ
@@ -83,6 +83,7 @@ public:
   bool SetBodyType();
   bool AssertRequestLine(const std::string &line);
   bool AssertUrlPath();
+  template<typename T> bool AssertSize(const T &actual_size, const T &max_allowed_size);
 
   // resolve系
   std::string ResolveHost();
@@ -111,7 +112,7 @@ public:
   // for test
   void SetParseStatus(ParseStatus status) { parse_status_ = status; }
   int GetChunkStatus() const { return is_chunked_; }
-  long long GetContentLength() const { return body_size_; }
+  long long GetContentLength() const { return total_body_size_; }
   std::string GetBody() const { return message_.body; }
   void SetError(int status, std::string message);
   void SetError(int status);
