@@ -260,3 +260,51 @@ BOOST_AUTO_TEST_CASE(UtilsTest) {
   long_uri.assign(8193, 'a');
   BOOST_CHECK_EQUAL(req.AssertRequestLine("GET " + long_uri + " HTTP/1.1"), false);
 }
+
+BOOST_AUTO_TEST_CASE(Assert) {
+  Request request;
+  // OK
+  { /* 1 */
+    Context context;
+    context.resource_path.uri.path = "hoge/hoge/index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), true);
+  }
+  { /* 2 */
+    Context context;
+    context.resource_path.uri.path = "hoge/fuga/../index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), true);
+  }
+  { /* 3 */
+    Context context;
+    context.resource_path.uri.path = "hoge/fuga/../../index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), true);
+  }
+  { /* 4 */
+    Context context;
+    context.resource_path.uri.path = "hoge/../fuga/../piyo/../index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), true);
+  }
+  // ERROR
+  { /* 5 */
+    Context context;
+    context.resource_path.uri.path = "../index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), false);
+  }
+  { /* 6 */
+    Context context;
+    context.resource_path.uri.path = "hoge/../../index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), false);
+  }
+  { /* 7 */
+    Context context;
+    context.resource_path.uri.path = "hoge/fuga/../piyo/../../../index.html";
+    request.SetContext(context);
+    BOOST_CHECK_EQUAL(request.AssertUrlPath(), false);
+  }
+}

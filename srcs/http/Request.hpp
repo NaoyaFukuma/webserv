@@ -82,6 +82,7 @@ public:
   void Trim(std::string &str, const std::string &delim);
   bool SetBodyType();
   bool AssertRequestLine(const std::string &line);
+  bool AssertUrlPath();
 
   // resolve系
   std::string ResolveHost();

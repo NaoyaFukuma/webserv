@@ -63,6 +63,10 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   if (socket && parse_status_ == COMPLETE) {
     ResolvePath(socket->GetConfVec());
   }
+
+  if (!AssertUrlPath()) {
+    parse_status_ = ERROR;
+  }
 }
 
 void Request::ParseLine(const std::string &line) {
@@ -303,6 +307,27 @@ bool Request::ValidateHeaderSize(const std::string &data) {
     return false;
   }
   total_header_size_ += data.size();
+  return true;
+}
+
+bool Request::AssertUrlPath() {
+  // URIの相対path部分がドキュメントルートより上に行っていないかチェック
+  int counter = 0;
+  // '/'ごとにurlを分割
+  std::vector<std::string> split_url;
+  ssize_t splited_url_size = ws_split(split_url, context_.resource_path.uri.path, '/');
+  // ".."があるごとにカウントをマイナス
+  // カウンターが0以下になったらrootにアクセスしているのでどんな場合でもエラーにする
+  for (ssize_t i = 0; i < splited_url_size; ++i) {
+    if (split_url[i] == "..") {
+      --counter;
+    } else {
+      ++counter;
+    }
+    if (counter < 0) {
+      return false;
+    }
+  }
   return true;
 }
 

@@ -42,8 +42,14 @@ add_test(NAME general2 COMMAND general2)
 
 # =================================== TestFunc =================================== #
 
-
 add_executable(testfunc ${TEST_FILE})
 target_link_libraries(testfunc PRIVATE MyHttpLib MyUtilsLib MyServerLib Boost::unit_test_framework)
 target_include_directories(testfunc PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/http)
 add_test(NAME testfunc COMMAND testfunc)
+
+# =================================== all =================================== #
+
+add_executable(Assert ${TEST_FILE})
+target_link_libraries(Assert PRIVATE MyHttpLib MyUtilsLib MyServerLib Boost::unit_test_framework)
+target_include_directories(Assert PRIVATE ${PROJECT_SOURCE_DIR}/../srcs/http)
+add_test(NAME Assert COMMAND Assert)
