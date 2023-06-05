@@ -7,7 +7,7 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define MULTI_PORT "../../config/test_config_files/valid/MultiplePort.conf"
+#define MULTI_PORT "../../test_config_files/valid/MultiplePort.conf"
 
 BOOST_AUTO_TEST_CASE(MultiPort) {
   Config conf;

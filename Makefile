@@ -35,7 +35,7 @@ re:
 .PHONY: all clean fclean re
 
 docker:
-	cd docker && docker compose up -d && docker exec -it debian /bin/bash
+	cd docker && docker compose up -d && docker exec -it ubuntu /bin/bash
 
 test_echo:
 	@(cd tests/echo_server && \

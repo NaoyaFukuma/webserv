@@ -1,5 +1,6 @@
 #include "Request.hpp"
 #include "utils.hpp"
+#include <Socket.hpp>
 #include <algorithm>
 #include <cerrno>
 #include <cstdlib>
@@ -9,9 +10,9 @@
 Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
-  body_size_ = -1;
+  total_body_size_ = -1;
   total_header_size_ = 0;
-  is_chunked = false;
+  is_chunked_ = false;
 }
 
 Request::~Request() {}
@@ -47,81 +48,78 @@ bool Request::HasHeader(const std::string &key) const {
   return message_.header.find(key) != message_.header.end();
 }
 
-void Request::Parse(SocketBuff &buffer_) {
+void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   std::string line;
 
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
-         parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
+      parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
   }
+
+  // socket = NULL -> DEBUG用
+  if (socket) {
+    if (parse_status_ == COMPLETE) {
+      ResolvePath(socket->GetConfVec());
+    }
+
+    uint64_t client_max_body_size = socket->GetConfVec()[0].locations_[0].client_max_body_size_;
+    if (!AssertSize(total_body_size_, static_cast<long>(client_max_body_size))) {
+      SetRequestStatus(413);
+      parse_status_ = ERROR;
+      return;
+    }
+
+    if (!AssertUrlPath()) {
+      SetRequestStatus(400);
+      parse_status_ = ERROR;
+      return;
+    }
+  }
 }
 
 void Request::ParseLine(const std::string &line) {
   switch (parse_status_) {
-  case INIT:
-    ParseRequestLine(line);
-    break;
-  case HEADER:
-    ParseHeader(line);
-    break;
-  case COMPLETE:
-    break;
-  case ERROR:
-    SetRequestStatus(400);
-    break;
-  default:
-    break;
+    case INIT:ParseRequestLine(line);
+      break;
+    case HEADER:ParseHeader(line);
+      break;
+    case COMPLETE:break;
+    case ERROR:SetRequestStatus(400);
+      break;
+    default:break;
   }
 }
 
 void Request::ParseRequestLine(const std::string &line) {
   std::vector<std::string> splited;
-  // フォーマットのチェック
-  // TODO: uri
   if (AssertRequestLine(line) == false) {
     parse_status_ = ERROR;
     return;
   }
   ws_split(splited, line, ' ');
 
-  // TODO: リクエストが有効かどうかのチェック足す
   // HTTP0.9
   message_.request_line.method = splited[0];
   message_.request_line.uri = splited[1];
   if (splited.size() == 2) {
-    //     if (IsValidMethod(message_.request_line.method) == false) {
-    ////       SetError(400);
-    //       return;
-    //     }
     message_.request_line.version = Http::HTTP09;
     parse_status_ = COMPLETE;
   }
-  // HTTP1.0~
+    // HTTP1.0~
   else {
-    //     if (IsValidMethod(message_.request_line.method) == false) {
-    ////       SetError(400);
-    //       return;
-    //     }
     if (splited[2] == "HTTP/1.0") {
       message_.request_line.version = Http::HTTP10;
     } else if (splited[2] == "HTTP/1.1") {
       message_.request_line.version = Http::HTTP11;
     } else {
-      //       SetError(400);
       return;
     }
     parse_status_ = HEADER;
   }
 }
-
-// void Request::ParseHeader(const std::string &line) {}
-
-// void Request::ParseBody(const std::string &line) {}
-
-// void Request::Clear() { *this = Request(); }
 
 void Request::ParseHeader(const std::string &line) {
   // 空行の場合BODYに移行
@@ -133,7 +131,6 @@ void Request::ParseHeader(const std::string &line) {
 
   if (!ValidateHeaderSize(line)) {
     parse_status_ = ERROR;
-
     return;
   }
 
@@ -180,41 +177,56 @@ void Request::Trim(std::string &str, const std::string &delim) {
 }
 
 void Request::ParseBody(SocketBuff &buffer_) {
-  if (!JudgeBodyType()) {
+  if (!SetBodyType()) {
     parse_status_ = ERROR;
     return;
   }
   // chunkedの場合
-  if (is_chunked) {
-    while (!buffer_.GetString().empty() && parse_status_ != ERROR &&
-           parse_status_ != COMPLETE) {
-      ParseChunkedBody(buffer_);
-    }
+  if (is_chunked_) {
+    ParseChunkedBody(buffer_);
   }
-  // Content-Lengthの場合
+    // Content-Lengthの場合
   else {
     ParseContentLengthBody(buffer_);
   }
 }
 
 void Request::ParseChunkedBody(SocketBuff &buffer_) {
-  if (chunk_status_ == -1) {
-    std::string size_str;
+  while (!buffer_.GetString().empty() && parse_status_ != ERROR &&
+      parse_status_ != COMPLETE) {
+    if (chunk_status_ == -1) {
+      ParseChunkSize(buffer_);
+    } else {
+      ParseChunkData(buffer_);
+    }
+  }
+}
 
-    if (!buffer_.GetUntilCRLF(size_str)) {
-      parse_status_ = ERROR;
-      return;
-    }
-    errno = 0;
-    // size_strを16進数に変換
-    chunk_status_ = std::strtol(size_str.c_str(), NULL, 16);
-    if (errno == ERANGE) {
-      parse_status_ = ERROR;
-      return;
-    }
+void Request::ParseChunkSize(SocketBuff &buffer_) {
+  std::string size_str;
+
+  if (!buffer_.GetUntilCRLF(size_str)) {
+    parse_status_ = ERROR;
     return;
   }
+  errno = 0;
+  // size_strを16進数に変換
+  chunk_status_ = std::strtol(size_str.c_str(), NULL, 16);
+  if (errno == ERANGE) {
+    parse_status_ = ERROR;
+    return;
+  }
+}
 
+template<typename T>
+bool Request::AssertSize(const T &actual_size, const T &max_allowed_size) {
+  if (actual_size > max_allowed_size) {
+    return false;
+  }
+  return true;
+}
+
+void Request::ParseChunkData(SocketBuff &buffer_) {
   // chunk_status_が0の場合は、最後のchunk
   if (chunk_status_ == 0) {
     // 次の行がCRLFでない場合は、エラー
@@ -230,7 +242,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
   }
 
   if (chunk_status_ < 0 || chunk_status_ > static_cast<long>(kMaxBodySize) ||
-      chunk_status_ + body_size_ > static_cast<long>(kMaxBodySize)) {
+      chunk_status_ + total_body_size_ > static_cast<long>(kMaxBodySize)) {
     parse_status_ = ERROR;
     return;
   }
@@ -239,7 +251,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
   if (static_cast<long>(buffer_.GetBuffSize()) < chunk_status_ + 2) {
     return;
   }
-  // 足りてる場合は、追加する文字列を切り取る
+    // 足りてる場合は、追加する文字列を切り取る
   else if (static_cast<long>(buffer_.GetBuffSize()) > chunk_status_ + 2) {
     std::string chunk = buffer_.GetString().substr(0, chunk_status_ + 2);
     // その文字列がCRLFで終わっているかを確認
@@ -248,7 +260,7 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
     // chunk_status_を-1にする
     std::string::size_type pos = chunk.rfind("\r\n");
     if (pos == std::string::npos) {
-      parse_status_ = ERROR;
+      parse_status_ = BODY;
       return;
     }
     if (pos == chunk.size() - 2) {
@@ -262,8 +274,8 @@ void Request::ParseChunkedBody(SocketBuff &buffer_) {
 
 // 型変えたほうが綺麗そう
 void Request::ParseContentLengthBody(SocketBuff &buffer_) {
-  if (static_cast<long>(buffer_.GetBuffSize()) == body_size_) {
-    message_.body = buffer_.GetAndErase(body_size_);
+  if (static_cast<long>(buffer_.GetBuffSize()) >= total_body_size_) {
+    message_.body = buffer_.GetAndErase(total_body_size_);
     parse_status_ = COMPLETE;
   } else {
     // bufferの中身が足りない場合 -> 次のループでまた呼ばれる
@@ -271,7 +283,7 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
   }
 }
 
-bool Request::JudgeBodyType() {
+bool Request::SetBodyType() {
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
   // どっちもある場合は普通はchunkを優先する
   Header::iterator it_transfer_encoding =
@@ -285,7 +297,7 @@ bool Request::JudgeBodyType() {
     for (std::vector<std::string>::const_iterator it = values.begin();
          it != values.end(); ++it) {
       if (*it == "chunked") {
-        is_chunked = true;
+        is_chunked_ = true;
         return true;
       }
     }
@@ -301,73 +313,11 @@ bool Request::JudgeBodyType() {
       // error
       return false;
     } else {
-      body_size_ = content_length;
+      total_body_size_ = content_length;
       return true;
     }
   }
   return false;
-}
-
-std::string Request::GetWord(const std::string &line,
-                             std::string::size_type &pos) {
-  std::string word;
-  while (pos < line.size() && !std::isspace(line[pos]) && line[pos] != ',') {
-    word += line[pos++];
-  }
-  pos++;
-  return word;
-}
-
-bool Request::SplitRequestLine(std::vector<std::string> &splited,
-                               const std::string &line) {
-  // 空白文字で分割
-  // 空白は1文字まで
-  std::string::size_type pos = 0;
-  while (pos < line.size()) {
-    if (std::isspace(line[pos])) {
-      return false;
-    }
-    splited.push_back(GetWord(line, pos));
-  }
-  if (splited.size() != 2 && splited.size() != 3) {
-    return false;
-  }
-  return true;
-}
-
-std::string::size_type Request::MovePos(const std::string &line,
-                                        std::string::size_type start,
-                                        const std::string &delim) {
-  std::string::size_type pos = start;
-  while (pos < line.size() && delim.find(line[pos]) != std::string::npos) {
-    pos++;
-  }
-  return pos;
-}
-
-bool Request::IsLineEnd(const std::string &line, std::string::size_type start) {
-  while (start < line.size()) {
-    if (std::isspace(line[start]) == false) {
-      return false;
-    }
-    start++;
-  }
-  return true;
-}
-
-bool Request::ValidateRequestSize(std::string &data, std::size_t max_size) {
-  if (data.size() > max_size) {
-    return false;
-  }
-  return true;
-}
-
-bool Request::ValidateRequestSize(Header &header, std::size_t max_size) {
-  (void)header;
-  if (total_header_size_ > max_size) {
-    return false;
-  }
-  return true;
 }
 
 bool Request::ValidateHeaderSize(const std::string &data) {
@@ -376,6 +326,27 @@ bool Request::ValidateHeaderSize(const std::string &data) {
     return false;
   }
   total_header_size_ += data.size();
+  return true;
+}
+
+bool Request::AssertUrlPath() {
+  // URIの相対path部分がドキュメントルートより上に行っていないかチェック
+  int counter = 0;
+  // '/'ごとにurlを分割
+  std::vector<std::string> split_url;
+  ssize_t splited_url_size = ws_split(split_url, context_.resource_path.uri.path, '/');
+  // ".."があるごとにカウントをマイナス
+  // カウンターが0以下になったらrootにアクセスしているのでどんな場合でもエラーにする
+  for (ssize_t i = 0; i < splited_url_size; ++i) {
+    if (split_url[i] == "..") {
+      --counter;
+    } else {
+      ++counter;
+    }
+    if (counter < 0) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -397,6 +368,22 @@ bool Request::AssertRequestLine(const std::string &line) {
   }
   std::string method = line.substr(0, first_space);
   if (method != "GET" && method != "POST" && method != "DELETE") {
+    return false;
+  }
+
+  // URIのチェック
+  // HTTP/0.9の場合
+  std::string uri;
+  if (space_count == 1) {
+    uri = line.substr(first_space + 1);
+  } else {
+    std::string::size_type second_space = line.find(' ', first_space + 1);
+    if (second_space == std::string::npos) {
+      return false;
+    }
+    uri = line.substr(first_space + 1, second_space - first_space - 1);
+  }
+  if (uri.size() > kMaxUriLength) {
     return false;
   }
 
@@ -422,7 +409,7 @@ void Request::SetRequestStatus(Http::HttpStatus status) {
 void Request::ResolvePath(const ConfVec &vservers) {
   std::string src_uri = message_.request_line.uri;
   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
-    // SetError(400);
+    SetRequestStatus(400);
     return;
   }
   // hostを決定
@@ -468,7 +455,7 @@ void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
     for (ConfVec::const_iterator itv = vservers.begin(); itv != vservers.end();
          itv++) {
       for (std::vector<std::string>::const_iterator its =
-               itv->server_names_.begin();
+          itv->server_names_.begin();
            its != itv->server_names_.end(); its++) {
         if (*its == host) {
           context_.vserver = *itv;
@@ -533,7 +520,7 @@ void Request::ResolveResourcePath() {
 
   // cgi_extensionsがある場合
   for (std::vector<std::string>::iterator ite =
-           context_.location.cgi_extensions_.begin();
+      context_.location.cgi_extensions_.begin();
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 

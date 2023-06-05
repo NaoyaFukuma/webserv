@@ -7,7 +7,7 @@
 #include "ConfigParser.hpp"
 #include <arpa/inet.h>
 
-#define CASE1 "../../config/test_config_files/custom/case1.conf"
+#define CASE1 "../../test_config_files/custom/case1.conf"
 
 /* ================================== CASE1 ==================================
  */

@@ -1,9 +1,9 @@
 version: '3'
 
 services:
-  debian:
+  ubuntu:
     build:
-      context: ./debian
+      context: ./ubuntu
     ports:
       - "8080:8080"
       - "9090:9090"
@@ -11,4 +11,4 @@ services:
       - ../:/app
       - ../www:/var/www
     restart: on-failure
-    container_name: debian
+    container_name: ubuntu

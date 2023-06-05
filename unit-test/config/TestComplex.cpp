@@ -7,7 +7,7 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define COMPLEX "../../config/test_config_files/valid/Complex.conf"
+#define COMPLEX "../../test_config_files/valid/Complex.conf"
 
 BOOST_AUTO_TEST_CASE(Complex) {
   Config config;
