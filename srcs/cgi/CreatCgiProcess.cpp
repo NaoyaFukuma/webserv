@@ -28,7 +28,7 @@ CgiSocket *CgiSocket::CreateCgiProcess() {
   if (this->ForkWrapper() == FAILURE) {
     return NULL;
   }
-  if (this->pid_ == 0) {
+  if (this->cgi_pid_ == 0) {
     ExeCgiScript();
   }
   if (SetParentProcessSocket() == FAILURE) {
@@ -57,7 +57,7 @@ void CgiSocket::ExeCgiScript() {
   char **env = this->SetChildProcessMetaVariables();
   char **argv = this->SetChildProcessArgv();
   const char *cgi_file_path =
-      this->GetContext().resource_path.server_path.c_str();
+      this->src_http_request_.GetContext().resource_path.server_path.c_str();
   if (execve(cgi_file_path, argv, env) < 0) {
     // 例外を投げ子プロセス終了 exit()使用不可
     throw std::runtime_error(

@@ -97,9 +97,9 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   }
 }
 
-void Response::ProcessCgi(Request &request, const ConnSocket &socket, Epoll *epoll) {
-  CgiSocket *cgi_socket = new CgiSocket(socket, request, *this);
-  ASocket *sock = cgi_socket->CreatCgiProcess();
+void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
+  CgiSocket *cgi_socket = new CgiSocket(*socket, request, *this);
+  ASocket *sock = cgi_socket->CreateCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
     // エラー処理 クライアントへ500 Internal Server Errorを返す
