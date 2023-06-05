@@ -325,7 +325,7 @@ void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
   std::string host_str;
   std::string port_str;
 
-  size_t colon_pos = listen_str.find(':');
+  std::size_t colon_pos = listen_str.find(':');
   if (colon_pos == std::string::npos) {
     host_str = "0.0.0.0";
     port_str = listen_str;
@@ -513,7 +513,7 @@ void ConfigParser::AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
   }
 
   // 拡張子で使えない文字が含まれていないかチェック '/' は使えない
-  for (size_t i = 0; i < cgi_extension.size(); i++) {
+  for (std::size_t i = 0; i < cgi_extension.size(); i++) {
     if (cgi_extension[i] == '/') {
       throw ParserException(
           ERR_MSG,
@@ -629,8 +629,8 @@ bool ConfigParser::IsValidUrl(const std::string &url) {
 
   // URL should have a valid domain name after http:// or https://
   // URLからドメイン名だけを抽出
-  size_t start = url.find_first_of(':') + 3;
-  size_t end = url.find_first_of('/', start);
+  std::size_t start = url.find_first_of(':') + 3;
+  std::size_t end = url.find_first_of('/', start);
   if (end == std::string::npos) {
     end = url.length();
   }
@@ -641,7 +641,7 @@ bool ConfigParser::IsValidUrl(const std::string &url) {
 
 bool ConfigParser::IsValidPath(const std::string &path) {
   // Linux ファイルシステムの制約に従う
-  for (size_t i = 0; i < path.length(); i++) {
+  for (std::size_t i = 0; i < path.length(); i++) {
     char c = path[i];
     if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
           c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||

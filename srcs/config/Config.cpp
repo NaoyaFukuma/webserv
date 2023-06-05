@@ -45,7 +45,7 @@ std::vector<Vserver> Config::GetServerVec() const { return server_vec_; }
 ConfigMap ConfigToMap(const Config &config) {
   ConfigMap config_map;
   std::vector<Vserver> server_vec = config.GetServerVec();
-  for (size_t i = 0; i < server_vec.size(); ++i) {
+  for (std::size_t i = 0; i < server_vec.size(); ++i) {
     config_map[server_vec[i].listen_].push_back(server_vec[i]);
   }
   return config_map;
@@ -56,18 +56,18 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
   std::vector<Vserver> server_vec = conf.GetServerVec();
   os << "-------------------------------" << '\n';
 
-  for (size_t i = 0; i < server_vec.size(); ++i) {
+  for (std::size_t i = 0; i < server_vec.size(); ++i) {
     os << "server[" << i << "]:\n";
     os << "  listen: " << inet_ntoa(server_vec[i].listen_.sin_addr) << ":"
        << ntohs(server_vec[i].listen_.sin_port) << '\n';
     os << "  server_name: ";
-    for (size_t j = 0; j < server_vec[i].server_names_.size(); ++j) {
+    for (std::size_t j = 0; j < server_vec[i].server_names_.size(); ++j) {
       os << server_vec[i].server_names_[j] << " ";
     }
     os << '\n';
     os << "  timeout: " << server_vec[i].timeout_ << '\n';
     os << "  location: \n";
-    for (size_t j = 0; j < server_vec[i].locations_.size(); ++j) {
+    for (std::size_t j = 0; j < server_vec[i].locations_.size(); ++j) {
       os << "    locations_[" << j << "]:\n";
       os << "      path: " << server_vec[i].locations_[j].path_ << '\n';
       os << "      allow_method: ";
@@ -84,14 +84,14 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
       os << server_vec[i].locations_[j].index_;
       os << '\n';
       os << "      cgi_extention: ";
-      for (size_t k = 0; k < server_vec[i].locations_[j].cgi_extensions_.size();
+      for (std::size_t k = 0; k < server_vec[i].locations_[j].cgi_extensions_.size();
            ++k) {
         os << server_vec[i].locations_[j].cgi_extensions_[k] << " ";
       }
       os << '\n';
 
       os << "      error_pages: ";
-      for (size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
+      for (std::size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
            ++k) {
         os << server_vec[i].locations_[j].error_pages_[k] << " ";
       }

@@ -17,14 +17,29 @@ Request::Request() {
 Request::~Request() {}
 
 // これがないとcompile時に怒られたので追加
-Request::Request(const Request &src) { *this = src; }
+Request::Request(const Request &src)
+    : message_(src.message_), parse_status_(src.parse_status_),
+      http_status_(src.http_status_), is_chunked(src.is_chunked),
+      chunk_status_(src.chunk_status_),
+      total_header_size_(src.total_header_size_), body_size_(src.body_size_),
+      context_(src.context_) {
+  for (std::map<std::string, std::vector<std::string> >::const_iterator it =
+           src.message_.header.begin();
+       it != src.message_.header.end(); ++it) {
+    message_.header[it->first] = it->second;
+  }
+}
 
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     parse_status_ = rhs.parse_status_;
-    //    http_status_ = rhs.http_status_;
+    http_status_ = rhs.http_status_;
+    is_chunked = rhs.is_chunked;
     chunk_status_ = rhs.chunk_status_;
+    total_header_size_ = rhs.total_header_size_;
+    body_size_ = rhs.body_size_;
+    context_ = rhs.context_;
   }
   return *this;
 }
@@ -37,7 +52,7 @@ Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
 
 Context Request::GetContext() const { return context_; }
 
-Header Request::GetHeaderMap() const { return message_.header; }
+std::map<std::string, std::vector<std::string> > Request::GetHeaderMap() const { return message_.header; }
 
 std::vector<std::string> Request::GetHeader(const std::string &key) {
   return message_.header[key];
@@ -274,9 +289,9 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
 bool Request::JudgeBodyType() {
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
   // どっちもある場合は普通はchunkを優先する
-  Header::iterator it_transfer_encoding =
+  std::map<std::string, std::vector<std::string> >::iterator it_transfer_encoding =
       message_.header.find("Transfer-Encoding");
-  Header::iterator it_content_length = message_.header.find("Content-Length");
+  std::map<std::string, std::vector<std::string> >::iterator it_content_length = message_.header.find("Content-Length");
 
   // Transfer-Encodingがある場合
   if (it_transfer_encoding != message_.header.end()) {
@@ -355,14 +370,14 @@ bool Request::IsLineEnd(const std::string &line, std::string::size_type start) {
   return true;
 }
 
-bool Request::ValidateRequestSize(std::string &data, size_t max_size) {
+bool Request::ValidateRequestSize(std::string &data, std::size_t max_size) {
   if (data.size() > max_size) {
     return false;
   }
   return true;
 }
 
-bool Request::ValidateRequestSize(Header &header, size_t max_size) {
+bool Request::ValidateRequestSize(std::map<std::string, std::vector<std::string> > &header, std::size_t max_size) {
   (void)header;
   if (total_header_size_ > max_size) {
     return false;

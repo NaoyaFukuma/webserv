@@ -48,7 +48,7 @@ void SocketBuff::ResetSeekp() { this->ss_.seekp(0); }
 ssize_t SocketBuff::FindString(const std::string &target) {
   ssize_t original_pos = static_cast<ssize_t>(this->ss_.tellg());
   ssize_t target_pos = -1;
-  size_t target_index = 0;
+  std::size_t target_index = 0;
   char ch;
 
   while (this->ss_.get(ch)) {
@@ -71,7 +71,7 @@ ssize_t SocketBuff::FindString(const std::string &target) {
   return target_pos;
 }
 
-std::string SocketBuff::GetAndErase(const size_t pos) {
+std::string SocketBuff::GetAndErase(const std::size_t pos) {
   std::string str = this->ss_.str().substr(0, pos);
   this->ss_.str(this->ss_.str().erase(0, pos));
   this->ss_.seekg(0, std::ios::beg);
@@ -95,14 +95,14 @@ void SocketBuff::Erase() {
   this->ss_.seekp(0, std::ios::beg);
 }
 
-void SocketBuff::Erase(size_t n) {
+void SocketBuff::Erase(std::size_t n) {
   this->ss_.str(this->ss_.str().erase(0, n));
   this->ss_.seekg(0, std::ios::beg);
   this->ss_.seekp(0, std::ios::beg);
 }
 
-size_t SocketBuff::GetReadSize() {
-  return this->ss_.tellg() == -1 ? 0 : static_cast<size_t>(this->ss_.tellg());
+std::size_t SocketBuff::GetReadSize() {
+  return this->ss_.tellg() == -1 ? 0 : static_cast<std::size_t>(this->ss_.tellg());
 }
 
 void SocketBuff::AddString(const std::string &str) { this->ss_ << str; }
@@ -125,4 +125,4 @@ int SocketBuff::SendSocket(const int fd) {
   return send_len == len;
 }
 
-size_t SocketBuff::GetBuffSize() { return this->ss_.str().size(); }
+std::size_t SocketBuff::GetBuffSize() { return this->ss_.str().size(); }

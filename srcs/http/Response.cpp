@@ -255,8 +255,8 @@ void Response::StaticFileBody(const std::string &path) {
     return;
   }
   // sizeを取得
-  size_t start;
-  size_t end;
+  std::size_t start;
+  std::size_t end;
   if (!ranges_.empty()) {
     start = ranges_[0].first;
     end = ranges_[0].second;
@@ -264,10 +264,10 @@ void Response::StaticFileBody(const std::string &path) {
     start = 0;
     end = ifs.seekg(0, std::ios::end).tellg();
   }
-  size_t body_size = end - start;
+  std::size_t body_size = end - start;
   // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
   if (body_size > kMaxBodyLength ||
-      end > static_cast<size_t>(ifs.seekg(0, std::ios::end).tellg())) {
+      end > static_cast<std::size_t>(ifs.seekg(0, std::ios::end).tellg())) {
     // 500 Internal Server Error
     SetResponseStatus(Http::HttpStatus(500));
     return;
@@ -454,7 +454,7 @@ bool Response::FindRanges(Request &request, const std::string &path) {
       range_end_str = ws_itostr<int>(st.st_size - 1);
     }
     std::size_t range_start;
-    if (ws_strtoi<size_t>(&range_start, range_start_str) == false) {
+    if (ws_strtoi<std::size_t>(&range_start, range_start_str) == false) {
       return false;
     }
     std::size_t range_end;
