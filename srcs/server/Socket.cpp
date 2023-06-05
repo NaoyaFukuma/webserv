@@ -103,6 +103,8 @@ int ConnSocket::OnWritable(Epoll *epoll) {
       send_buffer_.AddString(it->GetString());
       // Todo: connection closeならrdhup_を立てる
       it = responses_.erase(it);
+    } else {
+      it++;
     }
   }
   int send_result = send_buffer_.SendSocket(fd_);

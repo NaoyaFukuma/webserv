@@ -1,10 +1,10 @@
 #ifndef CGISOCKET_HPP_
 #define CGISOCKET_HPP_
 
-#include "Socket.hpp"
 #include "Config.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "Socket.hpp"
 #include "SocketBuff.hpp"
 #include <deque>
 #include <netinet/in.h>
@@ -13,114 +13,56 @@
 
 class Epoll; // 相互参照
 
-// struct LastEventTime {
-//   time_t in_time;
-//   time_t out_time;
-// };
-
-
-// ------------------------------------------------------------------
-// CGI用のソケット
-
-/*
-HTTPクライアント
-HTTPサーバー CGIクライアント
-CGIスクリプト CGIサーバー
-*/
-
-
-/*
-struct RequestLine {
-  std::string method; // そのまま
-  std::string uri; // 更新
-  Http::Version version; // そのまま
-};
-
-typedef std::map<std::string, std::vector<std::string> > Header;
-
-struct RequestMessage {
-  RequestLine request_line; // 一部更新
-  Header header; // 更新
-  std::string body; // 更新
-};
-
-enum ParseStatus {
-  INIT,
-  HEADER,
-  BODY,
-  COMPLETE,
-  ERROR,
-};
-
-struct ResourcePath {
-  Http::URI uri; // 更新
-  std::string server_path; // 更新
-  std::string path_info; // 更新
-};
-
-struct Context {
-  Vserver vserver; // そのまま
-  std::string server_name; // そのまま
-  Location location; // そのまま
-  ResourcePath resource_path; // 更新
-  bool is_cgi; // 更新
-};
-*/
-
-struct CgiRequest
-{
-  RequestMessage message_;
-  Context context_;
-};
-
 class CgiSocket : public ASocket {
 private:
+  pid_t cgi_pid_;
+  int child_sock_fd_;
+  int parent_sock_fd_;
+  const ConnSocket &http_client_sock_;
+  const Request src_http_request_;
+  Response &dest_http_response_;
+
+  // 注意 http_response_のDONEで代用できるので注意
+  bool created_http_res_flag_;
+
+public:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
-  pid_t pid_;               // CGIスクリプト実行用のプロセスID
-  ConnSocket *conn_socket_; // CGI実行要求したHTTPクライアント
-  CgiRequest cgi_request_;  // HTTPリクエストから抜粋した
-                            // CGIスクリプトに渡すリクエスト情報
-  bool fin_http_response_;  // HTTPクライアントへのレスポンスを生成したか
-                            // 生成せずにCGIスクリプトが終了した場合に500エラーを返す
-
-// ----------------  in CgiSocket.cpp  ------------------
-public:
-  // CGI実行要求したクライアント、そのHTTPリクエスト情報
-  CgiSocket(ConnSocket *conn_socket, Request &http_request);
+  CgiSocket(const ConnSocket &http_client_sock, const Request http_request, Response &http_response);
   ~CgiSocket();
-  // EPOLLイベントのハンドラー
   int ProcessSocket(Epoll *epoll, void *data);
-  // EPOLLOUTに対応
   int OnWritable(Epoll *epoll);
-  // EPOLLINに対応
   int OnReadable(Epoll *epoll);
 
-// ----------------  in CreatCgiProcess.cpp  ------------------
-public:
-  CgiSocket *CreatCgiProcess();
-  Context &GetContext();
-  RequestMessage &GetRequestMessage();
-  SocketBuff &GetSendBuffer() {
-    return send_buffer_;
-  }
-  SocketBuff &GetRecvBuffer() {
-    return recv_buffer_;
-  }
+  CgiSocket *CreateCgiProcess();
+
+  int GetChildSock() const { return child_sock_fd_; }
+  void SetChildSock(int sock) { child_sock_fd_ = sock; }
+
+  int GetParentSockFd() const { return parent_sock_fd_; }
+  void SetParentSockFd(int sock) { parent_sock_fd_ = sock; }
+  pid_t GetCgiPid() const { return cgi_pid_; }
+  void SetCgiPid(pid_t pid) { cgi_pid_ = pid; }
+
+  bool GetCreatedHttpResFlag() const { return created_http_res_flag_; }
+  void SetCreatedHttpResFlag(bool flag) { created_http_res_flag_ = flag; }
+  const ConnSocket &GetHttpClientSock() const { return this->http_client_sock_; }
 
 private:
-  void SetSocket(int child_sock, int parent_sock);
-  char **SetMetaVariables();
-  char **SetArgv();
-  void SetCurrentDir(const std::string &cgi_path);
+  int CreateUnixDomainSocketPair();
+  void SetChildProcessSocket();
+  char **SetChildProcessMetaVariables();
+  char **SetChildProcessArgv();
+  void SetChildProcessCurrentDir(const std::string &cgi_path);
+  int ForkWrapper();
+  void ExeCgiScript();
+  int SetParentProcessSocket();
 
+  void SetInternalErrorHttpResponse();
 
 private: // 使用予定なし
   CgiSocket(const CgiSocket &src);
   CgiSocket &operator=(const CgiSocket &rhs);
-
 };
-
-
 
 #endif // CGISOCKET_HPP_
