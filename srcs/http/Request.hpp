@@ -18,7 +18,7 @@ typedef std::map<std::string, std::vector<std::string> > Header;
 
 struct RequestMessage {
   RequestLine request_line;
-  std::map<std::string, std::vector<std::string> > header;
+  Header header;
   std::string body;
 };
 
@@ -106,10 +106,10 @@ public:
   void Clear();
   void ResolvePath(const ConfVec &vservers);
   Context GetContext() const;
-  std::map<std::string, std::vector<std::string> > GetHeaderMap() const;
+  Header GetHeaderMap() const;
   std::string GetWord(const std::string &line, std::string::size_type &pos);
   bool ValidateRequestSize(std::string &data, std::size_t max_size);
-  bool ValidateRequestSize(std::map<std::string, std::vector<std::string> > &header, std::size_t max_size);
+  bool ValidateRequestSize(Header &header, std::size_t max_size);
   bool ValidateHeaderSize(const std::string &data);
 
   // for test

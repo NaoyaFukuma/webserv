@@ -47,6 +47,12 @@ int CgiSocket::CreateUnixDomainSocketPair() {
   }
   this->parent_sock_fd_ = cgi_socket[0];
   this->child_sock_fd_ = cgi_socket[1];
+
+  // #ifdef DEBUG
+  std::cerr << "parent_sock_fd_:" << this->parent_sock_fd_ << std::endl;
+  std::cerr << "child_sock_fd_:" << this->child_sock_fd_ << std::endl;
+  // #endif
+
   return SUCCESS;
 }
 
@@ -78,6 +84,12 @@ void CgiSocket::SetChildProcessSocket() {
   if (close(this->child_sock_fd_) < 0) {
     throw std::runtime_error("Keep Running Error: close in CGI script procces");
   }
+  // #ifdef DEBUG
+  std::cerr << "dup2 STDIN(0) & STDOUT(1) <- child_sock_fd_ "
+            << this->child_sock_fd_ << " success" << std::endl;
+  std::cerr << "close parent_sock_fd_ " << this->parent_sock_fd_ << " success"
+            << std::endl;
+  // #endif
 }
 
 char **CgiSocket::SetChildProcessMetaVariables() {
@@ -85,10 +97,13 @@ char **CgiSocket::SetChildProcessMetaVariables() {
 
   meta.push_back("GATEWAY_INTERFACE=CGI/1.1");
   meta.push_back("REMOTE_ADDR=" + this->http_client_sock_.GetIpPort().first);
-  meta.push_back("REQUEST_METHOD=" + this->src_http_request_.GetRequestMessage().request_line.method);
+  meta.push_back(
+      "REQUEST_METHOD=" +
+      this->src_http_request_.GetRequestMessage().request_line.method);
   meta.push_back("SCRIPT_NAME=" +
                  this->src_http_request_.GetContext().resource_path.uri.path);
-  meta.push_back("SERVER_NAME=" + this->src_http_request_.GetContext().server_name);
+  meta.push_back("SERVER_NAME=" +
+                 this->src_http_request_.GetContext().server_name);
 
   std::stringstream ss;
   ss << ntohs(this->http_client_sock_.GetConfVec()[0].listen_.sin_port);
@@ -97,7 +112,8 @@ char **CgiSocket::SetChildProcessMetaVariables() {
   ss.str("");
   ss.clear();
 
-  enum Http::Version ver = this->src_http_request_.GetRequestMessage().request_line.version;
+  enum Http::Version ver =
+      this->src_http_request_.GetRequestMessage().request_line.version;
   std::string version;
   switch (ver) {
   case Http::HTTP09:
@@ -115,12 +131,12 @@ char **CgiSocket::SetChildProcessMetaVariables() {
   meta.push_back("SERVER_PROTOCOL=" + version);
   meta.push_back("SERVER_SOFTWARE=webserv/0.1");
 
-
   ss << this->src_http_request_.GetRequestMessage().body.size();
   meta.push_back("CONTENT_LENGTH=" + ss.str());
   meta.push_back("PATH_INFO=" +
                  this->src_http_request_.GetContext().resource_path.path_info);
-  std::string query_string = this->src_http_request_.GetContext().resource_path.uri.query;
+  std::string query_string =
+      this->src_http_request_.GetContext().resource_path.uri.query;
   // '='が含まれていれば環境変数。含まれていなければコマンドライン引数にする。
   if (query_string.find('=') != std::string::npos) {
     // '='があったので、%デコードを行い環境変数に設定
@@ -133,36 +149,18 @@ char **CgiSocket::SetChildProcessMetaVariables() {
   // REMOTE_HOST これは対応しない RFC3875 MAY
   // AUTH_TYPE これは対応しない RFC3875 MAY
 
-  // this->src_http_request_.GetRequestMessage().headerを全て表示 debug
-  // std::cerr << "########################\n";
-  // std::cerr << "header size: "
-  //           << this->src_http_request_.GetRequestMessage().header.size()
-  //           << std::endl;
-  // for (std::map<std::string, std::vector<std::string> >::iterator it =
-  //          this->src_http_request_.GetRequestMessage().header.begin();
-  //      it != this->src_http_request_.GetRequestMessage().header.end(); ++it) {
-  //   std::cerr << it->first << ": ";
-  //   std::cerr << "header value size: " << it->second.size() << " [" << it->second[0] << "]"<< std::endl;
-  //   for (std::vector<std::string>::iterator it2 = it->second.begin();
-  //        it2 != it->second.end(); ++it2) {
-  //     std::cerr << *it2 << ", ";
-  //   }
-  //   std::cerr << std::endl;
-  // }
-  // std::cerr << "########################\n";
-//   std::cerr << "\n\n########################" << std::endl;
-//   if (this->src_http_request_.GetRequestMessage().header.find("Content-Type") !=
-//       this->src_http_request_.GetRequestMessage().header.end()) {
-//     meta.push_back("CONTENT_TYPE=" +
-//                    this->src_http_request_.GetRequestMessage().header["Content-Type"][0]);
-//   } else {
-//     meta.push_back("CONTENT_TYPE=");
-//   }
-//
-//   std::cerr << "!!!!!!!!!!!!!!!!!!!!!\n\n" << std::endl;
+  if (this->src_http_request_.GetRequestMessage().header.find("Content-Type") !=
+      this->src_http_request_.GetRequestMessage().header.end()) {
+    meta.push_back(
+        "CONTENT_TYPE=" +
+        this->src_http_request_.GetRequestMessage().header["Content-Type"][0]);
+  } else {
+    meta.push_back("CONTENT_TYPE=");
+  }
 
   std::string root = this->src_http_request_.GetContext().location.root_;
-  std::string path_info = this->src_http_request_.GetContext().resource_path.path_info;
+  std::string path_info =
+      this->src_http_request_.GetContext().resource_path.path_info;
   // rootの末尾とpath_infoの先頭の'/'の双方を確認し、一つだけ'/'を付与する
   if (root[root.size() - 1] == '/' && path_info[0] == '/') {
     path_info = path_info.substr(1);
@@ -175,8 +173,9 @@ char **CgiSocket::SetChildProcessMetaVariables() {
 
   // REMOTE_IDENT これは対応しない RFC3875 MAY
   // REMOTE_USER これは対応しない RFC3875 MAY
-  meta.push_back("SCRIPT_FILENAME=" +
-                 this->src_http_request_.GetContext().resource_path.server_path);
+  meta.push_back(
+      "SCRIPT_FILENAME=" +
+      this->src_http_request_.GetContext().resource_path.server_path);
 
   // メタ変数を構築したvectorをchar**に変換
   char **envp = new char *[meta.size() + 1];
@@ -191,9 +190,11 @@ char **CgiSocket::SetChildProcessMetaVariables() {
 char **CgiSocket::SetChildProcessArgv() {
   std::vector<std::string> argv;
 
-  argv.push_back(this->src_http_request_.GetContext().resource_path.server_path.c_str());
+  argv.push_back(
+      this->src_http_request_.GetContext().resource_path.server_path.c_str());
 
-  std::string query_string = this->src_http_request_.GetContext().resource_path.uri.query;
+  std::string query_string =
+      this->src_http_request_.GetContext().resource_path.uri.query;
   // '='が含まれていれば環境変数。含まれていなければコマンドライン引数にする。
   if (query_string.find('=') == std::string::npos) {
     // '+'をdemiliterとして分解し、%デコードを施しargvにpush_back

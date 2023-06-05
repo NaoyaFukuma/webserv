@@ -37,7 +37,7 @@ Http::HttpStatus Request::GetRequestStatus() const { return http_status_; }
 
 Context Request::GetContext() const { return context_; }
 
-std::map<std::string, std::vector<std::string> > Request::GetHeaderMap() const { return message_.header; }
+Header Request::GetHeaderMap() const { return message_.header; }
 
 std::vector<std::string> Request::GetHeader(const std::string &key) {
   return message_.header[key];
@@ -362,7 +362,7 @@ bool Request::ValidateRequestSize(std::string &data, std::size_t max_size) {
   return true;
 }
 
-bool Request::ValidateRequestSize(std::map<std::string, std::vector<std::string> > &header, std::size_t max_size) {
+bool Request::ValidateRequestSize(Header &header, std::size_t max_size) {
   (void)header;
   if (total_header_size_ > max_size) {
     return false;
