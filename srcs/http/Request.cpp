@@ -65,6 +65,7 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   }
 
   if (!AssertUrlPath()) {
+    http_status_ = 400;
     parse_status_ = ERROR;
   }
 }
@@ -390,7 +391,7 @@ void Request::SetRequestStatus(Http::HttpStatus status) {
 void Request::ResolvePath(const ConfVec &vservers) {
   std::string src_uri = message_.request_line.uri;
   if (Http::SplitURI(context_.resource_path.uri, src_uri) == false) {
-    // SetError(400);
+    http_status_ = 400;
     return;
   }
   // hostを決定
