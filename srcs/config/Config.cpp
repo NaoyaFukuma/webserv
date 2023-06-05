@@ -9,21 +9,21 @@ Config::~Config() {}
 
 // serverディレクティブの設定項目の初期化
 Vserver::Vserver() {
-  this->timeout_ = 60;
-  this->is_default_server_ = false;
-  this->listen_.sin_family = AF_INET;
-  this->listen_.sin_addr.s_addr = INADDR_ANY;
-  this->listen_.sin_port = htons(80);
+  timeout_ = 60;
+  is_default_server_ = false;
+  listen_.sin_family = AF_INET;
+  listen_.sin_addr.s_addr = INADDR_ANY;
+  listen_.sin_port = htons(80);
 }
 
 // locationディレクティブの設定項目の初期化
 Location::Location() {
-  this->allow_methods_.insert(GET);
-  this->allow_methods_.insert(POST);
-  this->allow_methods_.insert(DELETE);
-  this->client_max_body_size_ = 1 * 1024 * 1024; // 1MB
-  this->autoindex_ = false;
-  this->return_.return_type_ = RETURN_EMPTY;
+  allow_methods_.insert(GET);
+  allow_methods_.insert(POST);
+  allow_methods_.insert(DELETE);
+  client_max_body_size_ = 1 * 1024 * 1024; // 1MB
+  autoindex_ = false;
+  return_.return_type_ = RETURN_EMPTY;
 }
 
 void Config::ParseConfig(const char *src_file) {
@@ -32,7 +32,7 @@ void Config::ParseConfig(const char *src_file) {
 }
 
 void Config::AddServer(Vserver &server) {
-  if (this->server_vec_.empty()) {
+  if (server_vec_.empty()) {
     server.is_default_server_ = true;
   } else {
     server.is_default_server_ = false;

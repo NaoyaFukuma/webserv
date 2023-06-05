@@ -24,7 +24,20 @@ CgiSocket::CgiSocket(const ConnSocket &http_client_sock,
     : ASocket(http_client_sock.GetConfVec()),
       http_client_sock_(http_client_sock), src_http_request_(http_request),
       dest_http_response_(http_response) {
-  this->send_buffer_.AddString(http_request.GetBody());
+  send_buffer_.AddString(http_request.GetBody());
+
+  // #ifdef DEBUG
+  std::cerr << "http client fd: " << http_client_sock_.GetFd()
+            << std::endl;
+  std::cerr << "http client request header: " << std::endl;
+  for (Header::const_iterator it = http_request.GetHeaderMap().begin(); it != http_request.GetHeaderMap().end(); ++it) {
+    std::cerr << it->first << ": " << std::endl;
+    for (std::vector<std::string>::const_iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+      std::cerr << *it2 << ", " << std::endl;
+    }
+  }
+  // #endif
+
 };
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
@@ -32,13 +45,13 @@ CgiSocket::~CgiSocket() {
   int status;
 
   // 子プロセスが終了していない場合に備え、WNOHANGを使う
-  int wait_res = waitpid(this->cgi_pid_, &status, WNOHANG);
+  int wait_res = waitpid(cgi_pid_, &status, WNOHANG);
   switch (wait_res) {
   case 0: // 子プロセスが終了していないのでkill()で終了させて、終了ステータスを回収する
-    if (kill(this->cgi_pid_, SIGKILL) < 0) {
+    if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
     }
-    if (waitpid(this->cgi_pid_, &status, WNOHANG) < 0) {
+    if (waitpid(cgi_pid_, &status, WNOHANG) < 0) {
       std::cerr << "Keep Running Error: waitpid" << std::endl;
     }
     break;
@@ -55,10 +68,10 @@ CgiSocket::~CgiSocket() {
 /* retrun value SUCCESS(0) or FAILURE(-1) */
 int CgiSocket::OnReadable(Epoll *epoll) {
   // 一度目でバッファ内は全て読み込まれる
-  int recv_result = recv_buffer_.ReadSocket(this->GetFd());
+  int recv_result = recv_buffer_.ReadSocket(GetFd());
   std::cout << "1 recv_result: " << recv_result << std::endl;
   // 二度目はEOFの読み込み-1, それ以外は0(NONBLOCK I/O)
-  recv_result = recv_buffer_.ReadSocket(this->GetFd());
+  recv_result = recv_buffer_.ReadSocket(GetFd());
 
   std::cout << "2 recv_result: " << recv_result << std::endl;
   std::cout << "recv_buffer: " << recv_buffer_.GetString() << std::endl;
@@ -66,13 +79,13 @@ int CgiSocket::OnReadable(Epoll *epoll) {
   if (recv_result == 0) {
     return SUCCESS;
   } else { // EOFの読み込み後にのみparseを行う
-    CgiResponseParser cgi_res_parser(*this, this->src_http_request_,
-                                     this->dest_http_response_);
+    CgiResponseParser cgi_res_parser(*this, src_http_request_,
+                                     dest_http_response_);
     cgi_res_parser.ParseCgiResponse();
 
     switch (cgi_res_parser.GetParseResult()) {
     case CgiResponseParser::CREATED_HTTP_RESPONSE:
-      epoll->Mod(this->http_client_sock_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+      epoll->Mod(http_client_sock_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
       break;
     case CgiResponseParser::RIDIRECT_TO_LOCAL_CGI:
       epoll->Add(cgi_res_parser.GetRedirectNewCgiSocket(), EPOLLIN | EPOLLOUT | EPOLLET);
@@ -88,7 +101,7 @@ int CgiSocket::OnReadable(Epoll *epoll) {
 int CgiSocket::OnWritable(Epoll *epoll) {
   int send_result;
   if (send_buffer_.GetBuffSize()) {
-    send_result = send_buffer_.SendSocket(this->GetFd());
+    send_result = send_buffer_.SendSocket(GetFd());
   } else {
     send_result = 1; // 送信完了扱いとする
   }
@@ -102,8 +115,8 @@ int CgiSocket::OnWritable(Epoll *epoll) {
   case 1: {
     // 送信完了 EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
     uint32_t event_mask = EPOLLIN | EPOLLET;
-    epoll->Mod(this->GetFd(), event_mask);
-    if (shutdown(this->GetFd(), SHUT_WR) < 0) {
+    epoll->Mod(GetFd(), event_mask);
+    if (shutdown(GetFd(), SHUT_WR) < 0) {
       std::cerr << "Keep Running Error: shutdown" << std::endl;
     }
     last_event_.out_time = -1; // タイムアウトを無効化
@@ -128,38 +141,38 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
 
   if (event_mask & EPOLLIN) {
-    std::cout << "FD: " << this->GetFd();
+    std::cout << "FD: " << GetFd();
     std::cout << " CgiSocket::ProcessSocket() EPOLLIN" << std::endl;
     if (OnReadable(epoll) == FAILURE) {
-      if (this->dest_http_response_.GetProcessStatus() == PROCESSING) {
-        this->SetInternalErrorHttpResponse();
+      if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+        SetInternalErrorHttpResponse();
         uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Mod(this->http_client_sock_.GetFd(), event_mask);
+        epoll->Mod(http_client_sock_.GetFd(), event_mask);
       }
       return FAILURE;
     }
   }
 
   if (event_mask & EPOLLOUT) {
-    std::cout << "FD: " << this->GetFd()
+    std::cout << "FD: " << GetFd()
               << " CgiSocket::ProcessSocket() EPOLLOUT" << std::endl;
     if (OnWritable(epoll) == FAILURE) {
-      if (this->dest_http_response_.GetProcessStatus() == PROCESSING) {
-        this->SetInternalErrorHttpResponse();
+      if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+        SetInternalErrorHttpResponse();
         uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Mod(this->http_client_sock_.GetFd(), event_mask);
+        epoll->Mod(http_client_sock_.GetFd(), event_mask);
       }
       return FAILURE;
     }
   }
 
   if (event_mask & EPOLLHUP) {
-    std::cout << "FD: " << this->GetFd()
+    std::cout << "FD: " << GetFd()
               << " CgiSocket::ProcessSocket() EPOLLHUP" << std::endl;
-    if (this->dest_http_response_.GetProcessStatus() == PROCESSING) {
-      this->SetInternalErrorHttpResponse();
+    if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+      SetInternalErrorHttpResponse();
       uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-      epoll->Mod(this->http_client_sock_.GetFd(), event_mask);
+      epoll->Mod(http_client_sock_.GetFd(), event_mask);
     }
     return FAILURE;
   }
@@ -168,8 +181,8 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
 }
 
 void CgiSocket::SetInternalErrorHttpResponse() {
-  this->dest_http_response_.SetResponseStatus(500);
-  this->dest_http_response_.SetProcessStatus(DONE);
-  this->dest_http_response_.SetVersion(
-      this->src_http_request_.GetRequestMessage().request_line.version);
+  dest_http_response_.SetResponseStatus(500);
+  dest_http_response_.SetProcessStatus(DONE);
+  dest_http_response_.SetVersion(
+      src_http_request_.GetRequestMessage().request_line.version);
 }
