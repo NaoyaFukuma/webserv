@@ -16,7 +16,7 @@ struct RequestLine {
   Http::Version version; // そのまま
 };
 
-typedef std::map<std::string, std::vector<std::string> > Header;
+typedef std::map<std::string, std::vector<std::string>> Header;
 
 struct RequestMessage {
   RequestLine request_line; // 一部更新
@@ -48,20 +48,22 @@ struct Context {
 
 class Request {
 private:
-    RequestMessage message_;
-    ParseStatus parse_status_;
-    Http::HttpStatus http_status_;
-    bool is_chunked_;
-    long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
-    long total_header_size_; // ヘッダーの長さを覚えておくための変数
-    long total_body_size_; // bodyの長さを覚えておくための変数
-    static const size_t kMaxHeaderLineLength = 8192; // 8KB // ヘッダーの1行の最大長さ
-    static const size_t kMaxHeaderSize = 32768; // 32KB // ヘッダー全体の最大長さ
-    static const size_t kMaxBodySize = 1048576; // 1MB // bodyの最大長さ
-    static const size_t kMaxUriLength = 2048;
-    static const size_t kMaxRequestLineLength = 8192; // 8KB // リクエストラインの最大長さ
+  RequestMessage message_;
+  ParseStatus parse_status_;
+  Http::HttpStatus http_status_;
+  bool is_chunked_;
+  long chunk_status_; // chunkでbodyを受け取るとき、前の行を覚えておくための変数
+  long total_header_size_; // ヘッダーの長さを覚えておくための変数
+  long total_body_size_; // bodyの長さを覚えておくための変数
+  static const size_t kMaxHeaderLineLength =
+      8192; // 8KB // ヘッダーの1行の最大長さ
+  static const size_t kMaxHeaderSize = 32768; // 32KB // ヘッダー全体の最大長さ
+  static const size_t kMaxBodySize = 1048576; // 1MB // bodyの最大長さ
+  static const size_t kMaxUriLength = 2048;
+  static const size_t kMaxRequestLineLength =
+      8192; // 8KB // リクエストラインの最大長さ
 
-    Context context_; // ResolvePath()で設定される
+  Context context_; // ResolvePath()で設定される
 
 // DEBUGがdefineされている場合はpublicにする
 #ifdef DEBUG
@@ -78,12 +80,14 @@ public:
   void ParseChunkData(SocketBuff &buffer_);
   void ParseContentLengthBody(SocketBuff &buffer_);
   // parse utiles
-  void SplitHeaderValues(std::vector<std::string> &splited, const std::string &line);
+  void SplitHeaderValues(std::vector<std::string> &splited,
+                         const std::string &line);
   void Trim(std::string &str, const std::string &delim);
   bool SetBodyType();
   bool AssertRequestLine(const std::string &line);
   bool AssertUrlPath();
-  template<typename T> bool AssertSize(const T &actual_size, const T &max_allowed_size);
+  template <typename T>
+  bool AssertSize(const T &actual_size, const T &max_allowed_size);
 
   // resolve系
   std::string ResolveHost();
@@ -92,7 +96,7 @@ public:
   void ResolveResourcePath();
   bool ValidateHeaderSize(const std::string &data);
 
- public:
+public:
   Request();
   ~Request();
   Request(const Request &src);
@@ -120,7 +124,6 @@ public:
   // for unit-test
   void SetMessage(RequestMessage message);
   void SetContext(Context context);
-
 };
 
 std::ostream &operator<<(std::ostream &os, const Request &request);

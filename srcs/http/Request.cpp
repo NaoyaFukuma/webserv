@@ -52,7 +52,7 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   std::string line;
 
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
-      parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
+         parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
   if (parse_status_ == BODY) {
@@ -65,8 +65,10 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
       ResolvePath(socket->GetConfVec());
     }
 
-    uint64_t client_max_body_size = socket->GetConfVec()[0].locations_[0].client_max_body_size_;
-    if (!AssertSize(total_body_size_, static_cast<long>(client_max_body_size))) {
+    uint64_t client_max_body_size =
+        socket->GetConfVec()[0].locations_[0].client_max_body_size_;
+    if (!AssertSize(total_body_size_,
+                    static_cast<long>(client_max_body_size))) {
       SetRequestStatus(413);
       parse_status_ = ERROR;
       return;
@@ -82,14 +84,19 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
 
 void Request::ParseLine(const std::string &line) {
   switch (parse_status_) {
-    case INIT:ParseRequestLine(line);
-      break;
-    case HEADER:ParseHeader(line);
-      break;
-    case COMPLETE:break;
-    case ERROR:SetRequestStatus(400);
-      break;
-    default:break;
+  case INIT:
+    ParseRequestLine(line);
+    break;
+  case HEADER:
+    ParseHeader(line);
+    break;
+  case COMPLETE:
+    break;
+  case ERROR:
+    SetRequestStatus(400);
+    break;
+  default:
+    break;
   }
 }
 
@@ -108,7 +115,7 @@ void Request::ParseRequestLine(const std::string &line) {
     message_.request_line.version = Http::HTTP09;
     parse_status_ = COMPLETE;
   }
-    // HTTP1.0~
+  // HTTP1.0~
   else {
     if (splited[2] == "HTTP/1.0") {
       message_.request_line.version = Http::HTTP10;
@@ -185,7 +192,7 @@ void Request::ParseBody(SocketBuff &buffer_) {
   if (is_chunked_) {
     ParseChunkedBody(buffer_);
   }
-    // Content-Lengthの場合
+  // Content-Lengthの場合
   else {
     ParseContentLengthBody(buffer_);
   }
@@ -193,7 +200,7 @@ void Request::ParseBody(SocketBuff &buffer_) {
 
 void Request::ParseChunkedBody(SocketBuff &buffer_) {
   while (!buffer_.GetString().empty() && parse_status_ != ERROR &&
-      parse_status_ != COMPLETE) {
+         parse_status_ != COMPLETE) {
     if (chunk_status_ == -1) {
       ParseChunkSize(buffer_);
     } else {
@@ -218,7 +225,7 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   }
 }
 
-template<typename T>
+template <typename T>
 bool Request::AssertSize(const T &actual_size, const T &max_allowed_size) {
   if (actual_size > max_allowed_size) {
     return false;
@@ -251,7 +258,7 @@ void Request::ParseChunkData(SocketBuff &buffer_) {
   if (static_cast<long>(buffer_.GetBuffSize()) < chunk_status_ + 2) {
     return;
   }
-    // 足りてる場合は、追加する文字列を切り取る
+  // 足りてる場合は、追加する文字列を切り取る
   else if (static_cast<long>(buffer_.GetBuffSize()) > chunk_status_ + 2) {
     std::string chunk = buffer_.GetString().substr(0, chunk_status_ + 2);
     // その文字列がCRLFで終わっているかを確認
@@ -334,7 +341,8 @@ bool Request::AssertUrlPath() {
   int counter = 0;
   // '/'ごとにurlを分割
   std::vector<std::string> split_url;
-  ssize_t splited_url_size = ws_split(split_url, context_.resource_path.uri.path, '/');
+  ssize_t splited_url_size =
+      ws_split(split_url, context_.resource_path.uri.path, '/');
   // ".."があるごとにカウントをマイナス
   // カウンターが0以下になったらrootにアクセスしているのでどんな場合でもエラーにする
   for (ssize_t i = 0; i < splited_url_size; ++i) {
@@ -455,7 +463,7 @@ void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
     for (ConfVec::const_iterator itv = vservers.begin(); itv != vservers.end();
          itv++) {
       for (std::vector<std::string>::const_iterator its =
-          itv->server_names_.begin();
+               itv->server_names_.begin();
            its != itv->server_names_.end(); its++) {
         if (*its == host) {
           context_.vserver = *itv;
@@ -520,7 +528,7 @@ void Request::ResolveResourcePath() {
 
   // cgi_extensionsがある場合
   for (std::vector<std::string>::iterator ite =
-      context_.location.cgi_extensions_.begin();
+           context_.location.cgi_extensions_.begin();
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
