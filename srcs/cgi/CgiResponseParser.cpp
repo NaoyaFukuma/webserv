@@ -31,30 +31,34 @@ CgiResponseParser::~CgiResponseParser() {}
 // recv_buffer_内のCGIレスポンスからResponseを構築する
 void CgiResponseParser::ParseCgiResponse() {
   std::cout << "Parse対象のCGIレスポンス" << std::endl;
-  std::cout << this->cgi_socket_.recv_buffer_.GetString() << std::endl;
+  std::cout << cgi_socket_.recv_buffer_.GetString() << std::endl;
 
-  if (this->ParseHeader() == FAILURE) {
-    this->SetInternalErrorHttpResponse();
+  if (ParseHeader() == FAILURE) {
+    std::cerr << "ParseHeader() == FAILURE" << std::endl;
+    SetInternalErrorHttpResponse();
     return;
   }
-  if (this->ParseBody() == FAILURE) {
-    this->SetInternalErrorHttpResponse();
+  if (ParseBody() == FAILURE) {
+    std::cerr << "ParseBody() == FAILURE" << std::endl;
+    SetInternalErrorHttpResponse();
     return;
   }
-  if (this->ParseStatusHeader() == FAILURE) {
-    this->SetInternalErrorHttpResponse();
+  if (ParseStatusHeader() == FAILURE) {
+    std::cerr << "ParseStatusHeader() == FAILURE" << std::endl;
+    SetInternalErrorHttpResponse();
     return;
   }
-  if (this->ParseLocationHeader() == FAILURE) {
-    this->SetInternalErrorHttpResponse();
+  if (ParseLocationHeader() == FAILURE) {
+    std::cerr << "ParseLocationHeader() == FAILURE" << std::endl;
+    SetInternalErrorHttpResponse();
     return;
   }
-  if (this->redirect_type_ == LOCAL_CGI_REDIRECT) {
-    this->parse_result_ = RIDIRECT_TO_LOCAL_CGI;
+  if (redirect_type_ == LOCAL_CGI_REDIRECT) {
+    parse_result_ = RIDIRECT_TO_LOCAL_CGI;
   } else {
-    this->dest_http_response_ = this->temp_http_response_;
-    this->dest_http_response_.SetProcessStatus(DONE);
-    this->parse_result_ = CREATED_HTTP_RESPONSE;
+    dest_http_response_ = temp_http_response_;
+    dest_http_response_.SetProcessStatus(DONE);
+    parse_result_ = CREATED_HTTP_RESPONSE;
   }
 }
 
@@ -62,7 +66,7 @@ void CgiResponseParser::ParseCgiResponse() {
 int CgiResponseParser::ParseHeader() {
   std::size_t header_len = 0; // ヘッダーの総合計を記録
   std::string line;
-  while (this->cgi_socket_.recv_buffer_.GetUntilCRLF(line)) {
+  while (cgi_socket_.recv_buffer_.GetUntilCRLF(line)) {
     if (line.empty()) {
       break;
     }
@@ -72,40 +76,42 @@ int CgiResponseParser::ParseHeader() {
     // ヘッダーフィールドを分解して格納
     std::pair<std::string, std::string> header_pair = SplitHeader(line);
     std::vector<std::string> header_values = SplitValue(header_pair.second);
-    this->temp_http_response_.SetHeader(header_pair.first, header_values);
+    temp_http_response_.SetHeader(header_pair.first, header_values);
   }
   return SUCCESS;
 }
 
 int CgiResponseParser::ParseBody() {
   // ボディのサイズを取得 (ボディの最後の改行２文字分を引く)
-  std::size_t body_size = this->cgi_socket_.recv_buffer_.GetBuffSize() - 2;
+  std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize() - 2;
   if (body_size == 0) {
     return SUCCESS;
   }
   if (IsValidBodyLength(body_size) == false) {
+    std::cerr << "ボディのサイズが大きすぎます" << std::endl;
     return FAILURE;
   }
 
-  std::string body = this->cgi_socket_.recv_buffer_.GetString();
-  if (body[body_size + 1] == '\r' && body[body_size + 2] == '\n') {
+  std::string body = cgi_socket_.recv_buffer_.GetString();
+  if (body[body_size] == '\r' && body[body_size + 1] == '\n') {
     // ボディの最後の改行2文字分を削除
     body.erase(body_size + 1, 2);
   } else {
+    std::cerr << "ボディの最後の改行が正しくありません" << std::endl;
     return FAILURE;
   }
-  this->temp_http_response_.SetBody(body);
+  temp_http_response_.SetBody(body);
   return SUCCESS;
 }
 
 int CgiResponseParser::ParseStatusHeader() {
-  if (this->temp_http_response_.HasHeader("Status") == false) {
-    this->temp_http_response_.SetResponseStatus(200);
+  if (temp_http_response_.HasHeader("Status") == false) {
+    temp_http_response_.SetResponseStatus(200);
     return SUCCESS;
   }
 
   std::vector<std::string> status_values =
-      this->temp_http_response_.GetHeader("Status");
+      temp_http_response_.GetHeader("Status");
   if (status_values.size() != 1) {
     // "200" or "200 OK" でいずれにせよ1つのstringになるはず
     // 通常のヘッダーフィールドと違いスペースを区切り文字と扱うのでスプリットされない
@@ -127,37 +133,37 @@ int CgiResponseParser::ParseStatusHeader() {
     return FAILURE;
   }
   if (status_message.empty()) {
-    this->temp_http_response_.SetResponseStatus(status_code);
+    temp_http_response_.SetResponseStatus(status_code);
   } else {
-    this->temp_http_response_.SetResponseStatus(
+    temp_http_response_.SetResponseStatus(
         Http::HttpStatus(status_code, status_message));
   }
   // HTTPのレスポンスにはStatusヘッダーは不要なので削除
-  this->temp_http_response_.DelHeader("Status");
+  temp_http_response_.DelHeader("Status");
   return SUCCESS;
 }
 
 int CgiResponseParser::ParseLocationHeader() {
-  if (this->temp_http_response_.HasHeader("Location") == false) {
+  if (temp_http_response_.HasHeader("Location") == false) {
     return SUCCESS;
   }
   std::vector<std::string> location_values =
-      this->temp_http_response_.GetHeader("Location");
+      temp_http_response_.GetHeader("Location");
   if (ParseLocationHeaderValue(location_values) == FAILURE) {
     return FAILURE;
   }
-  switch (this->redirect_type_) {
+  switch (redirect_type_) {
   case CLIENT_REDIRECT:
     // そのまま返す
     break;
   case LOCAL_STATIC_FILE_REDIRECT:
-    if (this->GetAndSetLocalStaticFile() == FAILURE) {
+    if (GetAndSetLocalStaticFile() == FAILURE) {
       return FAILURE;
     }
     break;
   case LOCAL_CGI_REDIRECT:
     // CGI実行プロセスの作成やEPOLLへの登録は呼び出し元で行う
-    if (this->CreateNewCgiSocketProcess() == FAILURE) {
+    if (CreateNewCgiSocketProcess() == FAILURE) {
       return FAILURE;
     }
     break;
@@ -174,58 +180,58 @@ int CgiResponseParser::ParseLocationHeaderValue(
   }
   if (location_header_value[0].find("://") != std::string::npos) {
     // 絶対URLはclient redirectなのでそのまま返す
-    this->redirect_type_ = CLIENT_REDIRECT;
+    redirect_type_ = CLIENT_REDIRECT;
     return SUCCESS;
   }
-  if (this->ParseLocalRedirect(location_header_value[0]) == FAILURE) {
+  if (ParseLocalRedirect(location_header_value[0]) == FAILURE) {
     return FAILURE;
   }
   return SUCCESS;
 }
 
 int CgiResponseParser::ParseLocalRedirect(std::string &path) {
-  if (this->IsValidAbsolutePath(path) == false) {
+  if (IsValidAbsolutePath(path) == false) {
     return FAILURE;
   }
 
-  this->temp_context_ = this->src_http_request_.GetContext();
+  temp_context_ = src_http_request_.GetContext();
 
   // fragment, query, path_info, pathを更新していく
   if (path.find('#') == std::string::npos) {
-    this->temp_context_.resource_path.uri.fragment = "";
+    temp_context_.resource_path.uri.fragment = "";
   } else {
-    this->temp_context_.resource_path.uri.fragment = path.substr(path.find('#') + 1);
+    temp_context_.resource_path.uri.fragment = path.substr(path.find('#') + 1);
     path = path.substr(0, path.find('#'));
   }
   // query
   if (path.find('?') == std::string::npos) {
-    this->temp_context_.resource_path.uri.query = "";
+    temp_context_.resource_path.uri.query = "";
   } else {
-    this->temp_context_.resource_path.uri.query = path.substr(path.find('?') + 1);
+    temp_context_.resource_path.uri.query = path.substr(path.find('?') + 1);
     path = path.substr(0, path.find('?'));
   }
 
-  this->temp_context_.resource_path.uri.path = path;
+  temp_context_.resource_path.uri.path = path;
 
   // root はsrc HTTPリクエストに束縛される
-  std::string &root = this->temp_context_.location.root_;
+  std::string &root = temp_context_.location.root_;
 
   // pathからlocation directive以降（path_info )を除去して、rootを付与
   std::string concat =
-      root + '/' + path.substr(this->temp_context_.location.path_.size());
+      root + '/' + path.substr(temp_context_.location.path_.size());
 
   // cgi_extensionsがない場合は静的ファイルが確定する
-  if (this->temp_context_.location.cgi_extensions_.empty()) {
-    this->temp_context_.resource_path.server_path = concat;
-    this->temp_context_.resource_path.path_info = ""; // path_infoは発生し得ない
-    this->redirect_type_ = LOCAL_STATIC_FILE_REDIRECT;
+  if (temp_context_.location.cgi_extensions_.empty()) {
+    temp_context_.resource_path.server_path = concat;
+    temp_context_.resource_path.path_info = ""; // path_infoは発生し得ない
+    redirect_type_ = LOCAL_STATIC_FILE_REDIRECT;
     return SUCCESS;
   }
 
   // cgi_extensionsがある場合 リダイレクト先がCGIかどうかを確認する
   for (std::vector<std::string>::iterator ite =
-           this->temp_context_.location.cgi_extensions_.begin();
-       ite != this->temp_context_.location.cgi_extensions_.end(); ite++) {
+           temp_context_.location.cgi_extensions_.begin();
+       ite != temp_context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
     // concatの'/'ごとにextensionを確認
@@ -234,10 +240,10 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
       if (*its == '/') {
         std::string partial_path = concat.substr(0, its - concat.begin());
         if (ws_exist_cgi_file(partial_path, cgi_extension)) {
-          this->temp_context_.resource_path.server_path =
+          temp_context_.resource_path.server_path =
               concat.substr(0, its - concat.begin());
-          this->temp_context_.resource_path.path_info = concat.substr(its - concat.begin());
-          this->redirect_type_ = LOCAL_CGI_REDIRECT;
+          temp_context_.resource_path.path_info = concat.substr(its - concat.begin());
+          redirect_type_ = LOCAL_CGI_REDIRECT;
           return SUCCESS;
         }
       }
@@ -246,26 +252,26 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
     // concatは '/'を含むので、size() > 0が保証されている
     if (concat[concat.size() - 1] != '/' &&
         ws_exist_cgi_file(concat, cgi_extension)) {
-      this->temp_context_.resource_path.server_path = concat;
-      this->temp_context_.resource_path.path_info = "";
-      this->redirect_type_ = LOCAL_CGI_REDIRECT;
+      temp_context_.resource_path.server_path = concat;
+      temp_context_.resource_path.path_info = "";
+      redirect_type_ = LOCAL_CGI_REDIRECT;
       return SUCCESS;
     }
   }
 
   // cgi_extensionsにマッチしなかった場合は静的ファイル
-  this->temp_context_.resource_path.server_path = concat;
-  this->temp_context_.resource_path.path_info = "";
-  this->redirect_type_ = LOCAL_STATIC_FILE_REDIRECT;
+  temp_context_.resource_path.server_path = concat;
+  temp_context_.resource_path.path_info = "";
+  redirect_type_ = LOCAL_STATIC_FILE_REDIRECT;
   return SUCCESS;
 }
 
 int CgiResponseParser::GetAndSetLocalStaticFile() {
   // Open the file
-  std::ifstream ifs(this->temp_context_.resource_path.server_path.c_str(), std::ios::binary);
+  std::ifstream ifs(temp_context_.resource_path.server_path.c_str(), std::ios::binary);
   if (!ifs) {
     std::cerr << "Keep Running Error: Failed to open file: "
-              << this->temp_context_.resource_path.server_path << std::endl;
+              << temp_context_.resource_path.server_path << std::endl;
     return FAILURE;
   }
 
@@ -273,9 +279,9 @@ int CgiResponseParser::GetAndSetLocalStaticFile() {
   std::size_t body_size = ifs.seekg(0, std::ios::end).tellg();
 
   // Check if the file is too large
-  if (body_size > this->kMaxBodyLength) {
+  if (body_size > kMaxBodyLength) {
     std::cerr << "Keep Running Error: File is too large: "
-              << this->temp_context_.resource_path.server_path << std::endl;
+              << temp_context_.resource_path.server_path << std::endl;
     return FAILURE;
   }
 
@@ -284,33 +290,33 @@ int CgiResponseParser::GetAndSetLocalStaticFile() {
   ifs.seekg(0, std::ios::beg).read(&body[0], body.size());
 
   // Set HTTP response
-  this->temp_http_response_.SetBody(body);
-  this->temp_http_response_.SetResponseStatus(200);
+  temp_http_response_.SetBody(body);
+  temp_http_response_.SetResponseStatus(200);
 
   // Set Content-Type header
-  this->temp_http_response_.SetHeader(
+  temp_http_response_.SetHeader(
       "Content-Type",
       std::vector<std::string>(
           1,
           ws_get_mime_type(
-              this->temp_context_.resource_path.server_path)));
+              temp_context_.resource_path.server_path)));
 
   // Set Content-Length header
   std::stringstream ss;
   ss << body_size;
-  this->temp_http_response_.SetHeader("Content-Length",
+  temp_http_response_.SetHeader("Content-Length",
                                       std::vector<std::string>(1, ss.str()));
 
   return SUCCESS;
 }
 
 int CgiResponseParser::CreateNewCgiSocketProcess() {
-  Request new_request = this->CreateNewCgiRequest();
+  Request new_request = CreateNewCgiRequest();
 
-  this->redirect_new_cgi_socket_ =
-      new CgiSocket(this->cgi_socket_.GetHttpClientSock(), new_request,
-                    this->dest_http_response_);
-  if (this->redirect_new_cgi_socket_->CreateCgiProcess() == NULL) {
+  redirect_new_cgi_socket_ =
+      new CgiSocket(cgi_socket_.GetHttpClientSock(), new_request,
+                    dest_http_response_);
+  if (redirect_new_cgi_socket_->CreateCgiProcess() == NULL) {
     std::cerr << "Keep Running Error: Failed to create CGI process"
               << std::endl;
     return FAILURE;
@@ -320,8 +326,8 @@ int CgiResponseParser::CreateNewCgiSocketProcess() {
 
 Request CgiResponseParser::CreateNewCgiRequest() {
   Request new_request;
-  new_request.SetContext(this->temp_context_);
-  new_request.SetMessage(this->src_http_request_.GetRequestMessage());
+  new_request.SetContext(temp_context_);
+  new_request.SetMessage(src_http_request_.GetRequestMessage());
   return new_request;
 }
 
@@ -346,7 +352,7 @@ bool CgiResponseParser::IsValidHeaderLine(const std::string &line,
 }
 
 bool CgiResponseParser::IsValidtHeaderLineLength(const std::string &line) {
-  if (line.size() > this->kMaxHeaderLineLength) {
+  if (line.size() > kMaxHeaderLineLength) {
     std::cerr << "Keep Running Error: CGI response header line length too long"
               << std::endl;
     return false;
@@ -357,7 +363,7 @@ bool CgiResponseParser::IsValidtHeaderLineLength(const std::string &line) {
 bool CgiResponseParser::IsValidHeaderLength(std::size_t &header_len,
                                             std::size_t line_len) {
   header_len += line_len;
-  if (header_len > this->kMaxHeaderLength) {
+  if (header_len > kMaxHeaderLength) {
     std::cerr << "Keep Running Error: CGI response header length too long"
               << std::endl;
     return false;
@@ -408,16 +414,16 @@ bool CgiResponseParser::IsValidToken(const std::string &token) {
 }
 
 bool CgiResponseParser::IsValidBodyLength(std::size_t body_len) {
-  if (!this->temp_http_response_.HasHeader("Content-Length")) {
+  if (!temp_http_response_.HasHeader("Content-Length")) {
     std::cerr << "Keep Running Error: CGI response header has no Content-Length"
               << std::endl;
     return false;
   }
   std::string content_length_value =
-      this->temp_http_response_.GetHeader("Content-Length")[0];
+      temp_http_response_.GetHeader("Content-Length")[0];
   std::size_t header_content_length; // ヘッダー内のContent-Lengthの値
   ws_strtoi(&header_content_length, content_length_value);
-  if (header_content_length > this->kMaxBodyLength) {
+  if (header_content_length > kMaxBodyLength) {
     std::cerr << "Keep Running Error: CGI response body length too long"
               << std::endl;
     return false;
@@ -512,9 +518,9 @@ std::string CgiResponseParser::trim(const std::string &str) {
 }
 
 void CgiResponseParser::SetInternalErrorHttpResponse() {
-  this->dest_http_response_.SetResponseStatus(500);
-  this->dest_http_response_.SetProcessStatus(DONE);
-  this->dest_http_response_.SetVersion(
-      this->src_http_request_.GetRequestMessage().request_line.version);
-  this->parse_result_ = CREATED_HTTP_RESPONSE;
+  dest_http_response_.SetResponseStatus(500);
+  dest_http_response_.SetProcessStatus(DONE);
+  dest_http_response_.SetVersion(
+      src_http_request_.GetRequestMessage().request_line.version);
+  parse_result_ = CREATED_HTTP_RESPONSE;
 }

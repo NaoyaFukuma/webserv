@@ -46,7 +46,7 @@ public:
 
   bool GetCreatedHttpResFlag() const { return created_http_res_flag_; }
   void SetCreatedHttpResFlag(bool flag) { created_http_res_flag_ = flag; }
-  const ConnSocket &GetHttpClientSock() const { return this->http_client_sock_; }
+  const ConnSocket &GetHttpClientSock() const { return http_client_sock_; }
 
 private:
   int CreateUnixDomainSocketPair();
