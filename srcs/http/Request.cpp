@@ -67,8 +67,7 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
 
     uint64_t client_max_body_size =
         socket->GetConfVec()[0].locations_[0].client_max_body_size_;
-    if (!AssertSize(total_body_size_,
-                    static_cast<long>(client_max_body_size))) {
+    if (!AssertSize()) {
       SetRequestStatus(413);
       parse_status_ = ERROR;
       return;
@@ -225,9 +224,8 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   }
 }
 
-template <typename T>
-bool Request::AssertSize(const T &actual_size, const T &max_allowed_size) {
-  if (actual_size > max_allowed_size) {
+bool Request::AssertSize() {
+  if (total_body_size_ > client_max_body_size_) {
     return false;
   }
   return true;
