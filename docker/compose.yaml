@@ -11,4 +11,4 @@ services:
       - ../:/app
       - ../www:/var/www
     restart: on-failure
-    container_name: debian
+    container_name: ubuntu
