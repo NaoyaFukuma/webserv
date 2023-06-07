@@ -622,7 +622,20 @@ bool ConfigParser::IsValidLabel(const std::string &server_name,
 }
 
 bool ConfigParser::IsValidUrl(const std::string &url) {
-  // URL should start with http:// or https://
+  if (url.empty()) {
+    return false;
+  }
+
+  // Relative URL
+  if (url[0] == '/') {
+    if (IsValidPath(url)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // Absolute URL should start with http:// or https://
   if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
     return false;
   }
