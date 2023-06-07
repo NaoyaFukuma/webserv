@@ -56,12 +56,8 @@ CgiSocket::~CgiSocket() {
 int CgiSocket::OnReadable(Epoll *epoll) {
   // 一度目でバッファ内は全て読み込まれる
   int recv_result = recv_buffer_.ReadSocket(GetFd());
-  std::cout << "1 recv_result: " << recv_result << std::endl;
   // 二度目はEOFの読み込み-1, それ以外は0(NONBLOCK I/O)
   recv_result = recv_buffer_.ReadSocket(GetFd());
-
-  std::cout << "2 recv_result: " << recv_result << std::endl;
-  std::cout << "recv_buffer: " << recv_buffer_.GetString() << std::endl;
 
   if (recv_result == 0) {
     return SUCCESS;
@@ -72,10 +68,12 @@ int CgiSocket::OnReadable(Epoll *epoll) {
 
     switch (cgi_res_parser.GetParseResult()) {
     case CgiResponseParser::CREATED_HTTP_RESPONSE:
-      epoll->Mod(http_client_sock_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+      epoll->Mod(http_client_sock_.GetFd(),
+                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
       break;
     case CgiResponseParser::RIDIRECT_TO_LOCAL_CGI:
-      epoll->Add(cgi_res_parser.GetRedirectNewCgiSocket(), EPOLLIN | EPOLLOUT | EPOLLET);
+      epoll->Add(cgi_res_parser.GetRedirectNewCgiSocket(),
+                 EPOLLIN | EPOLLOUT | EPOLLET);
       break;
     default:
       break;
@@ -128,8 +126,11 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
 
   if (event_mask & EPOLLIN) {
+    #ifdef DEBUG
     std::cout << "FD: " << GetFd();
     std::cout << " CgiSocket::ProcessSocket() EPOLLIN" << std::endl;
+    #endif
+
     if (OnReadable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
         SetInternalErrorHttpResponse();
@@ -141,8 +142,11 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   }
 
   if (event_mask & EPOLLOUT) {
-    std::cout << "FD: " << GetFd()
-              << " CgiSocket::ProcessSocket() EPOLLOUT" << std::endl;
+    #ifdef DEBUG
+    std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLOUT"
+              << std::endl;
+    #endif
+
     if (OnWritable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
         SetInternalErrorHttpResponse();
@@ -154,8 +158,11 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   }
 
   if (event_mask & EPOLLHUP) {
-    std::cout << "FD: " << GetFd()
-              << " CgiSocket::ProcessSocket() EPOLLHUP" << std::endl;
+    #ifdef DEBUG
+    std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLHUP"
+              << std::endl;
+    #endif
+
     if (dest_http_response_.GetProcessStatus() == PROCESSING) {
       SetInternalErrorHttpResponse();
       uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;

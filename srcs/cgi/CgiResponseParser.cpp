@@ -242,7 +242,8 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
         if (ws_exist_cgi_file(partial_path, cgi_extension)) {
           temp_context_.resource_path.server_path =
               concat.substr(0, its - concat.begin());
-          temp_context_.resource_path.path_info = concat.substr(its - concat.begin());
+          temp_context_.resource_path.path_info =
+              concat.substr(its - concat.begin());
           redirect_type_ = LOCAL_CGI_REDIRECT;
           return SUCCESS;
         }
@@ -268,7 +269,8 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
 
 int CgiResponseParser::GetAndSetLocalStaticFile() {
   // Open the file
-  std::ifstream ifs(temp_context_.resource_path.server_path.c_str(), std::ios::binary);
+  std::ifstream ifs(temp_context_.resource_path.server_path.c_str(),
+                    std::ios::binary);
   if (!ifs) {
     std::cerr << "Keep Running Error: Failed to open file: "
               << temp_context_.resource_path.server_path << std::endl;
@@ -297,15 +299,13 @@ int CgiResponseParser::GetAndSetLocalStaticFile() {
   temp_http_response_.SetHeader(
       "Content-Type",
       std::vector<std::string>(
-          1,
-          ws_get_mime_type(
-              temp_context_.resource_path.server_path)));
+          1, ws_get_mime_type(temp_context_.resource_path.server_path)));
 
   // Set Content-Length header
   std::stringstream ss;
   ss << body_size;
   temp_http_response_.SetHeader("Content-Length",
-                                      std::vector<std::string>(1, ss.str()));
+                                std::vector<std::string>(1, ss.str()));
 
   return SUCCESS;
 }
@@ -313,9 +313,8 @@ int CgiResponseParser::GetAndSetLocalStaticFile() {
 int CgiResponseParser::CreateNewCgiSocketProcess() {
   Request new_request = CreateNewCgiRequest();
 
-  redirect_new_cgi_socket_ =
-      new CgiSocket(cgi_socket_.GetHttpClientSock(), new_request,
-                    dest_http_response_);
+  redirect_new_cgi_socket_ = new CgiSocket(cgi_socket_.GetHttpClientSock(),
+                                           new_request, dest_http_response_);
   if (redirect_new_cgi_socket_->CreateCgiProcess() == NULL) {
     std::cerr << "Keep Running Error: Failed to create CGI process"
               << std::endl;

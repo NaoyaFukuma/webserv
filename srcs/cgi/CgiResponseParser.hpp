@@ -1,8 +1,8 @@
 #ifndef CGI_RESPONSE_PARSER_HPP_
 #define CGI_RESPONSE_PARSER_HPP_
 
-#include "Request.hpp"
 #include "CgiSocket.hpp"
+#include "Request.hpp"
 #include "Response.hpp"
 #include <string>
 
@@ -30,17 +30,22 @@ private:
   CgiSocket *redirect_new_cgi_socket_;
 
   // 各種長さ制限
-  static const int kMaxHeaderLineLength = 8192; // ヘッダー１行 8KB = 8 * 1024 = 8192
-  static const int kMaxHeaderLength = 32768; // ヘッダー全体 32KB = 32 * 1024 = 32768
+  static const int kMaxHeaderLineLength =
+      8192; // ヘッダー１行 8KB = 8 * 1024 = 8192
+  static const int kMaxHeaderLength =
+      32768; // ヘッダー全体 32KB = 32 * 1024 = 32768
   static const int kMaxBodyLength = 1048576; // 1MB = 1024 * 1024 = 1048576
 
 public:
-  CgiResponseParser(CgiSocket &cgi_socket, const Request http_request, Response &http_response);
+  CgiResponseParser(CgiSocket &cgi_socket, const Request http_request,
+                    Response &http_response);
   ~CgiResponseParser();
   void ParseCgiResponse();
 
   ParseResult GetParseResult() const { return parse_result_; }
-  CgiSocket *GetRedirectNewCgiSocket() const { return redirect_new_cgi_socket_; }
+  CgiSocket *GetRedirectNewCgiSocket() const {
+    return redirect_new_cgi_socket_;
+  }
 
 private:
   void SetInternalErrorHttpResponse();
@@ -71,10 +76,9 @@ private:
 
   // utilityメソッド
   std::pair<std::string, std::string>
-    SplitHeader(const std::string &headerLine);
+  SplitHeader(const std::string &headerLine);
   std::vector<std::string> SplitValue(const std::string &value);
   std::string trim(const std::string &str);
-
 
 private:
   CgiResponseParser(); // デフォルトコンストラクタ禁止

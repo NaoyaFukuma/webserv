@@ -28,7 +28,8 @@ private:
 public:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
-  CgiSocket(const ConnSocket &http_client_sock, const Request http_request, Response &http_response);
+  CgiSocket(const ConnSocket &http_client_sock, const Request http_request,
+            Response &http_response);
   ~CgiSocket();
   int ProcessSocket(Epoll *epoll, void *data);
   int OnWritable(Epoll *epoll);
