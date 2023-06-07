@@ -22,9 +22,9 @@
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket,
                                      const Request http_request,
-                                     Response &http_response)
+                                     Response &http_response, Epoll *epoll)
     : cgi_socket_(cgi_socket), src_http_request_(http_request),
-      dest_http_response_(http_response), redirect_type_(NO_REDIRECT) {}
+      dest_http_response_(http_response), redirect_type_(NO_REDIRECT), epoll_(epoll) {}
 
 CgiResponseParser::~CgiResponseParser() {}
 
@@ -314,7 +314,7 @@ int CgiResponseParser::CreateNewCgiSocketProcess() {
   Request new_request = CreateNewCgiRequest();
 
   redirect_new_cgi_socket_ = new CgiSocket(cgi_socket_.GetHttpClientSock(),
-                                           new_request, dest_http_response_);
+                                           new_request, dest_http_response_, epoll_);
   if (redirect_new_cgi_socket_->CreateCgiProcess() == NULL) {
     std::cerr << "Keep Running Error: Failed to create CGI process"
               << std::endl;

@@ -76,6 +76,9 @@ void CgiSocket::ExeCgiScript() {
       src_http_request_.GetContext().resource_path.server_path);
   char **argv = SetChildProcessArgv();
   // c_str()の返り値をconst char*に代入するとだめ
+  #ifdef DEBUG
+  std::cerr << "execute CGI script:" << std::endl;
+  #endif
   if (execve(src_http_request_.GetContext().resource_path.server_path.c_str(),
              argv, env) < 0) {
     // 例外を投げ子プロセス終了 exit()使用不可

@@ -20,21 +20,31 @@
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
 CgiSocket::CgiSocket(const ConnSocket &http_client_sock,
-                     const Request http_request, Response &http_response)
+                     const Request http_request, Response &http_response,
+                     Epoll *epoll)
     : ASocket(http_client_sock.GetConfVec()),
       http_client_sock_(http_client_sock), src_http_request_(http_request),
-      dest_http_response_(http_response) {
+      dest_http_response_(http_response), epoll_(epoll) {
   send_buffer_.AddString(http_request.GetBody());
 };
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
 CgiSocket::~CgiSocket() {
+#ifdef DEBUG
+  std::cerr << "CgiSocket::~CgiSocket() start" << std::endl;
+#endif
   int status;
 
   // 子プロセスが終了していない場合に備え、WNOHANGを使う
   int wait_res = waitpid(cgi_pid_, &status, WNOHANG);
   switch (wait_res) {
-  case 0: // 子プロセスが終了していないのでkill()で終了させて、終了ステータスを回収する
+  case 0: // 子プロセスが終了していないのでresponseに500をセットし、子プロセスをkill()で終了させて、終了ステータスを回収する
+#ifdef DEBUG
+    std::cerr << "wait_res is 0 child process kill() and wait()" << std::endl;
+#endif
+    SetInternalErrorHttpResponse();
+    epoll_->Mod(http_client_sock_.GetFd(),
+                EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
     if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
     }
@@ -48,8 +58,14 @@ CgiSocket::~CgiSocket() {
     break;
 
   default: // 子プロセスが終了していて、終了ステータスを回収できた
+#ifdef DEBUG
+    std::cerr << "child process is already finished" << std::endl;
+#endif
     break;
   }
+#ifdef DEBUG
+  std::cerr << "CgiSocket::~CgiSocket() end" << std::endl;
+#endif
 }
 
 /* retrun value SUCCESS(0) or FAILURE(-1) */
@@ -63,7 +79,7 @@ int CgiSocket::OnReadable(Epoll *epoll) {
     return SUCCESS;
   } else { // EOFの読み込み後にのみparseを行う
     CgiResponseParser cgi_res_parser(*this, src_http_request_,
-                                     dest_http_response_);
+                                     dest_http_response_, epoll_);
     cgi_res_parser.ParseCgiResponse();
 
     switch (cgi_res_parser.GetParseResult()) {
@@ -126,47 +142,47 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
 
   if (event_mask & EPOLLIN) {
-    #ifdef DEBUG
+#ifdef DEBUG
     std::cout << "FD: " << GetFd();
     std::cout << " CgiSocket::ProcessSocket() EPOLLIN" << std::endl;
-    #endif
+#endif
 
     if (OnReadable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
         SetInternalErrorHttpResponse();
-        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Mod(http_client_sock_.GetFd(), event_mask);
+        epoll->Mod(http_client_sock_.GetFd(),
+                   EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
       }
       return FAILURE;
     }
   }
 
   if (event_mask & EPOLLOUT) {
-    #ifdef DEBUG
+#ifdef DEBUG
     std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLOUT"
               << std::endl;
-    #endif
+#endif
 
     if (OnWritable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
         SetInternalErrorHttpResponse();
-        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Mod(http_client_sock_.GetFd(), event_mask);
+        epoll->Mod(http_client_sock_.GetFd(),
+                   EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
       }
       return FAILURE;
     }
   }
 
   if (event_mask & EPOLLHUP) {
-    #ifdef DEBUG
+#ifdef DEBUG
     std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLHUP"
               << std::endl;
-    #endif
+#endif
 
     if (dest_http_response_.GetProcessStatus() == PROCESSING) {
       SetInternalErrorHttpResponse();
-      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-      epoll->Mod(http_client_sock_.GetFd(), event_mask);
+      epoll->Mod(http_client_sock_.GetFd(),
+                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
     }
     return FAILURE;
   }
@@ -175,8 +191,14 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
 }
 
 void CgiSocket::SetInternalErrorHttpResponse() {
+#ifdef DEBUG
+  std::cout << "CgiSocket::SetInternalErrorHttpResponse() start" << std::endl;
+#endif
   dest_http_response_.SetResponseStatus(500);
   dest_http_response_.SetProcessStatus(DONE);
   dest_http_response_.SetVersion(
       src_http_request_.GetRequestMessage().request_line.version);
+#ifdef DEBUG
+  std::cout << "CgiSocket::SetInternalErrorHttpResponse() end" << std::endl;
+#endif
 }

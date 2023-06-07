@@ -28,6 +28,7 @@ private:
   ParseResult parse_result_;
   LedirectType redirect_type_;
   CgiSocket *redirect_new_cgi_socket_;
+  Epoll *epoll_;
 
   // 各種長さ制限
   static const int kMaxHeaderLineLength =
@@ -38,7 +39,7 @@ private:
 
 public:
   CgiResponseParser(CgiSocket &cgi_socket, const Request http_request,
-                    Response &http_response);
+                    Response &http_response, Epoll *epoll);
   ~CgiResponseParser();
   void ParseCgiResponse();
 
