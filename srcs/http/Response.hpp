@@ -29,7 +29,9 @@ private:
   Header header_;
   std::string body_;
 
+  Context context_;
   RangeVec ranges_;
+  bool connection_;
 
   // 各種長さの制限に使う定数
   // ヘッダー１行の最大文字数 8KB = 8 * 1024 = 8192
@@ -48,7 +50,9 @@ private:
   void ProcessDELETE(Request &request);
 
   void GetFile(Request &request, const std::string &path);
-  void StaticFileBody(const std::string &path);
+  void StaticFileBody(const std::string &path,
+                      std::pair<std::size_t, std::size_t> *range = NULL,
+                      bool is_error_page = false);
   bool IsGetableFile(Request &request, const std::string &path);
 
   void DeleteFile(Request &request, const std::string &path);
@@ -57,6 +61,7 @@ private:
   void ProcessAutoindex(const std::string &path);
   void ResFileList(DIR *dir);
 
+  bool IsConnection(Request &request);
   bool IfModSince(Request &request, const std::string &path);
   bool IfUnmodSince(Request &request, const std::string &path);
   bool IfMatch(Request &request, const std::string &path);
@@ -77,6 +82,7 @@ public:
   ProcessStatus GetProcessStatus() const;
   std::vector<std::string> GetHeader(const std::string &key);
   bool HasHeader(const std::string &key) const;
+  bool GetIsConnection() const;
 
   void SetResponseStatus(Http::HttpStatus status);
   void SetVersion(Http::Version version);
@@ -91,6 +97,7 @@ public:
   }
 
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
+  void ProcessErrorPage();
 };
 
 #endif // RESPONSE_HPP_
