@@ -271,9 +271,9 @@ void Response::StaticFileBody(const std::string &path,
   // sizeを取得
   std::size_t start;
   std::size_t end;
-  if (!ranges_.empty()) {
-    start = ranges_[0].first;
-    end = ranges_[0].second;
+  if (range != NULL) {
+    start = (*range).first;
+    end = (*range).second;
   } else {
     start = 0;
     end = ifs.seekg(0, std::ios::end).tellg();
