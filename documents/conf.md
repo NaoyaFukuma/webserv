@@ -26,6 +26,15 @@ webservで用いる設定ファイルについての解説。
            - [cgi_extension](#cgi_extension)
            - [return_directive](#return_directive)
 
+
+### 各種サイズ制限
+| 設定項目                      |  Size  |
+|-------------------------------|----------------------------------|
+| ヘッダーの最大長さ（1行あたり）|  8KB  |
+| ヘッダーの全体の最大長さ       |  32KB  |
+| ボディの最大長さ              |  1MB  |
+
+
 ### config
 - Required: true
 - Multiple: false
