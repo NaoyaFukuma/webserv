@@ -83,7 +83,11 @@ int CgiResponseParser::ParseHeader() {
 
 int CgiResponseParser::ParseBody() {
   // ボディのサイズを取得 (ボディの最後の改行２文字分を引く)
-  std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize() - 2;
+#ifdef DEBUG
+  std::cerr << "body のサイズ " << cgi_socket_.recv_buffer_.GetBuffSize() << std::endl;
+  std::cerr << "body の内容\n" << cgi_socket_.recv_buffer_.GetString() << std::endl;
+#endif
+  std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize();
   if (body_size == 0) {
     return SUCCESS;
   }
@@ -372,14 +376,21 @@ bool CgiResponseParser::IsValidHeaderLength(std::size_t &header_len,
 }
 
 bool CgiResponseParser::IsValidHeaderLineFormat(const std::string &line) {
-  // ':'の数を数えて、一つだけあることを確認
+// ':'の数を数えて、一つだけあることを確認
+#ifdef DEBUG
+  std::cerr << "line: " << line << std::endl;
+#endif
   int colon_count = std::count(line.begin(), line.end(), ':');
-  if (colon_count != 1) {
+  if (colon_count == 0) {
     std::cerr << "Keep Running Error: CGI response header line format error"
               << std::endl;
     return false;
   }
   std::pair<std::string, std::string> kv = SplitHeader(line);
+#ifdef DEBUG
+  std::cerr << "key: " << kv.first << std::endl;
+  std::cerr << "value: " << kv.second << std::endl;
+#endif
   return IsValidHeaderKey(kv.first) && IsValidHeaderValue(kv.second);
 }
 
@@ -397,13 +408,16 @@ bool CgiResponseParser::IsValidHeaderValue(const std::string &value) {
 }
 
 bool CgiResponseParser::IsValidToken(const std::string &token) {
+#ifdef DEBUG
+  std::cout << "token: " << token << std::endl;
+#endif
   if (token.empty()) {
     std::cerr << "Keep Running Error: CGI response header token is empty"
               << std::endl;
     return false;
   }
   const std::string validChars =
-      "!#$%&'*+-.^_`|~"
+      ":!#$%&'*+-.^_`|~"
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   if (token.find_first_not_of(validChars) != std::string::npos) {
     std::cerr << "Keep Running Error: CGI response header token format error"

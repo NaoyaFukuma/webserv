@@ -96,7 +96,6 @@ void Epoll::CheckTimeout() {
   #endif
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
        it != fd_to_socket_.end(); it++) {
-        std::cerr << "Check FD: " << it->first << std::endl;
     if (it->second != NULL && it->second->IsTimeout(kSocketTimeout)) {
       int fd = it->first;
       std::cout << "Timeout: " << fd << std::endl;
