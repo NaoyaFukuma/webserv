@@ -102,7 +102,8 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
 }
 
 void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
-  CgiSocket *cgi_socket = new CgiSocket(*socket, request, *this, epoll);
+  CgiSocket *cgi_socket = new CgiSocket(*socket, request, *this);
+  socket->SetCgiSocket(cgi_socket);
   ASocket *sock = cgi_socket->CreateCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
@@ -260,7 +261,6 @@ void Response::ResFileList(DIR *dir) {
 void Response::StaticFileBody(const std::string &path,
                               std::pair<std::size_t, std::size_t> *range,
                               bool is_error_page) {
-  (void)range;
   std::ifstream ifs(path.c_str(), std::ios::binary);
   if (!ifs) {
     if (!is_error_page) {

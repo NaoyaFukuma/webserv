@@ -18,10 +18,9 @@ private:
   pid_t cgi_pid_;
   int child_sock_fd_;
   int parent_sock_fd_;
-  const ConnSocket &http_client_sock_;
+  ConnSocket &http_client_sock_;
   const Request src_http_request_;
   Response &dest_http_response_;
-  Epoll *epoll_;
 
   // 注意 http_response_のDONEで代用できるので注意
   bool created_http_res_flag_;
@@ -29,8 +28,8 @@ private:
 public:
   SocketBuff recv_buffer_;
   SocketBuff send_buffer_;
-  CgiSocket(const ConnSocket &http_client_sock, const Request http_request,
-            Response &http_response, Epoll *epoll);
+  CgiSocket(ConnSocket &http_client_sock, const Request http_request,
+            Response &http_response);
   ~CgiSocket();
   int ProcessSocket(Epoll *epoll, void *data);
   int OnWritable(Epoll *epoll);
@@ -48,7 +47,7 @@ public:
 
   bool GetCreatedHttpResFlag() const { return created_http_res_flag_; }
   void SetCreatedHttpResFlag(bool flag) { created_http_res_flag_ = flag; }
-  const ConnSocket &GetHttpClientSock() const { return http_client_sock_; }
+  ConnSocket &GetHttpClientSock() { return http_client_sock_; }
 
 private:
   int CreateUnixDomainSocketPair();

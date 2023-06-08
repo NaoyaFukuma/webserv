@@ -44,16 +44,34 @@ void Epoll::Add(ASocket *socket, uint32_t event_mask) {
 }
 
 void Epoll::Del(int fd) {
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
-    throw std::runtime_error("Fatal Error: epoll_ctl");
-  }
+  #ifdef DEBUG
+  std::cout <<  "Del() start\n fd :" << fd << std::endl;
+  #endif
   if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
+    #ifdef DEBUG
+    std::cout << " delete and erase fd:" << fd << std::endl;
+    #endif
     delete fd_to_socket_[fd];
     fd_to_socket_.erase(fd);
   }
+  #ifdef DEBUG
+  std::cerr << " epoll fd:" << epoll_fd_ << std::endl;
+  std::cerr << " epoll_ctl delete fd " << fd << std::endl;
+  std::cerr << " EPOLL_CTL_DEL" << EPOLL_CTL_DEL <<std::endl;
+  #endif
+
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
+    throw std::runtime_error("Fatal Error: epoll_ctl");
+  }
+  #ifdef DEBUG
+  std::cout <<  "Del() end" << std::endl;
+  #endif
 }
 
 void Epoll::Mod(int fd, uint32_t event_mask) {
+  #ifdef DEBUG
+  std::cout << "Mod() start\n fd: " << fd << std::endl;
+  #endif
   struct epoll_event ev;
 
   ev.events = event_mask;
@@ -61,6 +79,9 @@ void Epoll::Mod(int fd, uint32_t event_mask) {
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
     throw std::runtime_error("Fatal Error: epoll_ctl");
   }
+  #ifdef DEBUG
+  std::cout << "Mod()" << std::endl;
+  #endif
 }
 
 void Epoll::CheckTimeout() {
@@ -83,7 +104,7 @@ void Epoll::RegisterListenSocket(const Config &config) {
 
   for (ConfigMap::iterator it = config_map.begin(); it != config_map.end();
        it++) {
-    ListenSocket *socket = new ListenSocket(it->second);
+    ListenSocket *socket = new ListenSocket(it->second, this);
     socket->Passive();
     Add(socket, epoll_mask);
   }

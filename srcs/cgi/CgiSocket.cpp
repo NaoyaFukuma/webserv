@@ -19,12 +19,11 @@
 #include <wait.h>
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
-CgiSocket::CgiSocket(const ConnSocket &http_client_sock,
-                     const Request http_request, Response &http_response,
-                     Epoll *epoll)
-    : ASocket(http_client_sock.GetConfVec()),
+CgiSocket::CgiSocket(ConnSocket &http_client_sock,
+                     const Request http_request, Response &http_response)
+    : ASocket(http_client_sock.GetConfVec(), http_client_sock.GetEpoll()),
       http_client_sock_(http_client_sock), src_http_request_(http_request),
-      dest_http_response_(http_response), epoll_(epoll) {
+      dest_http_response_(http_response) {
   send_buffer_.AddString(http_request.GetBody());
 };
 
@@ -40,11 +39,12 @@ CgiSocket::~CgiSocket() {
   switch (wait_res) {
   case 0: // 子プロセスが終了していないのでresponseに500をセットし、子プロセスをkill()で終了させて、終了ステータスを回収する
 #ifdef DEBUG
-    std::cerr << "wait_res is 0 child process kill() and wait()" << std::endl;
+    std::cerr << " wait_res is 0 child process kill() and wait()" << std::endl;
 #endif
     SetInternalErrorHttpResponse();
-    epoll_->Mod(http_client_sock_.GetFd(),
+    GetEpoll()->Mod(http_client_sock_.GetFd(),
                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+    std::cerr << " プリントデバック" << std::endl;
     if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
     }
@@ -59,10 +59,11 @@ CgiSocket::~CgiSocket() {
 
   default: // 子プロセスが終了していて、終了ステータスを回収できた
 #ifdef DEBUG
-    std::cerr << "child process is already finished" << std::endl;
+    std::cerr << " child process is already finished" << std::endl;
 #endif
     break;
   }
+  http_client_sock_.DeleteCgiSocket(this);
 #ifdef DEBUG
   std::cerr << "CgiSocket::~CgiSocket() end" << std::endl;
 #endif
@@ -79,7 +80,7 @@ int CgiSocket::OnReadable(Epoll *epoll) {
     return SUCCESS;
   } else { // EOFの読み込み後にのみparseを行う
     CgiResponseParser cgi_res_parser(*this, src_http_request_,
-                                     dest_http_response_, epoll_);
+                                     dest_http_response_);
     cgi_res_parser.ParseCgiResponse();
 
     switch (cgi_res_parser.GetParseResult()) {
