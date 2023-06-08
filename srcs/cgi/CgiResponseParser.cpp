@@ -92,6 +92,11 @@ int CgiResponseParser::ParseBody() {
   std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize();
   if (body_size == 0) {
     return SUCCESS;
+  } else if (body_size < 2) {
+    std::cerr << "ボディの最後の改行が正しくありません" << std::endl;
+    return FAILURE;
+  } else {
+    body_size -= 2;
   }
   if (IsValidBodyLength(body_size) == false) {
     std::cerr << "ボディのサイズが大きすぎます" << std::endl;

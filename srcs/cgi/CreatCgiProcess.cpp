@@ -37,8 +37,9 @@ CgiSocket *CgiSocket::CreateCgiProcess() {
   if (SetParentProcessSocket() == FAILURE) {
     return NULL;
   }
-  last_event_.out_time = time(NULL);
-  last_event_.in_time = time(NULL);
+  time_t time_now = std::time(NULL);
+  last_event_.out_time = time_now;
+  last_event_.in_time = time_now;
 #ifdef DEBUG
   std::cerr << "CreateCgiProcess() end" << std::endl;
 #endif
