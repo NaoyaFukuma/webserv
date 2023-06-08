@@ -21,6 +21,7 @@ private:
   ConnSocket &http_client_sock_;
   const Request src_http_request_;
   Response &dest_http_response_;
+  bool http_client_timeout_flag_;
 
   // 注意 http_response_のDONEで代用できるので注意
   bool created_http_res_flag_;
@@ -48,6 +49,9 @@ public:
   bool GetCreatedHttpResFlag() const { return created_http_res_flag_; }
   void SetCreatedHttpResFlag(bool flag) { created_http_res_flag_ = flag; }
   ConnSocket &GetHttpClientSock() { return http_client_sock_; }
+
+  bool GetHttpClientTimeoutFlag() const { return http_client_timeout_flag_; }
+  void SetHttpClientTimeoutFlag(bool flag) { http_client_timeout_flag_ = flag; }
 
 private:
   int CreateUnixDomainSocketPair();

@@ -22,9 +22,17 @@ ASocket::ASocket(ConfVec config, Epoll *epoll) : fd_(-1), config_(config), epoll
 }
 
 ASocket::~ASocket() {
+#ifdef DEBUG
+  std::cerr << "~ASocket() start" << std::endl;
+  std::cerr << "  close fd:" << fd_ << std::endl;
+#endif
   if (close(fd_) < 0) {
     std::cerr << "Keep Running Error: close" << std::endl;
   }
+  #ifdef DEBUG
+  std::cerr << "~ASocket() end" << std::endl;
+#endif
+
 }
 
 ConfVec ASocket::GetConfVec() const { return config_; }
@@ -64,6 +72,7 @@ ConnSocket::~ConnSocket() {
     #ifdef DEBUG
     std::cerr << " delete cgi_socket fd:" << (*it)->GetParentSockFd() << std::endl;
     #endif
+    (*it)->SetHttpClientTimeoutFlag(true);
     GetEpoll()->Del((*it)->GetParentSockFd());
     cgi_sockets_.erase(it++);
     std::cerr << " finish delete cgi_socket" << std::endl;
@@ -226,6 +235,9 @@ ListenSocket::ListenSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll
   if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
     throw std::runtime_error("Fatal Error: setsockopt");
   }
+  #ifdef DEBUG
+  std::cout << "ListenSocket: " << fd_ << std::endl;
+  #endif
 }
 
 ListenSocket::~ListenSocket() {}

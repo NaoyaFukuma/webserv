@@ -44,34 +44,40 @@ void Epoll::Add(ASocket *socket, uint32_t event_mask) {
 }
 
 void Epoll::Del(int fd) {
-  #ifdef DEBUG
-  std::cout <<  "Del() start\n fd :" << fd << std::endl;
-  #endif
-  if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
-    #ifdef DEBUG
-    std::cout << " delete and erase fd:" << fd << std::endl;
-    #endif
-    delete fd_to_socket_[fd];
-    fd_to_socket_.erase(fd);
-  }
-  #ifdef DEBUG
+#ifdef DEBUG
+  std::cout << "Del() start\n fd :" << fd << std::endl;
+#endif
+#ifdef DEBUG
   std::cerr << " epoll fd:" << epoll_fd_ << std::endl;
   std::cerr << " epoll_ctl delete fd " << fd << std::endl;
-  std::cerr << " EPOLL_CTL_DEL" << EPOLL_CTL_DEL <<std::endl;
-  #endif
-
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
-    throw std::runtime_error("Fatal Error: epoll_ctl");
+  if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
+    std::cerr << " fd_to_socket_ find fd" << fd << std::endl;
+  } else {
+    std::cerr << " fd_to_socket_ not find fd" << fd << std::endl;
   }
-  #ifdef DEBUG
-  std::cout <<  "Del() end" << std::endl;
-  #endif
+  std::cerr << " EPOLL_CTL_DEL" << EPOLL_CTL_DEL << std::endl;
+#endif
+  // if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
+  if (fd_to_socket_.find(fd)->second != NULL) {
+    if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
+      throw std::runtime_error("Fatal Error: epoll_ctl");
+    }
+#ifdef DEBUG
+    std::cout << " delete and erase fd:" << fd << std::endl;
+#endif
+    delete fd_to_socket_[fd];
+    fd_to_socket_[fd] = NULL;
+    // fd_to_socket_.erase(fd);
+  }
+#ifdef DEBUG
+  std::cout << "Del() end" << std::endl;
+#endif
 }
 
 void Epoll::Mod(int fd, uint32_t event_mask) {
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "Mod() start\n fd: " << fd << std::endl;
-  #endif
+#endif
   struct epoll_event ev;
 
   ev.events = event_mask;
@@ -79,23 +85,39 @@ void Epoll::Mod(int fd, uint32_t event_mask) {
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
     throw std::runtime_error("Fatal Error: epoll_ctl");
   }
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "Mod()" << std::endl;
-  #endif
+#endif
 }
 
 void Epoll::CheckTimeout() {
+  #ifdef DEBUG
+  std::cout << "CheckTimeout() start" << std::endl;
+  #endif
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
-       it != fd_to_socket_.end();) {
-    if (it->second->IsTimeout(kSocketTimeout)) {
+       it != fd_to_socket_.end(); it++) {
+        std::cerr << "Check FD: " << it->first << std::endl;
+    if (it->second != NULL && it->second->IsTimeout(kSocketTimeout)) {
       int fd = it->first;
       std::cout << "Timeout: " << fd << std::endl;
-      it++;
+      // it++;
       Del(fd);
+    }
+    // else {
+    //   it++;
+    // }
+  }
+  for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
+       it != fd_to_socket_.end();) {
+    if (it->second == NULL) {
+      fd_to_socket_.erase(it++);
     } else {
       it++;
     }
   }
+#ifdef DEBUG
+  std::cout << "CheckTimeout() end" << std::endl;
+#endif
 }
 
 void Epoll::RegisterListenSocket(const Config &config) {

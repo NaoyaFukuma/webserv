@@ -23,7 +23,7 @@ CgiSocket::CgiSocket(ConnSocket &http_client_sock,
                      const Request http_request, Response &http_response)
     : ASocket(http_client_sock.GetConfVec(), http_client_sock.GetEpoll()),
       http_client_sock_(http_client_sock), src_http_request_(http_request),
-      dest_http_response_(http_response) {
+      dest_http_response_(http_response), http_client_timeout_flag_(false) {
   send_buffer_.AddString(http_request.GetBody());
 };
 
@@ -41,10 +41,11 @@ CgiSocket::~CgiSocket() {
 #ifdef DEBUG
     std::cerr << " wait_res is 0 child process kill() and wait()" << std::endl;
 #endif
-    SetInternalErrorHttpResponse();
-    GetEpoll()->Mod(http_client_sock_.GetFd(),
+    if (http_client_timeout_flag_ == false) {
+      SetInternalErrorHttpResponse();
+      GetEpoll()->Mod(http_client_sock_.GetFd(),
                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
-    std::cerr << " プリントデバック" << std::endl;
+    }
     if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
     }
