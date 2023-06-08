@@ -225,7 +225,8 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
 }
 
 bool Request::AssertSize() {
-  if (total_body_size_ > client_max_body_size_) {
+  size_t client_max_body_size = GetContext().location.client_max_body_size_;
+  if (total_body_size_ > client_max_body_size) {
     return false;
   }
   return true;
