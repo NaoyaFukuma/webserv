@@ -84,8 +84,10 @@ int CgiResponseParser::ParseHeader() {
 int CgiResponseParser::ParseBody() {
   // ボディのサイズを取得 (ボディの最後の改行２文字分を引く)
 #ifdef DEBUG
-  std::cerr << "body のサイズ " << cgi_socket_.recv_buffer_.GetBuffSize() << std::endl;
-  std::cerr << "body の内容\n" << cgi_socket_.recv_buffer_.GetString() << std::endl;
+  std::cerr << "body のサイズ " << cgi_socket_.recv_buffer_.GetBuffSize()
+            << std::endl;
+  std::cerr << "body の内容\n"
+            << cgi_socket_.recv_buffer_.GetString() << std::endl;
 #endif
   std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize();
   if (body_size == 0) {
@@ -194,6 +196,9 @@ int CgiResponseParser::ParseLocationHeaderValue(
 }
 
 int CgiResponseParser::ParseLocalRedirect(std::string &path) {
+#ifdef DEBUG
+  std::cerr << "ParseLocalRedirect parse path:" << path << std::endl;
+#endif
   if (IsValidAbsolutePath(path) == false) {
     return FAILURE;
   }
@@ -220,9 +225,13 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
   // root はsrc HTTPリクエストに束縛される
   std::string &root = temp_context_.location.root_;
 
-  // pathからlocation directive以降（path_info )を除去して、rootを付与
-  std::string concat =
-      root + '/' + path.substr(temp_context_.location.path_.size());
+  // pathにrootを連結する
+  std::string concat = root + '/' + path;
+#ifdef DEBUG
+  std::cerr << "root: " << root << std::endl;
+  std::cerr << "path: " << path << std::endl;
+  std::cerr << "concat: " << concat << std::endl;
+#endif
 
   // cgi_extensionsがない場合は静的ファイルが確定する
   if (temp_context_.location.cgi_extensions_.empty()) {
@@ -272,6 +281,11 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
 }
 
 int CgiResponseParser::GetAndSetLocalStaticFile() {
+#ifdef DEBUG
+  std::cerr << "GetAndSetLocalStaticFile()" << std::endl;
+  std::cerr << temp_context_.resource_path.server_path.c_str() << std::endl;
+#endif
+
   // Open the file
   std::ifstream ifs(temp_context_.resource_path.server_path.c_str(),
                     std::ios::binary);
@@ -486,7 +500,7 @@ bool CgiResponseParser::IsValidAbsolutePath(const std::string &path) {
   }
   // 文字種のチェック
   const std::string validChars =
-      "!#$%&'*+-.^_`|~"
+      "!#$%&'*+-.^_`|~/"
       "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   // '?'を使ったquery stringは分割しておく
   std::string::size_type pos = path.find('?');
