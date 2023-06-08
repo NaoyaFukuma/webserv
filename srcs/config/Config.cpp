@@ -9,21 +9,21 @@ Config::~Config() {}
 
 // serverディレクティブの設定項目の初期化
 Vserver::Vserver() {
-  this->timeout_ = 60;
-  this->is_default_server_ = false;
-  this->listen_.sin_family = AF_INET;
-  this->listen_.sin_addr.s_addr = INADDR_ANY;
-  this->listen_.sin_port = htons(80);
+  timeout_ = 60;
+  is_default_server_ = false;
+  listen_.sin_family = AF_INET;
+  listen_.sin_addr.s_addr = INADDR_ANY;
+  listen_.sin_port = htons(80);
 }
 
 // locationディレクティブの設定項目の初期化
 Location::Location() {
-  this->allow_methods_.insert(GET);
-  this->allow_methods_.insert(POST);
-  this->allow_methods_.insert(DELETE);
-  this->client_max_body_size_ = 1 * 1024 * 1024; // 1MB
-  this->autoindex_ = false;
-  this->return_.return_type_ = RETURN_EMPTY;
+  allow_methods_.insert(GET);
+  allow_methods_.insert(POST);
+  allow_methods_.insert(DELETE);
+  client_max_body_size_ = 1 * 1024 * 1024; // 1MB
+  autoindex_ = false;
+  return_.return_type_ = RETURN_EMPTY;
 }
 
 void Config::ParseConfig(const char *src_file) {
@@ -32,7 +32,7 @@ void Config::ParseConfig(const char *src_file) {
 }
 
 void Config::AddServer(Vserver &server) {
-  if (this->server_vec_.empty()) {
+  if (server_vec_.empty()) {
     server.is_default_server_ = true;
   } else {
     server.is_default_server_ = false;
@@ -45,7 +45,7 @@ std::vector<Vserver> Config::GetServerVec() const { return server_vec_; }
 ConfigMap ConfigToMap(const Config &config) {
   ConfigMap config_map;
   std::vector<Vserver> server_vec = config.GetServerVec();
-  for (size_t i = 0; i < server_vec.size(); ++i) {
+  for (std::size_t i = 0; i < server_vec.size(); ++i) {
     config_map[server_vec[i].listen_].push_back(server_vec[i]);
   }
   return config_map;
@@ -56,18 +56,18 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
   std::vector<Vserver> server_vec = conf.GetServerVec();
   os << "-------------------------------" << '\n';
 
-  for (size_t i = 0; i < server_vec.size(); ++i) {
+  for (std::size_t i = 0; i < server_vec.size(); ++i) {
     os << "server[" << i << "]:\n";
     os << "  listen: " << inet_ntoa(server_vec[i].listen_.sin_addr) << ":"
        << ntohs(server_vec[i].listen_.sin_port) << '\n';
     os << "  server_name: ";
-    for (size_t j = 0; j < server_vec[i].server_names_.size(); ++j) {
+    for (std::size_t j = 0; j < server_vec[i].server_names_.size(); ++j) {
       os << server_vec[i].server_names_[j] << " ";
     }
     os << '\n';
     os << "  timeout: " << server_vec[i].timeout_ << '\n';
     os << "  location: \n";
-    for (size_t j = 0; j < server_vec[i].locations_.size(); ++j) {
+    for (std::size_t j = 0; j < server_vec[i].locations_.size(); ++j) {
       os << "    locations_[" << j << "]:\n";
       os << "      path: " << server_vec[i].locations_[j].path_ << '\n';
       os << "      allow_method: ";
@@ -84,14 +84,14 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
       os << server_vec[i].locations_[j].index_;
       os << '\n';
       os << "      cgi_extention: ";
-      for (size_t k = 0; k < server_vec[i].locations_[j].cgi_extensions_.size();
+      for (std::size_t k = 0; k < server_vec[i].locations_[j].cgi_extensions_.size();
            ++k) {
         os << server_vec[i].locations_[j].cgi_extensions_[k] << " ";
       }
       os << '\n';
 
       os << "      error_pages: ";
-      for (size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
+      for (std::size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
            ++k) {
         os << server_vec[i].locations_[j].error_pages_[k] << " ";
       }

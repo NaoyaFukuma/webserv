@@ -102,8 +102,9 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
 }
 
 void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
-  CgiSocket *cgi_socket = new CgiSocket(socket, request);
-  ASocket *sock = cgi_socket->CreatCgiProcess();
+  CgiSocket *cgi_socket = new CgiSocket(*socket, request, *this);
+  socket->SetCgiSocket(cgi_socket);
+  ASocket *sock = cgi_socket->CreateCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
     // エラー処理 クライアントへ500 Internal Server Errorを返す
@@ -278,10 +279,10 @@ void Response::StaticFileBody(const std::string &path,
     start = 0;
     end = ifs.seekg(0, std::ios::end).tellg();
   }
-  size_t body_size = end - start;
+  std::size_t body_size = end - start;
   // sizeがkMaxBodyLengthを超えていたら、500 Internal Server Error
   if (body_size > kMaxBodyLength ||
-      end > static_cast<size_t>(ifs.seekg(0, std::ios::end).tellg())) {
+      end > static_cast<std::size_t>(ifs.seekg(0, std::ios::end).tellg())) {
     // 500 Internal Server Error
     if (!is_error_page) {
       SetResponseStatus(Http::HttpStatus(500));
@@ -485,7 +486,7 @@ bool Response::FindRanges(Request &request, const std::string &path) {
       range_end_str = ws_itostr<int>(st.st_size - 1);
     }
     std::size_t range_start;
-    if (ws_strtoi<size_t>(&range_start, range_start_str) == false) {
+    if (ws_strtoi<std::size_t>(&range_start, range_start_str) == false) {
       return false;
     }
     std::size_t range_end;

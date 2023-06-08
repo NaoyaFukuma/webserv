@@ -10,7 +10,8 @@
 #include <time.h>
 #include <vector>
 
-class Epoll; // 相互参照
+class Epoll;     // 相互参照
+class CgiSocket; // 相互参照
 
 struct LastEventTime {
   std::time_t in_time;
@@ -26,13 +27,15 @@ protected:
   int fd_;
   ConfVec config_;
   LastEventTime last_event_; // ListenSocketの場合は負の数に設定する
+  Epoll *epoll_;
 
 public:
-  ASocket(ConfVec config);
+  ASocket(ConfVec config, Epoll *epoll);
   virtual ~ASocket();
 
   ConfVec GetConfVec() const;
   int GetFd() const;
+  Epoll *GetEpoll() const { return epoll_; }
   void SetFd(int fd);
   bool IsTimeout(const std::time_t &threshold) const;
   virtual int ProcessSocket(Epoll *epoll, void *data) = 0;
@@ -53,9 +56,10 @@ private:
   std::deque<Request> requests_;
   std::deque<Response> responses_;
   std::pair<std::string, std::string> ip_port_;
+  std::set<CgiSocket *> cgi_sockets_;
 
 public:
-  ConnSocket(ConfVec config);
+  ConnSocket(ConfVec config, Epoll *epoll);
   ~ConnSocket();
 
   int OnReadable(Epoll *epoll);
@@ -63,6 +67,10 @@ public:
   int ProcessSocket(Epoll *epoll, void *data);
   void AddResponse(const Response &response);
   void SetIpPort(const struct sockaddr_in &addr);
+  void SetCgiSocket(CgiSocket *cgi_socket) { cgi_sockets_.insert(cgi_socket); }
+  void DeleteCgiSocket(CgiSocket *cgi_socket) {
+    cgi_sockets_.erase(cgi_socket);
+  }
   void PushResponse(Response response);
   std::pair<std::string, std::string> GetIpPort() const;
 
@@ -76,7 +84,7 @@ private: // 使用予定なし
 
 class ListenSocket : public ASocket {
 public:
-  ListenSocket(ConfVec config);
+  ListenSocket(ConfVec config, Epoll *epoll);
   ~ListenSocket();
 
   void Create();
