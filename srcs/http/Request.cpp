@@ -22,6 +22,7 @@ Request::Request(const Request &src) { *this = src; }
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
+    context_ = rhs.context_;
     parse_status_ = rhs.parse_status_;
     //    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
@@ -355,14 +356,14 @@ bool Request::IsLineEnd(const std::string &line, std::string::size_type start) {
   return true;
 }
 
-bool Request::ValidateRequestSize(std::string &data, size_t max_size) {
+bool Request::ValidateRequestSize(std::string &data, std::size_t max_size) {
   if (data.size() > max_size) {
     return false;
   }
   return true;
 }
 
-bool Request::ValidateRequestSize(Header &header, size_t max_size) {
+bool Request::ValidateRequestSize(Header &header, std::size_t max_size) {
   (void)header;
   if (total_header_size_ > max_size) {
     return false;

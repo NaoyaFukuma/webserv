@@ -54,13 +54,13 @@ std::string ConfigParser::LoadFile(const char *filepath) {
 
 // parser
 void ConfigParser::Parse(Config &config) {
-  while (!this->IsEof()) {
-    this->SkipSpaces();
-    if (this->GetWord() != "server") {
-      this->ThrowParseError("Expected 'server'", true);
+  while (!IsEof()) {
+    SkipSpaces();
+    if (GetWord() != "server") {
+      ThrowParseError("Expected 'server'", true);
     }
-    this->ParseServer(config);
-    this->SkipSpaces();
+    ParseServer(config);
+    SkipSpaces();
   }
   AssertConfig(config);
 }
@@ -68,56 +68,56 @@ void ConfigParser::Parse(Config &config) {
 void ConfigParser::ParseServer(Config &config) {
   Vserver server;
 
-  this->SkipSpaces(true);
-  this->Expect('{');
-  while (!this->IsEof() && *it_ != '}') {
-    this->SkipSpaces();
+  SkipSpaces(true);
+  Expect('{');
+  while (!IsEof() && *it_ != '}') {
+    SkipSpaces();
     std::string token = GetWord();
     if (token == "listen") {
-      this->ParseListen(server);
+      ParseListen(server);
     } else if (token == "server_name") {
-      this->ParseServerName(server);
+      ParseServerName(server);
     } else if (token == "timeout") {
-      this->ParseTimeOut(server);
+      ParseTimeOut(server);
     } else if (token == "location") {
-      this->ParseLocation(server);
+      ParseLocation(server);
     } else {
-      this->ThrowParseError("Unexpected token", true);
+      ThrowParseError("Unexpected token", true);
     }
-    this->SkipSpaces();
+    SkipSpaces();
   }
-  this->Expect('}');
-  this->AssertServer(server);
+  Expect('}');
+  AssertServer(server);
   config.AddServer(server);
 }
 
 void ConfigParser::ParseListen(Vserver &server) {
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   std::string listen_str = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
-  this->AssertListen(server.listen_, listen_str);
+  SkipSpaces(true);
+  Expect(';');
+  AssertListen(server.listen_, listen_str);
 }
 
 void ConfigParser::ParseServerName(Vserver &server) {
   std::vector<std::string> new_server_names;
 
-  while (!this->IsEof() && *it_ != ';') {
-    this->SkipSpaces(true);
+  while (!IsEof() && *it_ != ';') {
+    SkipSpaces(true);
     std::string server_name = GetWord();
-    this->SkipSpaces(true);
+    SkipSpaces(true);
     AssertServerName(server_name);
     new_server_names.push_back(server_name);
   }
-  this->Expect(';');
+  Expect(';');
   server.server_names_ = new_server_names;
 }
 
 void ConfigParser::ParseTimeOut(Vserver &server) {
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   std::string timeout_str = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
+  SkipSpaces(true);
+  Expect(';');
   AssertTimeOut(server.timeout_, timeout_str);
 }
 
@@ -125,12 +125,12 @@ void ConfigParser::ParseLocation(Vserver &server) {
 
   Location location;
 
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   location.path_ = GetWord();
-  this->SkipSpaces(true);
-  this->Expect('{');
-  while (!this->IsEof() && *it_ != '}') {
-    this->SkipSpaces();
+  SkipSpaces(true);
+  Expect('{');
+  while (!IsEof() && *it_ != '}') {
+    SkipSpaces();
     std::string token = GetWord();
     if (token == "allow_method") {
       ParseAllowMethod(location);
@@ -149,72 +149,72 @@ void ConfigParser::ParseLocation(Vserver &server) {
     } else if (token == "return") {
       ParseReturn(location);
     } else {
-      this->ThrowParseError("Unexpected token", true);
+      ThrowParseError("Unexpected token", true);
     }
-    this->SkipSpaces();
+    SkipSpaces();
   }
-  this->Expect('}');
+  Expect('}');
   AssertLocation(location);
   server.locations_.push_back(location);
 }
 
 void ConfigParser::ParseAllowMethod(Location &location) {
   location.allow_methods_.clear();
-  while (!this->IsEof() && *it_ != ';') {
-    this->SkipSpaces(true);
+  while (!IsEof() && *it_ != ';') {
+    SkipSpaces(true);
     std::string method_str = GetWord();
-    this->SkipSpaces(true);
+    SkipSpaces(true);
     AssertAllowMethod(location.allow_methods_, method_str);
   }
-  this->Expect(';');
+  Expect(';');
   AssertAllowMethods(location.allow_methods_);
 }
 
 void ConfigParser::ParseClientMaxBodySize(Location &location) {
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   std::string size_str = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
+  SkipSpaces(true);
+  Expect(';');
   AssertClientMaxBodySize(location.client_max_body_size_, size_str);
 }
 
 void ConfigParser::ParseRoot(Location &location) {
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   location.root_ = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
+  SkipSpaces(true);
+  Expect(';');
   AssertRoot(location.root_);
 }
 
 void ConfigParser::ParseIndex(Location &location) {
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   location.index_ = GetWord();
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   AssertIndex(location.index_);
-  this->Expect(';');
+  Expect(';');
 }
 
 void ConfigParser::ParseCgiExtension(Location &location) {
   location.cgi_extensions_.clear(); // 複数回ある場合は上書き
-  this->SkipSpaces(true);
-  while (!this->IsEof() && *it_ != ';') {
+  SkipSpaces(true);
+  while (!IsEof() && *it_ != ';') {
     std::string extension_str = GetWord();
-    this->SkipSpaces(true);
+    SkipSpaces(true);
     AssertCgiExtension(location.cgi_extensions_, extension_str);
   }
-  this->Expect(';');
+  Expect(';');
   AssertCgiExtensions(location.cgi_extensions_);
 }
 
 void ConfigParser::ParseErrorPages(Location &location) {
-  while (!this->IsEof() && *it_ != ';') {
+  while (!IsEof() && *it_ != ';') {
     std::vector<int> error_codes;
     std::string error_page_str;
     while (true) {
       int error_code;
-      this->SkipSpaces(true);
+      SkipSpaces(true);
       error_page_str = GetWord();
-      this->SkipSpaces(true);
+      SkipSpaces(true);
       if (!ws_strtoi(&error_code, error_page_str)) {
         break;
       }
@@ -222,14 +222,14 @@ void ConfigParser::ParseErrorPages(Location &location) {
     }
     AssertErrorPages(location.error_pages_, error_codes, error_page_str);
   }
-  this->Expect(';');
+  Expect(';');
 }
 
 void ConfigParser::ParseAutoIndex(Location &location) {
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   std::string autoindex_str = GetWord();
-  this->SkipSpaces(true);
-  this->Expect(';');
+  SkipSpaces(true);
+  Expect(';');
   AssertBool(location.autoindex_, autoindex_str);
 }
 
@@ -242,7 +242,7 @@ void ConfigParser::ParseReturn(Location &location) {
     return;
   }
 
-  this->SkipSpaces(true);
+  SkipSpaces(true);
   std::string tmp_str = GetWord();
 
   // １つ目のワードが、status_codeかURLorTextかを判定
@@ -250,7 +250,7 @@ void ConfigParser::ParseReturn(Location &location) {
     // status codeが設定されたので、URLかtextかを判定
     // textはシングルクォーテーションで囲まれている
     // URLはシングルクォーテーションで囲まれていない
-    this->SkipSpaces(true);
+    SkipSpaces(true);
     if (*it_ == ';') { // status codeのみ指定された場合
       location.return_.return_type_ = RETURN_ONLY_STATUS_CODE;
     } else {
@@ -272,8 +272,8 @@ void ConfigParser::ParseReturn(Location &location) {
     location.return_.return_type_ = RETURN_URL;
     location.return_.return_url_ = tmp_str;
   }
-  this->SkipSpaces(true);
-  this->Expect(';');
+  SkipSpaces(true);
+  Expect(';');
   AssertReturn(location.return_);
 }
 
@@ -325,7 +325,7 @@ void ConfigParser::AssertListen(struct sockaddr_in &dest_listen,
   std::string host_str;
   std::string port_str;
 
-  size_t colon_pos = listen_str.find(':');
+  std::size_t colon_pos = listen_str.find(':');
   if (colon_pos == std::string::npos) {
     host_str = "0.0.0.0";
     port_str = listen_str;
@@ -385,7 +385,7 @@ void ConfigParser::AssertTimeOut(int &dest_timeout,
 
 void ConfigParser::AssertLocation(const Location &location) {
   // location path 有効かチェック
-  if (!this->IsValidPath(location.path_)) {
+  if (!IsValidPath(location.path_)) {
     throw ParserException(ERR_MSG, "location path is invalid");
   }
   // root ディレクティブが無いとエラー
@@ -513,7 +513,7 @@ void ConfigParser::AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
   }
 
   // 拡張子で使えない文字が含まれていないかチェック '/' は使えない
-  for (size_t i = 0; i < cgi_extension.size(); i++) {
+  for (std::size_t i = 0; i < cgi_extension.size(); i++) {
     if (cgi_extension[i] == '/') {
       throw ParserException(
           ERR_MSG,
@@ -522,7 +522,7 @@ void ConfigParser::AssertCgiExtension(std::vector<std::string> &cgi_extensions_,
     }
   }
   // '/'が含まれていないことを保証したうえで、Linux ファイルシステムの制約に従う
-  if (this->IsValidPath(cgi_extension)) {
+  if (IsValidPath(cgi_extension)) {
     cgi_extensions_.push_back(cgi_extension);
   } else {
     throw ParserException(
@@ -622,15 +622,28 @@ bool ConfigParser::IsValidLabel(const std::string &server_name,
 }
 
 bool ConfigParser::IsValidUrl(const std::string &url) {
-  // URL should start with http:// or https://
+  if (url.empty()) {
+    return false;
+  }
+
+  // Relative URL
+  if (url[0] == '/') {
+    if (IsValidPath(url)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // Absolute URL should start with http:// or https://
   if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
     return false;
   }
 
   // URL should have a valid domain name after http:// or https://
   // URLからドメイン名だけを抽出
-  size_t start = url.find_first_of(':') + 3;
-  size_t end = url.find_first_of('/', start);
+  std::size_t start = url.find_first_of(':') + 3;
+  std::size_t end = url.find_first_of('/', start);
   if (end == std::string::npos) {
     end = url.length();
   }
@@ -641,7 +654,7 @@ bool ConfigParser::IsValidUrl(const std::string &url) {
 
 bool ConfigParser::IsValidPath(const std::string &path) {
   // Linux ファイルシステムの制約に従う
-  for (size_t i = 0; i < path.length(); i++) {
+  for (std::size_t i = 0; i < path.length(); i++) {
     char c = path[i];
     if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-' || c == '~' ||
           c == '+' || c == '%' || c == '@' || c == '#' || c == '$' ||
@@ -666,7 +679,7 @@ void ConfigParser::Expect(const char c) {
     int row = 1;
     int column = 1;
     std::string line; // エラー箇所の行の内容を表示するために使う
-    this->GetErrorPoint(row, column, line);
+    GetErrorPoint(row, column, line);
 
     throw ParserException("Config Error: Expected char is [%c], but [%c].\nrow "
                           "%d: column %d\n%s\n%*c%c",
@@ -681,11 +694,11 @@ void ConfigParser::Expect(const char c) {
 // そのような箇所では改行をスキップしないようにtrueを渡して呼び出す
 void ConfigParser::SkipSpaces(bool skip_newline) {
   if (skip_newline) {
-    while (!this->IsEof() && ws_isspace(*it_)) {
+    while (!IsEof() && ws_isspace(*it_)) {
       it_++;
     }
   } else {
-    while (!this->IsEof() && *it_ != ' ' && *it_ != '\t') {
+    while (!IsEof() && *it_ != ' ' && *it_ != '\t') {
       it_++;
     }
   }
@@ -696,20 +709,20 @@ void ConfigParser::GetErrorPoint(int &row, int &column, std::string &line) {
   row = 1;
   column = 1;
   std::string::const_iterator line_begin = it_;
-  while (line_begin != this->file_content_.begin() && *line_begin != '\n') {
+  while (line_begin != file_content_.begin() && *line_begin != '\n') {
     line_begin--;
   }
   if (*line_begin == '\n') {
     line_begin++;
-    column = this->it_ - line_begin;
+    column = it_ - line_begin;
   }
-  std::string::const_iterator line_end = this->it_;
+  std::string::const_iterator line_end = it_;
   while (line_end != file_content_.end() && *line_end != '\n') {
     line_end++;
   }
   line = std::string(line_begin, line_end);
   // エラー箇所の行数を計算する
-  std::stringstream ss(this->file_content_);
+  std::stringstream ss(file_content_);
   std::string tmp;
   while (std::getline(ss, tmp)) {
     if (tmp == line) {
@@ -721,14 +734,14 @@ void ConfigParser::GetErrorPoint(int &row, int &column, std::string &line) {
 
 std::string ConfigParser::GetWord() {
   std::string word;
-  while (!this->IsEof() && !this->IsDelim() && !isspace(*it_)) {
+  while (!IsEof() && !IsDelim() && !isspace(*it_)) {
     word += *it_++;
   }
   if (word.empty()) {
     int row = 1;
     int column = 1;
     std::string line; // エラー箇所の行の内容を表示するために使う
-    this->GetErrorPoint(row, column, line);
+    GetErrorPoint(row, column, line);
     throw ParserException(
         "Config Error: Empty Word.\nrow %d: column %d\n%s\n%*c%c", row, column,
         line.c_str(), column, ' ', '^');
@@ -749,7 +762,7 @@ void ConfigParser::ThrowParseError(const char *msg, bool add_err_point_flag) {
     int row;
     int col;
     std::string line; // エラー箇所の行の内容を表示するために使う
-    this->GetErrorPoint(row, col, line);
+    GetErrorPoint(row, col, line);
     throw ParserException(ERR_MSG_ROW_COL_LINE, row, col, line.c_str(), msg);
   } else {
     throw ParserException(ERR_MSG, msg);
