@@ -182,7 +182,12 @@ void Request::Trim(std::string &str, const std::string &delim) {
 
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!SetBodyType()) {
-    parse_status_ = ERROR;
+    // bodyがない場合
+    if (buffer_.GetString().empty()) {
+      parse_status_ = COMPLETE;
+    } else {
+      parse_status_ = ERROR;
+    }
     return;
   }
   // chunkedの場合
