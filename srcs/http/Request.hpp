@@ -16,7 +16,7 @@ struct RequestLine {
   Http::Version version; // そのまま
 };
 
-typedef std::map<std::string, std::vector<std::string>> Header;
+typedef std::map<std::string, std::vector<std::string> > Header;
 
 struct RequestMessage {
   RequestLine request_line; // 一部更新
