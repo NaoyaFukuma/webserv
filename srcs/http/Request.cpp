@@ -65,8 +65,6 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
       ResolvePath(socket->GetConfVec());
     }
 
-    uint64_t client_max_body_size =
-        socket->GetConfVec()[0].locations_[0].client_max_body_size_;
     if (!AssertSize()) {
       SetRequestStatus(413);
       parse_status_ = ERROR;
@@ -337,23 +335,29 @@ bool Request::ValidateHeaderSize(const std::string &data) {
 
 bool Request::AssertUrlPath() {
   // URIの相対path部分がドキュメントルートより上に行っていないかチェック
-  int counter = 0;
   // '/'ごとにurlを分割
   std::vector<std::string> split_url;
-  ssize_t splited_url_size =
-      ws_split(split_url, context_.resource_path.uri.path, '/');
-  // ".."があるごとにカウントをマイナス
-  // カウンターが0以下になったらrootにアクセスしているのでどんな場合でもエラーにする
-  for (ssize_t i = 0; i < splited_url_size; ++i) {
-    if (split_url[i] == "..") {
-      --counter;
+  if (ws_split(split_url, context_.resource_path.uri.path, '/') < 0) {
+    return false;
+  }
+
+  // ".."があるごとに".."とその前の要素を削除
+  std::vector<std::string>::iterator it = split_url.begin();
+  while (it != split_url.end()) {
+    if (*it == "") {
+      it = split_url.erase(it);
+    } else if (*it == "..") {
+      // rootより上に行く場合はエラー
+      if (it == split_url.begin()) {
+        return false;
+      } else {
+        it = split_url.erase(it - 1, it + 1); // ".."とその前の要素を削除
+      }
     } else {
-      ++counter;
-    }
-    if (counter < 0) {
-      return false;
+      it++;
     }
   }
+
   return true;
 }
 
