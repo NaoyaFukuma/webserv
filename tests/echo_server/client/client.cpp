@@ -83,7 +83,7 @@ std::string read_socket(int fd) {
   return response;
 }
 
-std::string read_socket(int fd, size_t recv_size, std::string &read_buff) {
+std::string read_socket(int fd, std::size_t recv_size, std::string &read_buff) {
   char buf[BUFF_SIZE];
   int len = 0;
   time_t start = time(NULL);
@@ -160,7 +160,7 @@ int test_basic(std::string host, std::string port, std::string path,
 }
 
 int test_multiple_request(std::string host, std::string port, std::string path,
-                          size_t send_, bool shut_ = false,
+                          std::size_t send_, bool shut_ = false,
                           bool read_ = false) {
   int client_fd = connect_to_server(host, port);
   std::string read_buff = "";
@@ -222,7 +222,7 @@ int test_multiple_request(std::string host, std::string port, std::string path,
 }
 
 int test_multiple_client(std::string host, std::string port, std::string path,
-                         size_t client_, bool shut_ = false) {
+                         std::size_t client_, bool shut_ = false) {
   std::vector<int> client_fds(client_);
   for (int i = 0; i < client_; i++) {
     client_fds[i] = connect_to_server(host, port);
@@ -330,7 +330,7 @@ int test9() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  size_t send_ = SEND;
+  std::size_t send_ = SEND;
   bool shut_ = true;
   bool read_ = true;
   return test_multiple_request(host, port, path, send_, shut_, read_);
@@ -340,7 +340,7 @@ int test10() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  size_t send_ = SEND;
+  std::size_t send_ = SEND;
   bool shut_ = false;
   bool read_ = true;
   return test_multiple_request(host, port, path, send_, shut_, read_);
@@ -350,7 +350,7 @@ int test11() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  size_t send_ = SEND;
+  std::size_t send_ = SEND;
   bool shut_ = true;
   bool read_ = false;
   return test_multiple_request(host, port, path, send_, shut_, read_);
@@ -360,7 +360,7 @@ int test12() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  size_t send_ = SEND;
+  std::size_t send_ = SEND;
   bool shut_ = false;
   bool read_ = false;
   return test_multiple_request(host, port, path, send_, shut_, read_);
@@ -372,7 +372,7 @@ int test13() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  size_t client_ = CLIENT;
+  std::size_t client_ = CLIENT;
   bool shut_ = true;
   return test_multiple_client(host, port, path, client_, shut_);
 }
@@ -381,7 +381,7 @@ int test14() {
   std::string host = "webserv";
   std::string port = "8080";
   std::string path = "./request/len4096.txt";
-  size_t client_ = CLIENT;
+  std::size_t client_ = CLIENT;
   bool shut_ = false;
   return test_multiple_client(host, port, path, client_, shut_);
 }

@@ -8,7 +8,7 @@
 class SocketBuff {
 private:
   std::stringstream ss_;
-  const static size_t kBuffSize = 1024;
+  const static std::size_t kBuffSize = 1024;
 
 public:
   SocketBuff(); // デフォルトコンストラクタ
@@ -39,18 +39,18 @@ public:
 
   // 引数のseekgの位置の一文字前までの文字列を返し、バッファから削除する
   // 戻り値(リクエストヘッダー)をパーサーに渡し、パーサーはstringstreamを利用してパースする
-  std::string GetAndErase(const size_t pos);
+  std::string GetAndErase(const std::size_t pos);
 
   bool GetUntilCRLF(std::string &line);
 
   // 読み込んだ文字数を返す 現在のseekgの位置を利用している
-  size_t GetReadSize();
+  std::size_t GetReadSize();
 
   // 先頭から現在のseek位置までの文字数削除する
   void Erase();
 
   // 先頭から任意の文字数削除する 引数は削除する文字数
-  void Erase(const size_t n);
+  void Erase(const std::size_t n);
 
   // バッファに文字列を追加する
   void AddString(const std::string &str);
@@ -67,7 +67,7 @@ public:
   // バッファの文字列をクリアする
   void ClearBuff();
 
-  size_t GetBuffSize();
+  std::size_t GetBuffSize();
 
 private:                                     // 使用予定無し
   SocketBuff(const SocketBuff &);            // コピーコンストラクタ

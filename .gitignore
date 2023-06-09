@@ -8,5 +8,4 @@ webserv
 test_main.cpp
 build
 .Ds_Store
-Dockerfile
 CMakeLists.txt

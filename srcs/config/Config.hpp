@@ -25,7 +25,7 @@ struct Return {
   return_type return_type_;
   std::string return_text_;
   std::string return_url_;
-  size_t text_length_;
+  std::size_t text_length_;
 };
 
 struct Location {

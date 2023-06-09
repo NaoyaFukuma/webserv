@@ -17,123 +17,125 @@
 #include <vector>
 #include <wait.h>
 
-// CGIスクリプト実行用のプロセスを作成し、実行する
-// 標準入出力での通信用にUNIXドメインのペアソケットを作成する
-// 親プロセスであるサーバー側は、そのソケットをepollに登録し、I/O多重化のうえで通信を行う
-// epollへの登録のために、ASocketクラスから派生したCgiSocketクラスをポインタで返し、アップキャストでの多相性を利用してEpollクラスのインターフェースを利用する
-// エラー時にはNULLを返す
-CgiSocket *CgiSocket::CreatCgiProcess() {
-  // UNIXドメインのペアソケットを作成
-  int cgi_socket[2];
-  if (socketpair(AF_UNIX, SOCK_STREAM, 0, cgi_socket) < 0) {
-    std::cerr << "Keep Running Error: socketpair" << std::endl;
+/*
+CgiScriptのプロセスを生成し、EPOLL登録用のポインタを返す
+エラー時にはNULLを返す
+*/
+CgiSocket *CgiSocket::CreateCgiProcess() {
+#ifdef DEBUG
+  std::cerr << "CreateCgiProcess() start" << std::endl;
+#endif
+  if (CreateUnixDomainSocketPair() == FAILURE) {
     return NULL;
   }
-  int parent_sock = cgi_socket[0];
-  int child_sock = cgi_socket[1];
-
-  // 子プロセスを作成
-  this->pid_ = fork();
-  if (pid_ < 0) {
-    std::cerr << "Keep Running Error: fork" << std::endl;
-    if (close(parent_sock) < 0) {
-      std::cerr << "Keep Running Error: close" << std::endl;
-    }
-    if (close(child_sock) < 0) {
-      std::cerr << "Keep Running Error: close" << std::endl;
-    }
-    return NULL; // HTTPクライアントには500エラーを返してもらう
-  } else if (pid_ == 0) { // 子プロセスでの処理
-    // 子プロセスでのCGIスクリプト実行の前処理
-    this->SetSocket(child_sock, parent_sock);
-    char **env = this->SetMetaVariables();
-    char **argv = this->SetArgv();
-    this->SetCurrentDir(
-        this->GetContext().resource_path.server_path);
-
-    // CGIスクリプトを実行
-    if (execve(
-            this->GetContext().resource_path.server_path.c_str(),
-            argv, env) < 0) {
-      // 子プロセス内でのエラーは例外を投げてすぐ子プロセスを終了させる
-      throw std::runtime_error(
-          "Keep Running Error: close in CGI script procces");
-    }
+  if (ForkWrapper() == FAILURE) {
+    return NULL;
   }
-
-  // 親プロセスでの処理
-  // 親プロセス側のソケットを閉じる
-  if (close(child_sock) < 0) {
-    std::cerr << "Keep Running Error: close" << std::endl;
-    if (close(parent_sock) < 0) {
-      std::cerr << "Keep Running Error: close" << std::endl;
-    }
-    // 子プロセスを終了させる
-    if (kill(pid_, SIGTERM) < 0) {
-      std::cerr << "Keep Running Error: kill" << std::endl;
-    }
-    return NULL; // HTTPクライアントには500エラーを返してもらう
+  if (cgi_pid_ == 0) {
+    ExeCgiScript();
   }
-
-  // 親プロセス側のソケットFDを設定
-  SetFd(parent_sock);
-
-  // タイムアウトの起算点を設定
-  this->last_event_.out_time = time(NULL);
-  this->last_event_.in_time = time(NULL);
-
-  // CgiSocketを返り値にしてEPOLLにEPOLLOUTでADDしてもらう
+  if (SetParentProcessSocket() == FAILURE) {
+    return NULL;
+  }
+  time_t time_now = std::time(NULL);
+  last_event_.out_time = time_now;
+  last_event_.in_time = time_now;
+#ifdef DEBUG
+  std::cerr << "CreateCgiProcess() end" << std::endl;
+#endif
   return this;
 }
 
-void CgiSocket::SetSocket(int child_sock, int parent_sock) {
-  // 使用しない親プロセス側のソケットを閉じる
-  if (close(parent_sock) < 0) {
-    // 終了するために例外を投げる
-    // 子プロセスなので即終了でOK
-    // 課題要件上exit()を使ってはいけないので、例外を投げる
-    throw std::runtime_error("Keep Running Error: close in CGI script procces");
+int CgiSocket::CreateUnixDomainSocketPair() {
+#ifdef DEBUG
+  std::cerr << "CreateUnixDomainSocketPair() start" << std::endl;
+#endif
+  int cgi_socket[2];
+  if (socketpair(AF_UNIX, SOCK_STREAM, 0, cgi_socket) < 0) {
+    std::cerr << "Keep Running Error: socketpair" << std::endl;
+    return FAILURE;
   }
+  parent_sock_fd_ = cgi_socket[0];
+  child_sock_fd_ = cgi_socket[1];
 
-  // 子プロセス側のソケットを設定
-  // 子プロセスの標準入出力をソケットに変更
-  if (dup2(child_sock, STDIN_FILENO) < 0 ||
-      dup2(child_sock, STDOUT_FILENO) < 0) {
-    // 終了するために例外を投げる
-    // 子プロセスなので即終了でOK
-    // 課題要件上exit()を使ってはいけないので、例外を投げる
-    throw std::runtime_error("Keep Running Error: dup2 in CGI script procces");
+#ifdef DEBUG
+  std::cerr << "parent_sock_fd_:" << parent_sock_fd_ << std::endl;
+  std::cerr << "child_sock_fd_:" << child_sock_fd_ << std::endl;
+  std::cerr << "CreateUnixDomainSocketPair() end" << std::endl;
+#endif
+
+  return SUCCESS;
+}
+
+void CgiSocket::ExeCgiScript() {
+#ifdef DEBUG
+  std::cerr << "ExeCgiScript() start" << std::endl;
+#endif
+  SetChildProcessSocket();
+  char **env = SetChildProcessMetaVariables();
+  SetChildProcessCurrentDir(
+      src_http_request_.GetContext().resource_path.server_path);
+  char **argv = SetChildProcessArgv();
+  // c_str()の返り値をconst char*に代入するとだめ
+  #ifdef DEBUG
+  std::cerr << "execute CGI script:" << std::endl;
+  #endif
+  if (execve(src_http_request_.GetContext().resource_path.server_path.c_str(),
+             argv, env) < 0) {
+    // 例外を投げ子プロセス終了 exit()使用不可
+    throw std::runtime_error(
+        "Keep Running Error: execve in CGI script procces");
   }
 }
 
-char **CgiSocket::SetMetaVariables() {
-  // http_request_からメタ変数を設定
-  std::vector<std::string> meta_variables;
+void CgiSocket::SetChildProcessSocket() {
+#ifdef DEBUG
+  std::cerr << "SetChildProcessSocket() start" << std::endl;
+#endif
+  if (close(parent_sock_fd_) < 0) {
+    // 例外を投げ子プロセス終了 exit()使用不可
+    throw std::runtime_error("Keep Running Error: close in CGI script procces");
+  }
+  // 子プロセスで使用するソケットのFDを標準入出力に設定
+  if (dup2(child_sock_fd_, STDIN_FILENO) < 0 ||
+      dup2(child_sock_fd_, STDOUT_FILENO) < 0) {
+    throw std::runtime_error("Keep Running Error: dup2 in CGI script procces");
+  }
+  if (close(child_sock_fd_) < 0) {
+    throw std::runtime_error("Keep Running Error: close in CGI script procces");
+  }
+#ifdef DEBUG
+  std::cerr << "dup2 STDIN(0) & STDOUT(1) <- child_sock_fd_ " << child_sock_fd_
+            << " success" << std::endl;
+  std::cerr << "close parent_sock_fd_ " << parent_sock_fd_ << " success"
+            << std::endl;
+  std::cerr << "SetChildProcessSocket() end" << std::endl;
+#endif
+}
 
-  // GATEWAY_INTERFACE
-  meta_variables.push_back("GATEWAY_INTERFACE=CGI/1.1");
-  // REMOTE_ADDR
-  meta_variables.push_back("REMOTE_ADDR=" +
-                           this->conn_socket_->GetIpPort().first);
-  // REQUEST_METHOD
-  meta_variables.push_back(
-      "REQUEST_METHOD=" +
-      this->GetRequestMessage().request_line.method);
-  // SCRIPT_NAME
-  meta_variables.push_back(
-      "SCRIPT_NAME=" +
-      this->GetContext().resource_path.uri.path);
-  // SERVER_NAME
-  meta_variables.push_back(
-      "SERVER_NAME=" + this->GetContext().server_name);
-  // SERVER_PORT
+char **CgiSocket::SetChildProcessMetaVariables() {
+#ifdef DEBUG
+  std::cerr << "SetChildProcessMetaVariables() start" << std::endl;
+#endif
+  std::vector<std::string> meta;
+
+  meta.push_back("GATEWAY_INTERFACE=CGI/1.1");
+  meta.push_back("REMOTE_ADDR=" + http_client_sock_.GetIpPort().first);
+  meta.push_back("REQUEST_METHOD=" +
+                 src_http_request_.GetRequestMessage().request_line.method);
+  meta.push_back("SCRIPT_NAME=" +
+                 src_http_request_.GetContext().resource_path.uri.path);
+  meta.push_back("SERVER_NAME=" + src_http_request_.GetContext().server_name);
+
   std::stringstream ss;
-  ss << ntohl(this->conn_socket_->GetConfVec()[0].listen_.sin_port);
-  meta_variables.push_back("SERVER_PORT=" + ss.str());
+  ss << ntohs(http_client_sock_.GetConfVec()[0].listen_.sin_port);
+  meta.push_back("SERVER_PORT=" + ss.str());
 
-  // SERVER_PROTOCOL
+  ss.str("");
+  ss.clear();
+
   enum Http::Version ver =
-      this->GetRequestMessage().request_line.version;
+      src_http_request_.GetRequestMessage().request_line.version;
   std::string version;
   switch (ver) {
   case Http::HTTP09:
@@ -148,44 +150,39 @@ char **CgiSocket::SetMetaVariables() {
   default:
     break;
   }
-  meta_variables.push_back("SERVER_PROTOCOL=" + version);
-  // SERVER_SOFTWARE
-  meta_variables.push_back("SERVER_SOFTWARE=webserv/0.1");
-  // CONTENT_LENGTH
-  // bodyのサイズをstringに変換して、メタ変数に追加
-  ss.str("");
-  ss.clear();
-  ss << this->GetRequestMessage().body.size();
-  meta_variables.push_back("CONTENT_LENGTH=" + ss.str());
-  // PATH_INFO
-  meta_variables.push_back(
-      "PATH_INFO=" + this->GetContext().resource_path.path_info);
-  // QUERY_STRING
+  meta.push_back("SERVER_PROTOCOL=" + version);
+  meta.push_back("SERVER_SOFTWARE=webserv/0.1");
+
+  ss << src_http_request_.GetRequestMessage().body.size();
+  meta.push_back("CONTENT_LENGTH=" + ss.str());
+  meta.push_back("PATH_INFO=" +
+                 src_http_request_.GetContext().resource_path.path_info);
   std::string query_string =
-      this->GetContext().resource_path.uri.query;
+      src_http_request_.GetContext().resource_path.uri.query;
   // '='が含まれていれば環境変数。含まれていなければコマンドライン引数にする。
   if (query_string.find('=') != std::string::npos) {
     // '='があったので、%デコードを行い環境変数に設定
     query_string = Http::DeHexify(query_string);
-    meta_variables.push_back("QUERY_STRING=" + query_string);
+    meta.push_back("QUERY_STRING=" + query_string);
   } else { // '='が含まれていないので、"QUERY_STRING="と設定
-    meta_variables.push_back("QUERY_STRING=");
-  }
-  // REMOTE_HOST これは対応しない RFC3875 MAY
-  // AUTH_TYPE これは対応しない RFC3875 MAY
-  // CONTENT_TYPE
-  if (this->GetRequestMessage().header.find("Content-Type") !=
-      this->GetRequestMessage().header.end()) {
-    meta_variables.push_back(
-        "CONTENT_TYPE=" +
-        this->GetRequestMessage().header["Content-Type"][0]);
-  } else {
-    meta_variables.push_back("CONTENT_TYPE=");
+    meta.push_back("QUERY_STRING=");
   }
 
-  // PATH_TRANSLATED
-  std::string root = this->GetContext().location.root_;
-  std::string path_info = this->GetContext().resource_path.path_info;
+  // REMOTE_HOST これは対応しない RFC3875 MAY
+  // AUTH_TYPE これは対応しない RFC3875 MAY
+
+  // HasHeader()でContent-Typeがあるか確認が必須。使わずにmapのfind()を使うと、
+  if (src_http_request_.HasHeader("Content-Type")) {
+    meta.push_back(
+        "CONTENT_TYPE=" +
+        src_http_request_.GetRequestMessage().header["Content-Type"][0]);
+  } else {
+    meta.push_back("CONTENT_TYPE=");
+  }
+
+  std::string root = src_http_request_.GetContext().location.root_;
+  std::string path_info =
+      src_http_request_.GetContext().resource_path.path_info;
   // rootの末尾とpath_infoの先頭の'/'の双方を確認し、一つだけ'/'を付与する
   if (root[root.size() - 1] == '/' && path_info[0] == '/') {
     path_info = path_info.substr(1);
@@ -194,42 +191,47 @@ char **CgiSocket::SetMetaVariables() {
   } else {
     // どちらかが'/'であるので、何もしない
   }
-  meta_variables.push_back("PATH_TRANSLATED=" + root + path_info);
+  meta.push_back("PATH_TRANSLATED=" + root + path_info);
+
   // REMOTE_IDENT これは対応しない RFC3875 MAY
   // REMOTE_USER これは対応しない RFC3875 MAY
-  // SCRIPT_FILENAME
-  meta_variables.push_back("SCRIPT_FILENAME=" +
-                           this->GetContext().resource_path.server_path);
-
-  // TODO: 他のメタ変数はこれから追加
+  meta.push_back("SCRIPT_FILENAME=" +
+                 src_http_request_.GetContext().resource_path.server_path);
 
   // メタ変数を構築したvectorをchar**に変換
-  char **envp = new char *[meta_variables.size() + 1];
-  for (size_t i = 0; i < meta_variables.size(); i++) {
-    envp[i] = new char[meta_variables[i].size() + 1];
-    std::strcpy(envp[i], meta_variables[i].c_str());
+  char **envp = new char *[meta.size() + 1];
+  for (std::size_t i = 0; i < meta.size(); i++) {
+    envp[i] = new char[meta[i].size() + 1];
+    std::strcpy(envp[i], meta[i].c_str());
   }
-
-  envp[meta_variables.size()] = NULL;
-
+  envp[meta.size()] = NULL;
+#ifdef DEBUG
+  for (std::size_t i = 0; i < meta.size(); i++) {
+    std::cerr << "envp[" << i << "] = " << envp[i] << std::endl;
+  }
+  std::cerr << "SetChildProcessMetaVariables() end" << std::endl;
+#endif
   return envp;
 }
 
-char **CgiSocket::SetArgv() {
-  // http_request_からargvを設定
+char **CgiSocket::SetChildProcessArgv() {
+#ifdef DEBUG
+  std::cerr << "SetChildProcessArgv() start" << std::endl;
+#endif
+
   std::vector<std::string> argv;
 
-  // 実行ファイルのパス
   argv.push_back(
-      this->GetContext().resource_path.server_path.c_str());
+      src_http_request_.GetContext().resource_path.server_path.c_str());
 
   std::string query_string =
-      this->GetContext().resource_path.uri.query;
+      src_http_request_.GetContext().resource_path.uri.query;
+  std::cerr << "query_string = " << query_string << std::endl;
   // '='が含まれていれば環境変数。含まれていなければコマンドライン引数にする。
-  if (query_string.find('=') == std::string::npos) {
-    // '+'をdemiliterとしてsubstr()し、%デコードを施しargvにpush_back
+  if (!query_string.empty() && query_string.find('=') == std::string::npos) {
+    // '+'をdemiliterとして分解し、%デコードを施しargvにpush_back
     std::string delimiter = "+";
-    size_t pos = 0;
+    std::size_t pos = 0;
     std::string token;
     while ((pos = query_string.find(delimiter)) != std::string::npos) {
       token = query_string.substr(0, pos);
@@ -239,29 +241,73 @@ char **CgiSocket::SetArgv() {
     }
   }
 
-  // argvを構築したvectorをchar**に変換
   char **argvp = new char *[argv.size() + 1];
-  for (size_t i = 0; i < argv.size(); i++) {
+  for (std::size_t i = 0; i < argv.size(); i++) {
     argvp[i] = new char[argv[i].size() + 1];
     std::strcpy(argvp[i], argv[i].c_str());
   }
-
   argvp[argv.size()] = NULL;
-
+#ifdef DEBUG
+  std::cerr << "argv.size() = " << argv.size() << std::endl;
+  for (std::size_t i = 0; i < argv.size(); i++) {
+    std::cerr << "argv[" << i << "] = " << argvp[i] << " ;" << std::endl;
+  }
+  std::cerr << "SetChildProcessArgv() end" << std::endl;
+#endif
   return argvp;
 }
 
 // RFC3875 7.2
 // カレントワーキングディレクトリをCGIスクリプトのディレクトリに変更する
-void CgiSocket::SetCurrentDir(const std::string &cgi_path) {
-  // cgi_pathからディレクトリを取得
+void CgiSocket::SetChildProcessCurrentDir(const std::string &cgi_path) {
+#ifdef DEBUG
+  std::cerr << "SetChildProcessCurrentDir() start" << std::endl;
+  std::cerr << "cgi_path = " << cgi_path << std::endl;
+#endif
   std::string dir_path = cgi_path.substr(0, cgi_path.find_last_of('/'));
-
-  // chdir()でディレクトリを変更
   if (chdir(dir_path.c_str()) < 0) {
-    // syscall エラーなので、プロセスを終了するために例外を投げる
-    // 子プロセスなので即終了でOK
-    // 課題要件上exit()を使ってはいけないので、例外を投げる
     throw std::runtime_error("Keep Running Error: chdir in CGI script procces");
   }
+#ifdef DEBUG
+  std::cerr << "SetChildProcessCurrentDir() end" << std::endl;
+#endif
+}
+
+int CgiSocket::ForkWrapper() {
+#ifdef DEBUG
+  std::cerr << "ForkWrapper() start" << std::endl;
+#endif
+  cgi_pid_ = fork();
+  if (cgi_pid_ < 0) {
+    std::cerr << "Keep Running Error: fork" << std::endl;
+    if (close(parent_sock_fd_) < 0) {
+      std::cerr << "Keep Running Error: close" << std::endl;
+    }
+    if (close(child_sock_fd_) < 0) {
+      std::cerr << "Keep Running Error: close" << std::endl;
+    }
+    return FAILURE; // 呼び出し元はHTTPクライアントに500エラーを返す
+  }
+#ifdef DEBUG
+  std::cerr << "child process pid = " << cgi_pid_ << std::endl;
+  std::cerr << "ForkWrapper() end" << std::endl;
+#endif
+  return SUCCESS;
+}
+
+int CgiSocket::SetParentProcessSocket() {
+  if (close(child_sock_fd_) < 0) {
+    std::cerr << "Keep Running Error: close" << std::endl;
+    if (close(parent_sock_fd_) < 0) {
+      std::cerr << "Keep Running Error: close" << std::endl;
+    }
+    // 子プロセスを終了させる
+    if (kill(cgi_pid_, SIGTERM) < 0) {
+      std::cerr << "Keep Running Error: kill" << std::endl;
+    }
+    return FAILURE; // HTTPクライアントには500エラーを返してもらう
+  }
+  // 親プロセス側のソケットFDを基底クラスに設定
+  SetFd(parent_sock_fd_);
+  return SUCCESS;
 }

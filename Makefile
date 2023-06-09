@@ -15,6 +15,9 @@ INCLUDES = -I$(SRCS_DIR) $(addprefix -I, $(SRCS_SUBDIRS))
 
 all: $(NAME)
 
+debug: CXXFLAGS += -DDEBUG
+debug: all
+
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 

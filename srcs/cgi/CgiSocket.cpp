@@ -18,38 +18,38 @@
 #include <vector>
 #include <wait.h>
 
-/* ConnScoketクラスと同じアウトラインを持つ
-  CgiSocket(ConnSocket *conn_socket);
-  ~CgiSocket();
-  CgiSocket *CreatCgiProcess();
-  int OnWritable(Epoll *epoll);
-  int OnReadable(Epoll *epoll);
-  int ProcessSocket(Epoll *epoll, void *data);
-*/
-
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
-CgiSocket::CgiSocket(ConnSocket *conn_socket, Request &http_request)
-    : ASocket(conn_socket->GetConfVec()), conn_socket_(conn_socket),
-      fin_http_response_(false) {
-  this->send_buffer_.AddString(http_request.GetRequestMessage().body);
-  this->cgi_request_.context_ = http_request.GetContext();
-  this->cgi_request_.context_.is_cgi = false;
-  this->cgi_request_.message_ = http_request.GetRequestMessage();
+CgiSocket::CgiSocket(ConnSocket &http_client_sock,
+                     const Request http_request, Response &http_response)
+    : ASocket(http_client_sock.GetConfVec(), http_client_sock.GetEpoll()),
+      http_client_sock_(http_client_sock), src_http_request_(http_request),
+      dest_http_response_(http_response), http_client_timeout_flag_(false) {
+  send_buffer_.AddString(http_request.GetBody());
 };
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
 CgiSocket::~CgiSocket() {
+#ifdef DEBUG
+  std::cerr << "CgiSocket::~CgiSocket() start" << std::endl;
+#endif
   int status;
 
   // 子プロセスが終了していない場合に備え、WNOHANGを使う
-  int wait_res = waitpid(pid_, &status, WNOHANG);
-
+  int wait_res = waitpid(cgi_pid_, &status, WNOHANG);
   switch (wait_res) {
-  case 0: // 子プロセスが終了していないのでkill()で終了させて、終了ステータスを回収する
-    if (kill(pid_, SIGKILL) < 0) {
+  case 0: // 子プロセスが終了していないのでresponseに500をセットし、子プロセスをkill()で終了させて、終了ステータスを回収する
+#ifdef DEBUG
+    std::cerr << " wait_res is 0 child process kill() and wait()" << std::endl;
+#endif
+    if (http_client_timeout_flag_ == false) {
+      SetInternalErrorHttpResponse();
+      GetEpoll()->Mod(http_client_sock_.GetFd(),
+                EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+    }
+    if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
     }
-    if (waitpid(pid_, &status, WNOHANG) < 0) {
+    if (waitpid(cgi_pid_, &status, WNOHANG) < 0) {
       std::cerr << "Keep Running Error: waitpid" << std::endl;
     }
     break;
@@ -59,82 +59,67 @@ CgiSocket::~CgiSocket() {
     break;
 
   default: // 子プロセスが終了していて、終了ステータスを回収できた
+#ifdef DEBUG
+    std::cerr << " child process is already finished" << std::endl;
+#endif
     break;
   }
+  http_client_sock_.DeleteCgiSocket(this);
+#ifdef DEBUG
+  std::cerr << "CgiSocket::~CgiSocket() end" << std::endl;
+#endif
 }
 
-// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+/* retrun value SUCCESS(0) or FAILURE(-1) */
 int CgiSocket::OnReadable(Epoll *epoll) {
-  // UNIXドメインソケットからCGIスクリプトの出力を受け取る
-  int recv_result = recv_buffer_.ReadSocket(this->GetFd());
-  // this->last_event_.in_time = time(NULL); //
-  // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
+  // 一度目でバッファ内は全て読み込まれる
+  int recv_result = recv_buffer_.ReadSocket(GetFd());
+  // 二度目はEOFの読み込み-1, それ以外は0(NONBLOCK I/O)
+  recv_result = recv_buffer_.ReadSocket(GetFd());
 
-  // 0 ならCGIレスポンスを受信しバッファにためて、あえてまだParseはしない。
-  // -1 はfinパケットを受信したことを意味し、Parseに入る
   if (recv_result == 0) {
     return SUCCESS;
-  } else {
-    // finパケットを受信し、CGIスクリプトが終了したのでCGIレスポンスをParseし、
-    // HTTPレスポンスを作成しdequeに追加して、EpollにEPOLLOUTでADDしHTTPクライアントへのレスポンス送信に備える
-    CgiResponseParser cgi_res_parser(*this);
+  } else { // EOFの読み込み後にのみparseを行う
+    CgiResponseParser cgi_res_parser(*this, src_http_request_,
+                                     dest_http_response_);
     cgi_res_parser.ParseCgiResponse();
 
-    if (cgi_res_parser
-            .IsRedirectCgi()) { // ローカルリダイレクト先がさらにCGIスクリプト
-      Request new_http_request = cgi_res_parser.GetHttpRequestForCgi();
-      CgiSocket *new_cgi_socket =
-          new CgiSocket(this->conn_socket_, new_http_request);
-
-      ASocket *cgi_socket = new_cgi_socket->CreatCgiProcess();
-      if (cgi_socket == NULL) {
-        delete new_cgi_socket;
-        // 500 Internal Server Errorをhttp responseに追加する
-      }
-      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET;
-      epoll->Add(new_cgi_socket, event_mask);
-      this->fin_http_response_ =
-          true; // http_responseを作成していないが、リダイレクト先で作成するのでtrue
-    } else {    // http responseを作成できる
-      this->conn_socket_->PushResponse(cgi_res_parser.GetHttpResponse());
-      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-      epoll->Mod(this->conn_socket_->GetFd(), event_mask);
-      this->fin_http_response_ = true;
-      // http_response作成完了。trueにしておかないと500 Internal Server
-      // Errorを追加
+    switch (cgi_res_parser.GetParseResult()) {
+    case CgiResponseParser::CREATED_HTTP_RESPONSE:
+      epoll->Mod(http_client_sock_.GetFd(),
+                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+      break;
+    case CgiResponseParser::RIDIRECT_TO_LOCAL_CGI:
+      epoll->Add(cgi_res_parser.GetRedirectNewCgiSocket(),
+                 EPOLLIN | EPOLLOUT | EPOLLET);
+      break;
+    default:
+      break;
     }
+    return FAILURE;
   }
-  return FAILURE;
-  // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
-  // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
-  // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
 }
 
-// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+/* retrun value SUCCESS(0) or FAILURE(-1) */
 int CgiSocket::OnWritable(Epoll *epoll) {
-  // this->last_event_.out_time = time(NULL); //
-  // タイムアウトの起算点の更新はせずにCGIスクリプト起動からの経過時間で固定する
-  // send_buffer_の内容をUNIXソケットを通じてCGIスクリプトに書き込む
   int send_result;
   if (send_buffer_.GetBuffSize()) {
-    send_result = send_buffer_.SendSocket(this->GetFd());
+    send_result = send_buffer_.SendSocket(GetFd());
   } else {
     send_result = 1; // 送信完了扱いとする
   }
 
   switch (send_result) {
-
-  case 0: { // 送信未完了
-    // EPOLLOUTのイベント登録を維持しつつ、次回のEPOLLOUTを発火を待つ
+  case 0: {
+    // 送信未完了 EPOLLOUTのイベント登録を維持しつつ、次回のEPOLLOUTを発火を待つ
     last_event_.out_time = time(NULL); // 現在時間に更新
     break;
   }
-  case 1: { // 送信完了
-    // EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
+  case 1: {
+    // 送信完了 EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
     uint32_t event_mask = EPOLLIN | EPOLLET;
-    epoll->Mod(this->GetFd(), event_mask);
-    // UNIXドメインソケットの全二重通信の送信側を閉じるこれにより、CGIスクリプト側のread()がEOFを検知することができる
-    if (shutdown(this->GetFd(), SHUT_WR) < 0) {
+    epoll->Mod(GetFd(), event_mask);
+    if (shutdown(GetFd(), SHUT_WR) < 0) {
       std::cerr << "Keep Running Error: shutdown" << std::endl;
     }
     last_event_.out_time = -1; // タイムアウトを無効化
@@ -142,102 +127,80 @@ int CgiSocket::OnWritable(Epoll *epoll) {
   }
   default: { // (-1) エラー
     return FAILURE;
-    // FAILUREを返せば、子プロセスのkill()とwaitpid()が、CgiSocketのデストラクタで行われる
-    // UNIXドメインのFDのclose()が、基底クラスのASocketのデストラクタで行われる
-    // OnWritable()の呼び出し元で、さらにFAILUREを返し、EPOLLの登録も解除される
     break;
   }
   }
-
   return SUCCESS;
 }
 
-// SUCCESS: 引き続きsocketを利用
-// FAILURE: socketを閉じる。異常シナリオでも、FAILUREを使う
-// FILURE:
-// あわせて、CgiSocketのデストラクタが呼ばれ、子プロセスkill()し、waitpid()して、子プロセスの終了やゾンビプロセスの発生を防ぐ
+/*
+SUCCESS(0): 次回EPOLLイベントを待つ
+FAILURE(-1): EPOLLから解除
+なお、EPOLLから削除する際に、
+CgiSocketのデストラクタが呼ばれ、適宜子プロセスをkill()、必ずwaitpid()し、
+子プロセスの終了を保証しゾンビプロセス孤児プロセスの発生を防ぐ
+*/
 int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
-  // clientからの通信を処理
-  // std::cout << "Socket: " << fd_ << std::endl;
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
 
-  if (event_mask & EPOLLOUT) {
-    std::cout << "FD: " << this->GetFd();
-    std::cout << " CgiSocket::ProcessSocket() EPOLLOUT" << std::endl;
-    // send_buffer_からの送信。HTTPリクエストにエンティティボディが無い場合はsend_buffer_には何も入っていない。ただし、一度send()のステップを踏んで、送信完了と合流する
-    if (OnWritable(epoll) == FAILURE) {
-      if (!this->fin_http_response_) {
-        // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
-        // Internal Server Errorを追加する
-        Response http_response;
-        http_response.SetResponseStatus(500);
-        http_response.SetVersion(Http::HTTP11);
-        http_response.SetHeader("Content-Length",
-                                std::vector<std::string>(1, "0"));
-        http_response.SetHeader("Connection",
-                                std::vector<std::string>(1, "close"));
-        this->conn_socket_->PushResponse(http_response);
-        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Add(this->conn_socket_, event_mask);
-      }
-      return FAILURE;
-    }
-  }
-
   if (event_mask & EPOLLIN) {
-    std::cout << "FD: " << this->GetFd();
+#ifdef DEBUG
+    std::cout << "FD: " << GetFd();
     std::cout << " CgiSocket::ProcessSocket() EPOLLIN" << std::endl;
-    // 受信(Todo: OnReadable(0))
+#endif
+
     if (OnReadable(epoll) == FAILURE) {
-      if (!this->fin_http_response_) {
-        // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
-        // Internal Server Errorを追加する
-        Response http_response;
-        http_response.SetResponseStatus(500);
-        http_response.SetVersion(Http::HTTP11);
-        http_response.SetHeader("Content-Length",
-                                std::vector<std::string>(1, "0"));
-        http_response.SetHeader("Connection",
-                                std::vector<std::string>(1, "close"));
-        this->conn_socket_->PushResponse(http_response);
-        uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-        epoll->Add(this->conn_socket_, event_mask);
+      if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+        SetInternalErrorHttpResponse();
+        epoll->Mod(http_client_sock_.GetFd(),
+                   EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
       }
       return FAILURE;
     }
   }
 
+  if (event_mask & EPOLLOUT) {
+#ifdef DEBUG
+    std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLOUT"
+              << std::endl;
+#endif
 
-  // if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
+    if (OnWritable(epoll) == FAILURE) {
+      if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+        SetInternalErrorHttpResponse();
+        epoll->Mod(http_client_sock_.GetFd(),
+                   EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+      }
+      return FAILURE;
+    }
+  }
+
   if (event_mask & EPOLLHUP) {
-    std::cout << "FD: " << this->GetFd();
-    std::cout << " CgiSocket::ProcessSocket() EPOLLHUP" << std::endl;
-    // エラーイベント keep runningエラーを出力はしつつ、クライアントには500
-    // Internal Server Errorを返す
-    std::cerr << "Keep Running Error: EPOLLHUP" << std::endl;
+#ifdef DEBUG
+    std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLHUP"
+              << std::endl;
+#endif
 
-    // HTTP 500 Internal Server Error を、クライアントのresponse_dequeに追加する
-    if (!this->fin_http_response_) {
-      // HTTPクライアントへのレスポンスを生成していないのにCGIが終了したので、500
-      // Internal Server Errorを追加する
-      Response http_response;
-      http_response.SetResponseStatus(500);
-      http_response.SetVersion(Http::HTTP11);
-      http_response.SetHeader("Content-Length",
-                              std::vector<std::string>(1, "0"));
-      http_response.SetHeader("Connection",
-                              std::vector<std::string>(1, "close"));
-      this->conn_socket_->PushResponse(http_response);
-      uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-      epoll->Add(this->conn_socket_, event_mask);
+    if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+      SetInternalErrorHttpResponse();
+      epoll->Mod(http_client_sock_.GetFd(),
+                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
     }
     return FAILURE;
   }
+
   return SUCCESS;
 }
 
-Context &CgiSocket::GetContext() { return this->cgi_request_.context_; }
-
-RequestMessage &CgiSocket::GetRequestMessage() {
-  return this->cgi_request_.message_;
+void CgiSocket::SetInternalErrorHttpResponse() {
+#ifdef DEBUG
+  std::cout << "CgiSocket::SetInternalErrorHttpResponse() start" << std::endl;
+#endif
+  dest_http_response_.SetResponseStatus(500);
+  dest_http_response_.SetProcessStatus(DONE);
+  dest_http_response_.SetVersion(
+      src_http_request_.GetRequestMessage().request_line.version);
+#ifdef DEBUG
+  std::cout << "CgiSocket::SetInternalErrorHttpResponse() end" << std::endl;
+#endif
 }
