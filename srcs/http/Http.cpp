@@ -22,7 +22,6 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
     std::size_t host_end = src.find('/', host_start);
     if (host_end == std::string::npos)
       return false;
-
     std::string authority = src.substr(host_start, host_end - host_start);
     std::size_t userinfo_pos = authority.find('@');
     if (userinfo_pos != std::string::npos) {
@@ -53,7 +52,7 @@ bool Http::SplitURI(URI &dst, const std::string &src) {
     if (src[0] != '/') {
       dst.path = '/' + dst.path;
     }
-    return true;
+    // return true;
   }
 
   // the path part of absolute URI
