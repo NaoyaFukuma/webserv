@@ -179,6 +179,7 @@ int ConnSocket::ProcessSocket(Epoll *epoll, void *data) {
     std::cout << fd_ << ": EPOLLRDHUP" << std::endl;
     if (shutdown(fd_, SHUT_RD) < 0) {
       std::cerr << "Keep Running Error: shutdown" << std::endl;
+      return FAILURE;
     }
     if (send_buffer_.GetString().size() == 0) {
       if (shutdown(fd_, SHUT_WR) < 0) {
