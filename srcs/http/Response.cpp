@@ -4,12 +4,12 @@
 #include "Socket.hpp"
 #include "utils.hpp"
 #include <fstream>
+#include <iostream>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-#include <iostream>
 
 Response::Response() { process_status_ = PROCESSING; }
 
