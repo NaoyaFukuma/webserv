@@ -91,9 +91,6 @@ void Epoll::Mod(int fd, uint32_t event_mask) {
 }
 
 void Epoll::CheckTimeout() {
-  #ifdef DEBUG
-  std::cout << "CheckTimeout() start" << std::endl;
-  #endif
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
        it != fd_to_socket_.end(); it++) {
     if (it->second != NULL && it->second->IsTimeout(kSocketTimeout)) {
@@ -106,6 +103,7 @@ void Epoll::CheckTimeout() {
     //   it++;
     // }
   }
+
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
        it != fd_to_socket_.end();) {
     if (it->second == NULL) {
@@ -114,9 +112,6 @@ void Epoll::CheckTimeout() {
       it++;
     }
   }
-#ifdef DEBUG
-  std::cout << "CheckTimeout() end" << std::endl;
-#endif
 }
 
 void Epoll::RegisterListenSocket(const Config &config) {
