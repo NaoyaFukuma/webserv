@@ -32,8 +32,8 @@ void ResBadRequest(std::string message) {
 }
 
 std::string SetFileName(std::string query) {
-  // クエリ文字列はfaile_name=で始まるので12文字目から取得
-  std::string filename = query.substr(12);
+  // query:を'='で分割
+  std::string filename = query.substr(query.find("=") + 1);
   if (filename.empty()) {
     return "";
   }
@@ -41,8 +41,37 @@ std::string SetFileName(std::string query) {
   std::string ext = filename.substr(filename.find_last_of("."));
   // 拡張子を削除
   filename = filename.substr(0, filename.find_last_of("."));
+  // ファイル名に日時をYYMMDDHHMMSS表記で追記。一桁の場合は0を追記
+  time_t t = time(NULL);
+  struct tm *local = localtime(&t);
+  std::string date = std::to_string(local->tm_year + 1900);
+  if (local->tm_mon + 1 < 10) {
+    date = date + "0" + std::to_string(local->tm_mon + 1);
+  } else {
+    date = date + std::to_string(local->tm_mon + 1);
+  }
+  if (local->tm_mday < 10) {
+    date = date + "0" + std::to_string(local->tm_mday);
+  } else {
+    date = date + std::to_string(local->tm_mday);
+  }
+  if (local->tm_hour < 10) {
+    date = date + "0" + std::to_string(local->tm_hour);
+  } else {
+    date = date + std::to_string(local->tm_hour);
+  }
+  if (local->tm_min < 10) {
+    date = date + "0" + std::to_string(local->tm_min);
+  } else {
+    date = date + std::to_string(local->tm_min);
+  }
+  if (local->tm_sec < 10) {
+    date = date + "0" + std::to_string(local->tm_sec);
+  } else {
+    date = date + std::to_string(local->tm_sec);
+  }
   // ファイル名に日時を追記
-  filename = filename + "_" + std::to_string(time(NULL));
+  filename = filename + "_" + date;
   // ファイル名に拡張子を追記
   filename = filename + ext;
   return filename;
@@ -61,7 +90,7 @@ std::string SetDucumentRoot() {
 }
 
 void SaveBody(std::string document_root, std::string filename) {
-  std::ofstream ofs(document_root + filename); // file作成
+  std::ofstream ofs(document_root + "/upload/"+ filename); // file作成
   ofs << std::cin.rdbuf(); // UNIXドメインソケットである stdin
                            // から読み込んでファイルに書き込む
   ofs.close();
