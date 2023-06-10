@@ -222,7 +222,7 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
     return;
   }
   errno = 0;
-  // size_strを16進数に変換
+  // 文字列を数値に変換
   chunk_status_ = std::strtol(size_str.c_str(), NULL, 16);
   if (errno == ERANGE) {
     parse_status_ = ERROR;
