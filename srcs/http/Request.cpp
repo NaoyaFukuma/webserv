@@ -120,6 +120,8 @@ void Request::ParseRequestLine(const std::string &line) {
     } else if (splited[2] == "HTTP/1.1") {
       message_.request_line.version = Http::HTTP11;
     } else {
+      SetRequestStatus(505);
+      parse_status_ = ERROR;
       return;
     }
     parse_status_ = HEADER;
@@ -278,6 +280,10 @@ void Request::ParseChunkData(SocketBuff &buffer_) {
       buf = buf.substr(0, pos);
       message_.body.append(buf);
       chunk_status_ = -1;
+    } else {
+      SetRequestStatus(400);
+      parse_status_ = ERROR;
+      return;
     }
   }
 }
