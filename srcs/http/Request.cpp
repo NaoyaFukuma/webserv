@@ -402,6 +402,7 @@ bool Request::AssertRequestLine(const std::string &line) {
     uri = line.substr(first_space + 1, second_space - first_space - 1);
   }
   if (uri.size() > kMaxUriLength) {
+    SetRequestStatus(414);
     return false;
   }
 
