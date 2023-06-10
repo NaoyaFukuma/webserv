@@ -186,7 +186,7 @@ void Request::Trim(std::string &str, const std::string &delim) {
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!SetBodyType()) {
     // bodyがない場合
-    if (buffer_.GetString().empty()) {
+    if (buffer_.GetString().empty() || chunk_status_ == 0) {
       parse_status_ = COMPLETE;
     } else {
       parse_status_ = ERROR;
@@ -312,12 +312,14 @@ bool Request::SetBodyType() {
   // Transfer-Encodingがある場合
   if (it_transfer_encoding != message_.header.end()) {
     std::vector<std::string> values = it_transfer_encoding->second;
-    // values を全部探索
-    for (std::vector<std::string>::const_iterator it = values.begin();
-         it != values.end(); ++it) {
-      if (*it == "chunked") {
-        is_chunked_ = true;
-        return true;
+    if (!values.empty()) {
+      // values を全部探索
+      for (std::vector<std::string>::const_iterator it = values.begin();
+           it != values.end(); ++it) {
+        if (*it == "chunked") {
+          is_chunked_ = true;
+          return true;
+        }
       }
     }
   }
@@ -326,14 +328,16 @@ bool Request::SetBodyType() {
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
     // 負の数、strtolのエラーもエラー
-    errno = 0;
-    long content_length = std::strtol(values[0].c_str(), NULL, 10);
-    if (values.size() != 1 || errno == ERANGE || content_length < 0) {
-      // error
-      return false;
-    } else {
-      total_body_size_ = content_length;
-      return true;
+    if (!values.empty()) {
+      errno = 0;
+      long content_length = std::strtol(values[0].c_str(), NULL, 10);
+      if (values.size() != 1 || errno == ERANGE || content_length <= 0) {
+        // error
+        return false;
+      } else {
+        total_body_size_ = content_length;
+        return true;
+      }
     }
   }
   return false;
