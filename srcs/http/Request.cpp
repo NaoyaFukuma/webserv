@@ -23,6 +23,7 @@ Request::Request(const Request &src) { *this = src; }
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
+    context_ = rhs.context_;
     parse_status_ = rhs.parse_status_;
     //    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
@@ -384,6 +385,7 @@ bool Request::AssertRequestLine(const std::string &line) {
   }
   std::string method = line.substr(0, first_space);
   if (method != "GET" && method != "POST" && method != "DELETE") {
+    SetRequestStatus(501);
     return false;
   }
 
