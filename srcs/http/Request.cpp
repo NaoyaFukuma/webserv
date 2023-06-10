@@ -300,6 +300,9 @@ void Request::ParseContentLengthBody(SocketBuff &buffer_) {
 }
 
 bool Request::SetBodyType() {
+  if (is_chunked_) {
+    return true;
+  }
   // headerにContent-LengthかTransfer-Encodingがあるかを調べる
   // どっちもある場合は普通はchunkを優先する
   Header::iterator it_transfer_encoding =
