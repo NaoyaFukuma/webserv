@@ -67,13 +67,11 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
     }
 
     if (!AssertSize()) {
-      SetRequestStatus(413);
       parse_status_ = ERROR;
       return;
     }
 
     if (!AssertUrlPath()) {
-      SetRequestStatus(400);
       parse_status_ = ERROR;
       return;
     }
@@ -228,6 +226,7 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
 bool Request::AssertSize() {
   size_t client_max_body_size = GetContext().location.client_max_body_size_;
   if (total_body_size_ > client_max_body_size) {
+    SetRequestStatus(413);
     return false;
   }
   return true;
@@ -341,6 +340,7 @@ bool Request::SetBodyType() {
 bool Request::ValidateHeaderSize(const std::string &data) {
   if (data.size() > kMaxHeaderLineLength ||
       total_header_size_ + data.size() > kMaxHeaderSize) {
+    SetRequestStatus(431);
     return false;
   }
   total_header_size_ += data.size();
@@ -352,6 +352,7 @@ bool Request::AssertUrlPath() {
   // '/'ごとにurlを分割
   std::vector<std::string> split_url;
   if (ws_split(split_url, context_.resource_path.uri.path, '/') < 0) {
+    SetRequestStatus(400);
     return false;
   }
 
@@ -363,6 +364,7 @@ bool Request::AssertUrlPath() {
     } else if (*it == "..") {
       // rootより上に行く場合はエラー
       if (it == split_url.begin()) {
+        SetRequestStatus(400);
         return false;
       } else {
         it = split_url.erase(it - 1, it + 1); // ".."とその前の要素を削除
@@ -377,18 +379,21 @@ bool Request::AssertUrlPath() {
 
 bool Request::AssertRequestLine(const std::string &line) {
   if (line.empty() || line.size() > kMaxRequestLineLength) {
+    SetRequestStatus(400);
     return false;
   }
 
   // スペースのチェック
   int space_count = std::count(line.begin(), line.end(), ' ');
   if (space_count != 1 && space_count != 2) {
+    SetRequestStatus(400);
     return false;
   }
 
   // メソッドのチェック
   std::string::size_type first_space = line.find(' ');
   if (first_space == std::string::npos) {
+    SetRequestStatus(400);
     return false;
   }
   std::string method = line.substr(0, first_space);
@@ -405,6 +410,7 @@ bool Request::AssertRequestLine(const std::string &line) {
   } else {
     std::string::size_type second_space = line.find(' ', first_space + 1);
     if (second_space == std::string::npos) {
+      SetRequestStatus(400);
       return false;
     }
     uri = line.substr(first_space + 1, second_space - first_space - 1);
@@ -418,10 +424,12 @@ bool Request::AssertRequestLine(const std::string &line) {
   if (space_count == 2) {
     std::string::size_type last_space = line.rfind(' ');
     if (last_space == std::string::npos || last_space == first_space) {
+      SetRequestStatus(400);
       return false;
     }
     std::string version = line.substr(last_space + 1);
     if (version != "HTTP/1.0" && version != "HTTP/1.1") {
+      SetRequestStatus(400);
       return false;
     }
   }
