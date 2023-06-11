@@ -1,6 +1,7 @@
 #ifndef SOCKETBUFF_HPP_
 #define SOCKETBUFF_HPP_
 
+#include "define.hpp"
 #include <string>
 #include <vector>
 #include <algorithm>

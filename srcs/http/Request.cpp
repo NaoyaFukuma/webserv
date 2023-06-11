@@ -51,9 +51,25 @@ bool Request::HasHeader(const std::string &key) const {
 void Request::Parse(SocketBuff &buffer_) {
   std::string line;
 
+  // parse_status の内容を表示
+  std::cout << "Parse開始\nparse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is COMPLETE, 4 is ERROR" << std::endl;
+  std::cout << "parse_status: " << parse_status_ << std::endl;
+  std::cout << "total_header_size_: " << total_header_size_ << std::endl;
+
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
          parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
+  }
+  // ヘッダーの内容を出力 c++98
+  std::cout << "ヘッダーのParseが終了した" << std::endl;
+  std::cout << "parse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is COMPLETE, 4 is ERROR" << std::endl;
+  std::cout << "parse_status: " << parse_status_ << std::endl;
+  for (Header::iterator it = message_.header.begin(); it != message_.header.end(); ++it) {
+    std::cout << it->first << ": ";
+    for (std::vector<std::string>::iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+      std::cout << *it2 << " ";
+    }
+    std::cout << std::endl;
   }
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
@@ -133,6 +149,7 @@ void Request::ParseHeader(const std::string &line) {
   }
 
   if (!ValidateHeaderSize(line)) {
+    std::cout << "ヘッダーのサイズが大きすぎる" << std::endl;
     parse_status_ = ERROR;
 
     return;
@@ -141,6 +158,7 @@ void Request::ParseHeader(const std::string &line) {
   std::string::size_type pos = line.find(':');
   // ':'がない
   if (pos == std::string::npos) {
+    std::cout << "':'がない" << std::endl;
     parse_status_ = ERROR;
     return;
   }
@@ -153,6 +171,10 @@ void Request::ParseHeader(const std::string &line) {
   // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
   SplitHeaderValues(header_values, line.substr(pos));
   message_.header[key] = header_values;
+  std::cout << "key: " << key << std::endl;
+  for (std::vector<std::string>::iterator it = header_values.begin(); it != header_values.end(); ++it) {
+    std::cout << "value: " << *it << std::endl;
+  }
 }
 
 void Request::SplitHeaderValues(std::vector<std::string> &splited,
@@ -374,6 +396,11 @@ bool Request::ValidateRequestSize(Header &header, std::size_t max_size) {
 bool Request::ValidateHeaderSize(const std::string &data) {
   if (data.size() > kMaxHeaderLineLength ||
       total_header_size_ + data.size() > kMaxHeaderSize) {
+    std::cout << "data.size() = " << data.size() << std::endl;
+    std::cout << "kMaxHeaderSize = " << kMaxHeaderSize << std::endl;
+    std::cout << "total_header_size_ = " << total_header_size_ << std::endl;
+    std::cout << "kMaxHeaderLineLength = " << kMaxHeaderLineLength << std::endl;
+
     return false;
   }
   total_header_size_ += data.size();
