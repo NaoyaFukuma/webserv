@@ -88,11 +88,6 @@ void Request::ParseLine(const std::string &line) {
   case HEADER:
     ParseHeader(line);
     break;
-  case COMPLETE:
-    break;
-  case ERROR:
-    SetRequestStatus(400);
-    break;
   default:
     break;
   }
