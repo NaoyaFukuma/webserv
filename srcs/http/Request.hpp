@@ -117,8 +117,6 @@ public:
   int GetChunkStatus() const { return is_chunked_; }
   long long GetContentLength() const { return total_body_size_; }
   std::string GetBody() const { return message_.body; }
-  void SetError(int status, std::string message);
-  void SetError(int status);
 
   // for unit-test
   void SetMessage(RequestMessage message);
