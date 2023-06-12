@@ -398,8 +398,6 @@ bool Request::AssertRequestLine(const std::string &line) {
     return false;
   }
   std::string method = line.substr(0, first_space);
-  std::cout << "\x1b[31m"
-            << "method: " << method << "\x1b[0m" << std::endl;
   if (method != "GET" && method != "POST" && method != "DELETE") {
     SetRequestStatus(501);
     return false;
