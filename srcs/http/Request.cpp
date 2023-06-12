@@ -10,23 +10,29 @@
 Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
-  total_body_size_ = -1;
+  total_body_size_ = 0;
   total_header_size_ = 0;
   is_chunked_ = false;
+  message_.request_line.version = Http::HTTP11;
 }
 
 Request::~Request() {}
 
 // これがないとcompile時に怒られたので追加
-Request::Request(const Request &src) { *this = src; }
+Request::Request(const Request &src) { 
+  *this = src;
+}
 
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     context_ = rhs.context_;
     parse_status_ = rhs.parse_status_;
-    //    http_status_ = rhs.http_status_;
+    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
+    total_header_size_ = rhs.total_header_size_;
+    is_chunked_ = rhs.is_chunked_;
+    total_body_size_ = rhs.total_body_size_;
   }
   return *this;
 }
@@ -591,7 +597,6 @@ void Request::ResolveResourcePath() {
        ite != context_.location.cgi_extensions_.end(); ite++) {
     std::string cgi_extension = *ite;
 
-    std::cout << "concat: " << concat << std::endl;
     // concatの'/'ごとにextensionを確認
     for (std::string::iterator its = concat.begin(); its != concat.end();
          its++) {

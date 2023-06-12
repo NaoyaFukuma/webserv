@@ -11,7 +11,10 @@
 #include <unistd.h>
 #include <vector>
 
-Response::Response() { process_status_ = PROCESSING; }
+Response::Response() {
+  process_status_ = PROCESSING;
+  version_ = Http::HTTP11;
+}
 
 Response::~Response() {}
 

@@ -1,4 +1,5 @@
 #include "Http.hpp"
+#include <iostream>
 
 std::string Http::VersionToString(Version version) {
   switch (version) {
