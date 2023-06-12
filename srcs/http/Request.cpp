@@ -61,7 +61,7 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   }
 
   // socket = NULL -> DEBUG用
-  if (socket) {
+  if (socket && parse_status_ != ERROR) {
     if (parse_status_ == COMPLETE) {
       ResolvePath(socket->GetConfVec());
     }
@@ -117,6 +117,7 @@ void Request::ParseRequestLine(const std::string &line) {
       parse_status_ = ERROR;
       return;
     }
+    total_header_size_ = 0;
     parse_status_ = HEADER;
   }
 }
