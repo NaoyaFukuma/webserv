@@ -178,14 +178,14 @@ void Request::Trim(std::string &str, const std::string &delim) {
 }
 
 void Request::ParseBody(SocketBuff &buffer_) {
-  if (message_.request_line.method == "GET" ||
-      message_.request_line.method == "DELETE") {
-    parse_status_ = COMPLETE;
-    return;
-  }
   if (!SetBodyType()) {
-    SetRequestStatus(400);
-    parse_status_ = ERROR;
+    if (message_.request_line.method == "POST") {
+      SetRequestStatus(400);
+      parse_status_ = ERROR;
+    } else {
+      parse_status_ = COMPLETE;
+    }
+    return;
   }
   // chunkedの場合
   if (is_chunked_) {

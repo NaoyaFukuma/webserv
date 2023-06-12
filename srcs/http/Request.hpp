@@ -114,8 +114,8 @@ public:
 
   // for test
   void SetParseStatus(ParseStatus status) { parse_status_ = status; }
-  int GetChunkStatus() const { return is_chunked_; }
-  long long GetContentLength() const { return total_body_size_; }
+  long GetChunkStatus() const { return is_chunked_; }
+  size_t GetContentLength() const { return total_body_size_; }
   std::string GetBody() const { return message_.body; }
 
   // for unit-test
