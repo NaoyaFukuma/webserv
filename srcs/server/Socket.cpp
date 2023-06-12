@@ -112,7 +112,11 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       it++;
     }
   }
+  return SUCCESS;
+}
 
+// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
+int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end() && !rdhup_;) {
     if (it->GetProcessStatus() == DONE) {
@@ -124,11 +128,6 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       it++;
     }
   }
-  return SUCCESS;
-}
-
-// SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
-int ConnSocket::OnWritable(Epoll *epoll) {
   int send_result = send_buffer_.SendSocket(fd_);
   if (send_result < 0) {
     return FAILURE;
