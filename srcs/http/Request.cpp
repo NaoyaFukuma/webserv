@@ -10,9 +10,9 @@
 Request::Request() {
   parse_status_ = INIT;
   chunk_status_ = -1;
-  total_body_size_ = -1;
+  total_body_size_ = 0;
   total_header_size_ = 0;
-  is_chunked = false;
+  is_chunked_ = false;
   message_.request_line.version = Http::HTTP11;
 }
 
@@ -31,8 +31,8 @@ Request &Request::operator=(const Request &rhs) {
     http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
     total_header_size_ = rhs.total_header_size_;
-    is_chunked = rhs.is_chunked;
-    body_size_ = rhs.body_size_;
+    is_chunked_ = rhs.is_chunked_;
+    total_body_size_ = rhs.total_body_size_;
   }
   return *this;
 }
