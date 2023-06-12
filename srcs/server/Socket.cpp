@@ -116,7 +116,7 @@ int ConnSocket::OnReadable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end() && !rdhup_;) {
     if (it->GetProcessStatus() == DONE) {
-      std::cout << it->GetString() << std::endl;
+      std::cout << "before: AddString" << std::endl << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
       rdhup_ = !it->GetIsConnection();
       it = responses_.erase(it);

@@ -1,4 +1,5 @@
 #include "Http.hpp"
+#include <iostream>
 
 std::string Http::VersionToString(Version version) {
   switch (version) {
@@ -9,6 +10,7 @@ std::string Http::VersionToString(Version version) {
   case HTTP11:
     return "HTTP/1.1";
   default:
+    std::cout << "VersionToString: unknown version " << version << std::endl;
     return "";
   }
 }

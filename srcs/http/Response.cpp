@@ -11,7 +11,10 @@
 #include <vector>
 #include <iostream>
 
-Response::Response() { process_status_ = PROCESSING; }
+Response::Response() {
+  process_status_ = PROCESSING;
+  version_ = Http::HTTP11;
+}
 
 Response::~Response() {}
 
@@ -85,6 +88,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
   // Todo: resolvepathはrequest parserの時点で行う
   request.ResolvePath(socket->GetConfVec());
   version_ = request.GetRequestMessage().request_line.version;
+  std::cout << "version_ copy: " << version_ << std::endl;
   context_ = request.GetContext();
   connection_ = IsConnection(request);
   if (context_.location.return_.return_type_ != RETURN_EMPTY) {

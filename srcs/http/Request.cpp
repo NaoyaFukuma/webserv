@@ -12,6 +12,7 @@ Request::Request() {
   body_size_ = -1;
   total_header_size_ = 0;
   is_chunked = false;
+  message_.request_line.version = Http::HTTP11;
 }
 
 Request::~Request() {}
