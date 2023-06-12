@@ -18,15 +18,20 @@ Request::Request() {
 Request::~Request() {}
 
 // これがないとcompile時に怒られたので追加
-Request::Request(const Request &src) { *this = src; }
+Request::Request(const Request &src) { 
+  *this = src;
+}
 
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
     message_ = rhs.message_;
     context_ = rhs.context_;
     parse_status_ = rhs.parse_status_;
-    //    http_status_ = rhs.http_status_;
+    http_status_ = rhs.http_status_;
     chunk_status_ = rhs.chunk_status_;
+    total_header_size_ = rhs.total_header_size_;
+    is_chunked = rhs.is_chunked;
+    body_size_ = rhs.body_size_;
   }
   return *this;
 }
