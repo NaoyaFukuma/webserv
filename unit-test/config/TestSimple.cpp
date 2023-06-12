@@ -7,7 +7,7 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define SIMPLE "../../config/test_config_files/valid/Simple.conf"
+#define SIMPLE "../../test_config_files/valid/Simple.conf"
 
 // 通常のconfファイル
 BOOST_AUTO_TEST_CASE(Simple) {

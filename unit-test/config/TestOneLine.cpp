@@ -7,7 +7,7 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define ONE_LINE "../../config/test_config_files/valid/OneLine.conf"
+#define ONE_LINE "../../test_config_files/valid/OneLine.conf"
 
 BOOST_AUTO_TEST_CASE(OneLine) {
   Config config;

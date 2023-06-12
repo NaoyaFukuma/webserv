@@ -9,11 +9,11 @@
 #include <arpa/inet.h>
 #include <boost/test/included/unit_test.hpp>
 
-#define NO_SERVER "../../config/test_config_files/invalid/NoServer.conf"
+#define NO_SERVER "../../test_config_files/invalid/NoServer.conf"
 #define NO_READ_PERMISSION                                                     \
-  "../../config/test_config_files/invalid/NoReadPermission.conf"
+  "../../test_config_files/invalid/NoReadPermission.conf"
 #define INVALID_EXTENSION                                                      \
-  "../../config/test_config_files/invalid/InvalidExtension"
+  "../../test_config_files/invalid/InvalidExtension"
 
 /* ------------------------------ NG ------------------------------ */
 // confファイルが存在しない場合
