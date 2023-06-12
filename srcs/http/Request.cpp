@@ -117,7 +117,6 @@ void Request::ParseRequestLine(const std::string &line) {
       parse_status_ = ERROR;
       return;
     }
-    total_header_size_ = 0;
     parse_status_ = HEADER;
   }
 }
