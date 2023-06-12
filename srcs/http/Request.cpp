@@ -178,13 +178,13 @@ void Request::Trim(std::string &str, const std::string &delim) {
 }
 
 void Request::ParseBody(SocketBuff &buffer_) {
+  if (message_.request_line.method == "GET" || message_.request_line.method == "DELETE") {
+    parse_status_ = COMPLETE;
+    return;
+  }
   if (!SetBodyType()) {
-    // content-length,chunkedがない
-    if (buffer_.GetString().empty() || chunk_status_ == 0) {
-      parse_status_ = COMPLETE;
-    } else {
-      parse_status_ = ERROR;
-    }
+    SetRequestStatus(400);
+    parse_status_ = ERROR;
   }
   // chunkedの場合
   if (is_chunked_) {
@@ -397,6 +397,7 @@ bool Request::AssertRequestLine(const std::string &line) {
     return false;
   }
   std::string method = line.substr(0, first_space);
+  std::cout << "\x1b[31m" << "method: " << method << "\x1b[0m" << std::endl;
   if (method != "GET" && method != "POST" && method != "DELETE") {
     SetRequestStatus(501);
     return false;
