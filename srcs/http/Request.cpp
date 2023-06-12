@@ -137,6 +137,7 @@ void Request::ParseHeader(const std::string &line) {
   std::string::size_type pos = line.find(':');
   // ':'がない
   if (pos == std::string::npos) {
+    SetRequestStatus(400);
     parse_status_ = ERROR;
     return;
   }
@@ -146,7 +147,7 @@ void Request::ParseHeader(const std::string &line) {
 
   std::vector<std::string> header_values;
   // pos+1以降の文字列を','ごとに分割してスペースを取り除く
-  // pos以降のスペースをスキップする // TODO: スキップすべきスペースは？
+  // pos以降のスペースをスキップする
   SplitHeaderValues(header_values, line.substr(pos));
   message_.header[key] = header_values;
 }
@@ -211,6 +212,7 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   std::string size_str;
 
   if (!buffer_.GetUntilCRLF(size_str)) {
+    SetRequestStatus(400);
     parse_status_ = ERROR;
     return;
   }
@@ -218,6 +220,7 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   // 文字列を数値に変換
   chunk_status_ = std::strtol(size_str.c_str(), NULL, 16);
   if (errno == ERANGE) {
+    SetRequestStatus(400);
     parse_status_ = ERROR;
     return;
   }
@@ -243,12 +246,14 @@ void Request::ParseChunkData(SocketBuff &buffer_) {
         return;
       }
     }
+    SetRequestStatus(400);
     parse_status_ = ERROR;
     return;
   }
 
   if (chunk_status_ < 0 || chunk_status_ > static_cast<long>(kMaxBodySize) ||
       chunk_status_ + total_body_size_ > static_cast<long>(kMaxBodySize)) {
+    SetRequestStatus(400);
     parse_status_ = ERROR;
     return;
   }
@@ -266,6 +271,7 @@ void Request::ParseChunkData(SocketBuff &buffer_) {
     // chunk_status_を-1にする
     std::string::size_type pos = chunk.rfind("\r\n");
     if (pos == std::string::npos) {
+      SetRequestStatus(400);
       parse_status_ = ERROR;
       return;
     }
