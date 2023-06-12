@@ -4,12 +4,12 @@
 #include "Socket.hpp"
 #include "utils.hpp"
 #include <fstream>
+#include <iostream>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-#include <iostream>
 
 Response::Response() {
   process_status_ = PROCESSING;
@@ -85,8 +85,7 @@ void Response::ProcessRequest(Request &request, ConnSocket *socket,
     ProcessError(request, socket, epoll);
     return;
   }
-  // Todo: resolvepathはrequest parserの時点で行う
-  request.ResolvePath(socket->GetConfVec());
+
   version_ = request.GetRequestMessage().request_line.version;
   context_ = request.GetContext();
   connection_ = IsConnection(request);

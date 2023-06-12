@@ -7,7 +7,7 @@
 #include "Config.hpp"
 #include "ConfigParser.hpp"
 
-#define MULTI_HOST "../../config/test_config_files/valid/MultipleHost.conf"
+#define MULTI_HOST "../../test_config_files/valid/MultipleHost.conf"
 
 BOOST_AUTO_TEST_CASE(MultiHost) {
   Config config;
