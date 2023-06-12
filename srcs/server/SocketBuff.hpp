@@ -14,7 +14,7 @@ private:
     static const std::size_t kBuffSize = 1024;
 
 public:
-    SocketBuff() : read_position_(0) {}
+    SocketBuff() : buffer_(std::vector<char>()), read_position_(0) {}
     ~SocketBuff() {}
 
   // EPOLLINを検知したソケットFDを受け取り、全てバッファに格納する
