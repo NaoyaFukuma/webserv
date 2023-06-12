@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
 RUN apt-get update && \
-	apt-get install -y build-essential gcc tini curl cmake libboost-all-dev vim
+	apt-get install -y build-essential gcc tini curl cmake libboost-all-dev vim siege
 
 WORKDIR /app
 
