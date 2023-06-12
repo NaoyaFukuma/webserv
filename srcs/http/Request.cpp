@@ -472,11 +472,8 @@ std::string Request::ResolveHost() {
   if (!uri.host.empty()) {
     host = uri.host;
   }
-  std::string host_string = message_.header["Host"][0];
-  if (host_string.find(':') != std::string::npos) {
-    host = host_string.substr(0, host_string.find(':'));
-  } else {
-    host = host_string;
+  if (message_.header.find("Host") != message_.header.end()) {
+    host = message_.header["Host"][0];
   }
   return host;
 }
