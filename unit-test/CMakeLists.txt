@@ -7,18 +7,17 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 # Include directories
-#include_directories(${PROJECT_SOURCE_DIR}/../srcs/cgi)
+include_directories(${PROJECT_SOURCE_DIR}/../srcs/cgi)
 include_directories(${PROJECT_SOURCE_DIR}/../srcs/config)
 include_directories(${PROJECT_SOURCE_DIR}/../srcs/http)
 include_directories(${PROJECT_SOURCE_DIR}/../srcs/server)
 include_directories(${PROJECT_SOURCE_DIR}/../srcs/utils)
 
 # Source files
-
-#set(CGI_SOURCE_FILES
-#        ${PROJECT_SOURCE_DIR}/../srcs/cgi/CgiResponseParser.cpp
-#        ${PROJECT_SOURCE_DIR}/../srcs/cgi/CgiSocket.cpp
-#        ${PROJECT_SOURCE_DIR}/../srcs/cgi/CreatCgiProcess.cpp)
+set(CGI_SOURCE_FILES
+        ${PROJECT_SOURCE_DIR}/../srcs/cgi/CgiResponseParser.cpp
+        ${PROJECT_SOURCE_DIR}/../srcs/cgi/CgiSocket.cpp
+        ${PROJECT_SOURCE_DIR}/../srcs/cgi/CreatCgiProcess.cpp)
 
 set(CONFIG_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/../srcs/config/Config.cpp
@@ -28,7 +27,7 @@ set(CONFIG_SOURCE_FILES
 set(HTTP_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/../srcs/http/Http.cpp
         ${PROJECT_SOURCE_DIR}/../srcs/http/Request.cpp
-#        ${PROJECT_SOURCE_DIR}/../srcs/http/Response.cpp
+        ${PROJECT_SOURCE_DIR}/../srcs/http/Response.cpp
         )
 
 set(SERVER_SOURCE_FILES
@@ -44,11 +43,14 @@ set(UTILS_SOURCE_FILES
         )
 
 # Create libraries
-#add_library(MyCgiLib ${CGI_SOURCE_FILES})
+add_library(MyCgiLib ${CGI_SOURCE_FILES})
 add_library(MyConfigLib ${CONFIG_SOURCE_FILES})
-add_library(MyHttpLib ${HTTP_SOURCE_FILES} ${CONFIG_SOURCE_FILES} ${SERVER_SOURCE_FILES})
+add_library(MyHttpLib ${HTTP_SOURCE_FILES})
 add_library(MyServerLib ${SERVER_SOURCE_FILES})
 add_library(MyUtilsLib ${UTILS_SOURCE_FILES})
+
+target_link_libraries(MyServerLib MyHttpLib)
+target_link_libraries(MyHttpLib MyConfigLib MyServerLib MyCgiLib)
 
 # Check options for unit tests
 option(BUILD_HTTP_UNIT_TESTS "Build the HTTP unit tests" ON)

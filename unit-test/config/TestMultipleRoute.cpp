@@ -7,7 +7,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 
-#define MULTI_ROUTE "../../config/test_config_files/valid/MultipleRoute.conf"
+#define MULTI_ROUTE "../../test_config_files/valid/MultipleRoute.conf"
 
 BOOST_AUTO_TEST_CASE(MultiRoute) {
   Config config;
