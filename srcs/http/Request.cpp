@@ -178,7 +178,8 @@ void Request::Trim(std::string &str, const std::string &delim) {
 }
 
 void Request::ParseBody(SocketBuff &buffer_) {
-  if (message_.request_line.method == "GET" || message_.request_line.method == "DELETE") {
+  if (message_.request_line.method == "GET" ||
+      message_.request_line.method == "DELETE") {
     parse_status_ = COMPLETE;
     return;
   }
@@ -397,7 +398,8 @@ bool Request::AssertRequestLine(const std::string &line) {
     return false;
   }
   std::string method = line.substr(0, first_space);
-  std::cout << "\x1b[31m" << "method: " << method << "\x1b[0m" << std::endl;
+  std::cout << "\x1b[31m"
+            << "method: " << method << "\x1b[0m" << std::endl;
   if (method != "GET" && method != "POST" && method != "DELETE") {
     SetRequestStatus(501);
     return false;
