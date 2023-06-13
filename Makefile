@@ -35,7 +35,7 @@ re:
 	make fclean
 	make all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re debug
 
 docker:
 	cd docker && docker compose up -d && docker exec -it ubuntu /bin/bash

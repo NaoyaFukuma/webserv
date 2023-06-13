@@ -115,7 +115,7 @@ void Epoll::CheckTimeout() {
 }
 
 void Epoll::RegisterListenSocket(const Config &config) {
-  static const uint32_t epoll_mask = EPOLLIN | EPOLLET;
+  static const uint32_t epoll_mask = EPOLLIN;
   ConfigMap config_map = ConfigToMap(config);
 
   for (ConfigMap::iterator it = config_map.begin(); it != config_map.end();
