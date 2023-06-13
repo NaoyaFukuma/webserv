@@ -265,7 +265,7 @@ ConnSocket *ListenSocket::Accept() {
   socklen_t len = sizeof(sockaddr_in_instance);
   int fd = accept(
       fd_, reinterpret_cast<struct sockaddr *>(&sockaddr_in_instance), &len);
-
+  std::cout << "Accept: " << fd << std::endl;
   if (fd < 0) {
     std::cerr << "Keep Running Error: accept" << std::endl;
     delete conn_socket;
