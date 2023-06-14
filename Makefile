@@ -16,7 +16,7 @@ INCLUDES = -I$(SRCS_DIR) $(addprefix -I, $(SRCS_SUBDIRS))
 all: $(NAME)
 
 debug: CXXFLAGS += -DDEBUG -g -fsanitize=address -fsanitize=undefined -fsanitize=leak
-debug: all
+debug: clean all
 
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^

@@ -12,6 +12,7 @@
 #else
 #define DEBUG_PRINT(fmt, ...)                                                  \
   do {                                                                         \
+    printf("func: %s, line: %d: ", __func__, __LINE__);                        \
     printf(fmt, ##__VA_ARGS__);                                                \
   } while (0);
 #endif
