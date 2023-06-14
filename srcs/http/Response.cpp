@@ -168,6 +168,7 @@ void Response::ProcessGET(Request &request) {
   Context context = request.GetContext();
   std::string path = context.resource_path.server_path;
   FileType ftype = get_filetype(path);
+  DEBUG_PRINT("ftype: %d\n", ftype)
 
   if (ftype == FILE_DIRECTORY) {
     if (!context.location.index_.empty() &&
