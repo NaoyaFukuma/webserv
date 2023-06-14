@@ -1,5 +1,5 @@
-#include "define.hpp"
 #include "SocketBuff.hpp"
+#include "define.hpp"
 #include <algorithm>
 #include <iostream>
 #include <sys/socket.h>
@@ -35,6 +35,7 @@ bool SocketBuff::GetLine(std::string &line) {
   }
   line.assign(buffer_.begin() + read_position_, it);
   read_position_ = std::distance(buffer_.begin(), it) + 1;
+  DEBUG_PRINT("GetLine() read_position_:%zu\n", read_position_);
   return true;
 }
 
@@ -58,6 +59,7 @@ std::string SocketBuff::GetAndErase(std::size_t pos) {
   std::string str(buffer_.begin(), buffer_.begin() + pos);
   buffer_.erase(buffer_.begin(), buffer_.begin() + pos);
   read_position_ -= pos;
+  DEBUG_PRINT("GetAndErase() read_position_:%zu\n", read_position_);
   return str;
 }
 
@@ -70,6 +72,7 @@ bool SocketBuff::GetUntilCRLF(std::string &line) {
   }
   line.assign(buffer_.begin() + read_position_, it);
   read_position_ = std::distance(buffer_.begin(), it) + 2;
+  DEBUG_PRINT("GetUntilCRLF() read_position_:%zu\n", read_position_);
   return true;
 }
 
@@ -80,11 +83,13 @@ std::size_t SocketBuff::GetReadSize() {
 void SocketBuff::Erase() {
   buffer_.clear();
   read_position_ = 0;
+  DEBUG_PRINT("Erase() read_position_:%zu\n", read_position_);
 }
 
 void SocketBuff::Erase(std::size_t n) {
   buffer_.erase(buffer_.begin(), buffer_.begin() + n);
   read_position_ -= n;
+  DEBUG_PRINT("Erase(std::size_t n) read_position_:%zu\n", read_position_);
 }
 
 void SocketBuff::AddString(const std::string &str) {
@@ -92,6 +97,8 @@ void SocketBuff::AddString(const std::string &str) {
 }
 
 std::string SocketBuff::GetString() {
+  DEBUG_PRINT("buffer_.size() = %zu\n", buffer_.size());
+  DEBUG_PRINT("read_position_ = %zu\n", read_position_);
   return std::string(buffer_.begin() + read_position_, buffer_.end());
 }
 
@@ -101,7 +108,7 @@ int SocketBuff::SendSocket(int fd) {
   if (send_len < 0) {
     return -1;
   }
-  Erase(send_len);
+  buffer_.erase(buffer_.begin(), buffer_.begin() + send_len);
   return send_len == len;
 }
 

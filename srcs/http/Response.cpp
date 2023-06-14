@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 
 #include <vector>
+#include <cstdio>
 
 Response::Response() {
   process_status_ = PROCESSING;
@@ -80,12 +81,13 @@ void Response::SetBody(std::string body) {
 void Response::ProcessRequest(Request &request, ConnSocket *socket,
                               Epoll *epoll) {
   // parseの時点でerrorがあった場合はこの時点で返す
+  version_ = request.GetRequestMessage().request_line.version;
+
   if (request.GetRequestStatus().status_code != -1) {
     ProcessError(request, socket, epoll);
     return;
   }
 
-  version_ = request.GetRequestMessage().request_line.version;
   context_ = request.GetContext();
   connection_ = IsConnection(request);
   if (context_.location.return_.return_type_ != RETURN_EMPTY) {
@@ -166,6 +168,7 @@ void Response::ProcessGET(Request &request) {
   Context context = request.GetContext();
   std::string path = context.resource_path.server_path;
   FileType ftype = get_filetype(path);
+  DEBUG_PRINT("ftype: %d\n", ftype)
 
   if (ftype == FILE_DIRECTORY) {
     if (!context.location.index_.empty() &&
