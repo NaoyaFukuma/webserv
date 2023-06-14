@@ -1,11 +1,12 @@
 #include "Socket.hpp"
+#include "CgiSocket.hpp"
 #include "Epoll.hpp"
 #include "define.hpp"
 #include "utils.hpp"
-#include "CgiSocket.hpp"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <iostream>
 #include <string.h>
 #include <string>
 #include <sys/epoll.h>
@@ -16,23 +17,17 @@
 // ------------------------------------------------------------------
 // 継承用のクラス
 
-ASocket::ASocket(ConfVec config, Epoll *epoll) : fd_(-1), config_(config), epoll_(epoll) {
+ASocket::ASocket(ConfVec config, Epoll *epoll)
+    : fd_(-1), config_(config), epoll_(epoll) {
   last_event_.in_time = -1;
   last_event_.out_time = -1;
 }
 
 ASocket::~ASocket() {
-#ifdef DEBUG
-  std::cerr << "~ASocket() start" << std::endl;
-  std::cerr << "  close fd:" << fd_ << std::endl;
-#endif
+  DEBUG_PRINT("%d: ASocket::~ASocket()\n", fd_);
   if (close(fd_) < 0) {
     std::cerr << "Keep Running Error: close" << std::endl;
   }
-  #ifdef DEBUG
-  std::cerr << "~ASocket() end" << std::endl;
-#endif
-
 }
 
 ConfVec ASocket::GetConfVec() const { return config_; }
@@ -57,29 +52,22 @@ bool ASocket::IsTimeout(const std::time_t &threshold) const {
 // ------------------------------------------------------------------
 // 通信用のソケット
 
-ConnSocket::ConnSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll), rdhup_(false) {
+ConnSocket::ConnSocket(ConfVec config, Epoll *epoll)
+    : ASocket(config, epoll), rdhup_(false) {
   last_event_.in_time = time(NULL);
   last_event_.out_time = -1;
 }
 
 ConnSocket::~ConnSocket() {
-#ifdef DEBUG
-  std::cerr << "~ConnSocket() start" << std::endl;
-#endif
+  DEBUG_PRINT("%d: ConnSocket::~ConnSocket()\n", fd_);
 
   for (std::set<CgiSocket *>::const_iterator it = cgi_sockets_.begin();
        it != cgi_sockets_.end();) {
-    #ifdef DEBUG
-    std::cerr << " delete cgi_socket fd:" << (*it)->GetParentSockFd() << std::endl;
-    #endif
+        DEBUG_PRINT("%d: delete cgi_socket fd:%d\n", fd_, (*it)->GetParentSockFd());
     (*it)->SetHttpClientTimeoutFlag(true);
     GetEpoll()->Del((*it)->GetParentSockFd());
     cgi_sockets_.erase(it++);
-    std::cerr << " finish delete cgi_socket" << std::endl;
   }
-  #ifdef DEBUG
-  std::cerr << "~ConnSocket() end" << std::endl;
-  #endif
 }
 
 void ConnSocket::AddResponse(const Response &response) {
@@ -120,7 +108,7 @@ int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end() && !rdhup_;) {
     if (it->GetProcessStatus() == DONE) {
-      std::cout << "before: AddString" << std::endl << it->GetString() << std::endl;
+      DEBUG_PRINT("before: AddString\n%s\n", it->GetString().c_str());
       send_buffer_.AddString(it->GetString());
       rdhup_ = !it->GetIsConnection();
       it = responses_.erase(it);
@@ -152,30 +140,30 @@ int ConnSocket::OnWritable(Epoll *epoll) {
 // SUCCESS: 引き続きsocketを利用 FAILURE: socketを閉じる
 int ConnSocket::ProcessSocket(Epoll *epoll, void *data) {
   // clientからの通信を処理
-  // std::cout << "Socket: " << fd_ << std::endl;
+  DEBUG_PRINT("Soket: %d\n", fd_);
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
   if (event_mask & EPOLLERR || event_mask & EPOLLHUP) {
-    std::cout << fd_ << ": EPOLLERR || EPOLLHUP" << std::endl;
+    DEBUG_PRINT("%d: EPOLLERR || EPOLLHUP\n", fd_);
     // エラー
     return FAILURE;
   }
   if (event_mask & EPOLLIN) {
     // 受信(Todo: OnReadable(0))
-    std::cout << fd_ << ": EPOLLIN" << std::endl;
+    DEBUG_PRINT("%d: EPOLLIN\n", fd_);
     if (OnReadable(epoll) == FAILURE) {
       return FAILURE;
     }
   }
   if (event_mask & EPOLLOUT) {
     // 送信
-    std::cout << fd_ << ": EPOLLOUT" << std::endl;
+    DEBUG_PRINT("%d: EPOLLOUT\n", fd_);
     if (OnWritable(epoll) == FAILURE) {
       return FAILURE;
     }
   }
   if (event_mask & EPOLLRDHUP) {
     // Todo:クライアントが切断->bufferの中身を全て送信してからsocketを閉じる
-    std::cout << fd_ << ": EPOLLRDHUP" << std::endl;
+    DEBUG_PRINT("%d: EPOLLRDHUP\n", fd_);
     if (shutdown(fd_, SHUT_RD) < 0) {
       std::cerr << "Keep Running Error: shutdown" << std::endl;
       return FAILURE;
@@ -227,7 +215,8 @@ std::pair<std::string, std::string> ConnSocket::GetIpPort() const {
 // ------------------------------------------------------------------
 // listen用のソケット
 
-ListenSocket::ListenSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll) {
+ListenSocket::ListenSocket(ConfVec config, Epoll *epoll)
+    : ASocket(config, epoll) {
   fd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (fd_ < 0) {
     throw std::runtime_error("Fatal Error: socket");
@@ -236,9 +225,7 @@ ListenSocket::ListenSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll
   if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
     throw std::runtime_error("Fatal Error: setsockopt");
   }
-  #ifdef DEBUG
-  std::cout << "ListenSocket: " << fd_ << std::endl;
-  #endif
+  DEBUG_PRINT("ListenSocket: %d\n", fd_);
 }
 
 ListenSocket::~ListenSocket() {}
@@ -265,7 +252,7 @@ ConnSocket *ListenSocket::Accept() {
   socklen_t len = sizeof(sockaddr_in_instance);
   int fd = accept(
       fd_, reinterpret_cast<struct sockaddr *>(&sockaddr_in_instance), &len);
-  std::cout << "Accept: " << fd << std::endl;
+  DEBUG_PRINT("Accept: %d\n", fd);
   if (fd < 0) {
     std::cerr << "Keep Running Error: accept" << std::endl;
     delete conn_socket;

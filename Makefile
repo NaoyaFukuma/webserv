@@ -2,7 +2,7 @@ NAME = webserv
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 SRCS_DIR = srcs
 SRCS_SUBDIRS = $(shell find $(SRCS_DIR) -type d)
@@ -15,8 +15,8 @@ INCLUDES = -I$(SRCS_DIR) $(addprefix -I, $(SRCS_SUBDIRS))
 
 all: $(NAME)
 
-debug: CXXFLAGS += -DDEBUG
-debug: all
+debug: CXXFLAGS += -DDEBUG -g -fsanitize=address -fsanitize=undefined -fsanitize=leak
+debug: clean all
 
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^

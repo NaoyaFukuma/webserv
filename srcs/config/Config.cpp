@@ -91,9 +91,10 @@ std::ostream &operator<<(std::ostream &os, const Config &conf) {
       os << '\n';
 
       os << "      error_pages: ";
-      for (std::size_t k = 0; k < server_vec[i].locations_[j].error_pages_.size();
-           ++k) {
-        os << server_vec[i].locations_[j].error_pages_[k] << " ";
+      for (std::map<int, std::string>::const_iterator it =
+               server_vec[i].locations_[j].error_pages_.begin();
+           it != server_vec[i].locations_[j].error_pages_.end(); ++it) {
+        os << it->first << ":" << it->second << " ";
       }
       os << '\n';
       os << "      autoindex: " << server_vec[i].locations_[j].autoindex_
