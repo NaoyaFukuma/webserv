@@ -3,6 +3,7 @@
 
 #include <map>
 #include <netinet/in.h> // sockaddr_in
+#include <stdint.h> // uint64_t
 #include <set>
 #include <string>
 #include <vector>

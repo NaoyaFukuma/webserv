@@ -3,11 +3,10 @@
 #include <fstream>
 #include <iostream>
 #include <netdb.h>
-#include <netinet/in.h>
 #include <sstream>
 #include <string.h>
 #include <sys/socket.h>
-#include <unistd.h>
+
 #include <vector>
 
 #define OK "\033[32mOK\033[0m"

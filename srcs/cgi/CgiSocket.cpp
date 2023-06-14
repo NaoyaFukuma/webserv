@@ -8,14 +8,9 @@
 #include "define.hpp"
 #include "utils.hpp"
 #include <arpa/inet.h>
-#include <cstring>
-#include <errno.h>
-#include <fcntl.h>
 #include <iostream>
 #include <string>
 #include <sys/epoll.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <vector>
 #include <wait.h>
 

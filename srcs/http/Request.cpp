@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "define.hpp"
 #include "utils.hpp"
 #include <Socket.hpp>
 #include <algorithm>
@@ -60,7 +61,6 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
          parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
-
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
   }
@@ -232,7 +232,8 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
 }
 
 bool Request::AssertSize() {
-  size_t client_max_body_size = GetContext().location.client_max_body_size_;
+  std::size_t client_max_body_size =
+      GetContext().location.client_max_body_size_;
   if (total_body_size_ > client_max_body_size) {
     SetRequestStatus(413);
     return false;

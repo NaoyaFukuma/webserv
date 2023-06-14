@@ -3,8 +3,6 @@
 #include <iostream>
 #include <sys/epoll.h>
 
-#define DEFAULT_CONFIG_FILE "server_config/webserv.conf"
-
 int main(int argc, char *argv[]) {
   try {
     Config config;

@@ -2,6 +2,8 @@
 #define CONFIG_PARSER_HPP_
 
 #include "Config.hpp"
+#include <string>
+#include <vector>
 
 class ConfigParser {
 public:

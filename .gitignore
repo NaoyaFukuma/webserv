@@ -1,5 +1,6 @@
 *.out
 *.o
+*.d
 
 .idea
 unit-test/cmake-build-debug*

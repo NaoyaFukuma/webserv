@@ -6,7 +6,6 @@
 #include "Response.hpp"
 #include "SocketBuff.hpp"
 #include <deque>
-#include <netinet/in.h>
 #include <time.h>
 #include <vector>
 
