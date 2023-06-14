@@ -1,6 +1,6 @@
 #include "ConfigParser.hpp"
-#include "utils.hpp"
 #include "define.hpp"
+#include "utils.hpp"
 #include <fstream>
 #include <iostream>
 #include <netdb.h> // for getaddrinfo()

@@ -13,13 +13,13 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
 #include <wait.h>
-#include <iostream>
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket,
                                      const Request http_request,
