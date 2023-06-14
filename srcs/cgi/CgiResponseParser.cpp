@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <vector>
 #include <wait.h>
+#include <iostream>
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket,
                                      const Request http_request,
@@ -83,7 +84,6 @@ int CgiResponseParser::ParseHeader() {
 
 int CgiResponseParser::ParseBody() {
   // ボディのサイズを取得 (ボディの最後の改行２文字分を引く)
-#endif
   std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize();
   if (body_size == 0) {
     return SUCCESS;

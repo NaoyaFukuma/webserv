@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <vector>
 #include <wait.h>
+#include <iostream>
 
 /*
 CgiScriptのプロセスを生成し、EPOLL登録用のポインタを返す
