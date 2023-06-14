@@ -81,12 +81,13 @@ void Response::SetBody(std::string body) {
 void Response::ProcessRequest(Request &request, ConnSocket *socket,
                               Epoll *epoll) {
   // parseの時点でerrorがあった場合はこの時点で返す
+  version_ = request.GetRequestMessage().request_line.version;
+
   if (request.GetRequestStatus().status_code != -1) {
     ProcessError(request, socket, epoll);
     return;
   }
 
-  version_ = request.GetRequestMessage().request_line.version;
   context_ = request.GetContext();
   connection_ = IsConnection(request);
   if (context_.location.return_.return_type_ != RETURN_EMPTY) {

@@ -19,9 +19,7 @@ Request::Request() {
 Request::~Request() {}
 
 // これがないとcompile時に怒られたので追加
-Request::Request(const Request &src) {
-  *this = src;
-}
+Request::Request(const Request &src) { *this = src; }
 
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
@@ -60,6 +58,7 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
 
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
          parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
+    DEBUG_PRINT("version: %d\n", message_.request_line.version);
     ParseLine(line);
   }
 
@@ -475,7 +474,8 @@ void Request::ResolvePath(const ConfVec &vservers) {
 
   // resource_path, is_cgiを決定
   ResolveResourcePath();
-  DEBUG_PRINT("resource_path: %s\n", context_.resource_path.server_path.c_str());
+  DEBUG_PRINT("resource_path: %s\n",
+              context_.resource_path.server_path.c_str());
   DEBUG_PRINT("is_cgi: %s\n", context_.is_cgi ? "true" : "false");
 }
 
