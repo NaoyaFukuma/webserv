@@ -1,6 +1,7 @@
 #include "Epoll.hpp"
 #include "define.hpp"
 #include <sys/epoll.h>
+#include <iostream>
 
 #define DEFAULT_CONFIG_FILE "server_config/webserv.conf"
 
