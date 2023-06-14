@@ -3,11 +3,20 @@
 #include <sys/epoll.h>
 #include <iostream>
 #include <unistd.h>
+#include <fcntl.h>
 
 Epoll::Epoll() : epoll_fd_(-1), fd_to_socket_() {
   epoll_fd_ = epoll_create(1);
   if (epoll_fd_ == -1) {
     throw std::runtime_error("Fatal Error: epoll");
+  }
+  int flags = fcntl(epoll_fd_, F_GETFD);
+  if (flags == -1) {
+    throw std::runtime_error("Fatal Error: fcntl");
+  }
+  flags |= FD_CLOEXEC;
+  if (fcntl(epoll_fd_, F_SETFD, flags) == -1) {
+    throw std::runtime_error("Fatal Error: fcntl");
   }
 }
 
