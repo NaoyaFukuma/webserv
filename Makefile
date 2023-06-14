@@ -2,16 +2,19 @@ NAME = webserv
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -MMD -MP
 
 SRCS_DIR = srcs
 SRCS_SUBDIRS = $(shell find $(SRCS_DIR) -type d)
 SRCS = $(foreach dir, $(SRCS_SUBDIRS), $(wildcard $(dir)/*.cpp))
+HEADERS = $(foreach dir, $(SRCS_SUBDIRS), $(wildcard $(dir)/*.hpp))
 
 OBJS_DIR = objs
 OBJS = $(patsubst $(SRCS_DIR)/%.cpp,$(OBJS_DIR)/%.o,$(SRCS))
+DEPS = $(OBJS:.o=.d)
 
-INCLUDES = -I$(SRCS_DIR) $(addprefix -I, $(SRCS_SUBDIRS))
+INCLUDES = $(addprefix -I, $(SRCS_SUBDIRS))
+# INCLUDES = -I$(SRCS_DIR) $(addprefix -I, $(SRCS_SUBDIRS))
 
 all: $(NAME)
 
@@ -24,6 +27,8 @@ $(NAME): $(OBJS)
 $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+-include $(DEPS)
 
 clean:
 	$(RM) -r $(OBJS_DIR) unit-test/build
@@ -48,9 +53,6 @@ test_echo:
 	docker-compose logs -f client && \
 	docker-compose down > /dev/null)
 
-# 必要に応じて以下を追加
-# docker-compose logs webserv &&
-
 unit-test:
 	(mkdir -p unit-test/build && \
 	cd unit-test/build && \
@@ -64,8 +66,5 @@ unit-test:
 			ctest -V -R $$test; \
 		done \
 	fi)
-
-# unit-testのみで実行すると全てのテストが走ります
-# TEST_CASEにテストケース名を指定するとそのテストのみ実行されます
 
 .PHONY: docker test_echo unit-test

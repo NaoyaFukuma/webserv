@@ -19,9 +19,7 @@ Request::Request() {
 Request::~Request() {}
 
 // これがないとcompile時に怒られたので追加
-Request::Request(const Request &src) { 
-  *this = src;
-}
+Request::Request(const Request &src) { *this = src; }
 
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
@@ -59,7 +57,9 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   std::string line;
 
   // parse_status の内容を表示
-  std::cout << "Parse開始\nparse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is COMPLETE, 4 is ERROR" << std::endl;
+  std::cout << "Parse開始\nparse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 "
+               "is COMPLETE, 4 is ERROR"
+            << std::endl;
   std::cout << "parse_status: " << parse_status_ << std::endl;
   std::cout << "total_header_size_: " << total_header_size_ << std::endl;
 
@@ -69,11 +69,15 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   }
   // ヘッダーの内容を出力 c++98
   std::cout << "ヘッダーのParseが終了した" << std::endl;
-  std::cout << "parse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is COMPLETE, 4 is ERROR" << std::endl;
+  std::cout << "parse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is "
+               "COMPLETE, 4 is ERROR"
+            << std::endl;
   std::cout << "parse_status: " << parse_status_ << std::endl;
-  for (Header::iterator it = message_.header.begin(); it != message_.header.end(); ++it) {
+  for (Header::iterator it = message_.header.begin();
+       it != message_.header.end(); ++it) {
     std::cout << it->first << ": ";
-    for (std::vector<std::string>::iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+    for (std::vector<std::string>::iterator it2 = it->second.begin();
+         it2 != it->second.end(); ++it2) {
       std::cout << *it2 << " ";
     }
     std::cout << std::endl;
@@ -174,7 +178,8 @@ void Request::ParseHeader(const std::string &line) {
   SplitHeaderValues(header_values, line.substr(pos));
   message_.header[key] = header_values;
   std::cout << "key: " << key << std::endl;
-  for (std::vector<std::string>::iterator it = header_values.begin(); it != header_values.end(); ++it) {
+  for (std::vector<std::string>::iterator it = header_values.begin();
+       it != header_values.end(); ++it) {
     std::cout << "value: " << *it << std::endl;
   }
 }
@@ -254,7 +259,8 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
 }
 
 bool Request::AssertSize() {
-  size_t client_max_body_size = GetContext().location.client_max_body_size_;
+  std::size_t client_max_body_size =
+      GetContext().location.client_max_body_size_;
   if (total_body_size_ > client_max_body_size) {
     SetRequestStatus(413);
     return false;

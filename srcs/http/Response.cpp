@@ -7,8 +7,7 @@
 #include <iostream>
 #include <sys/epoll.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+
 #include <vector>
 
 Response::Response() {
@@ -221,7 +220,7 @@ void Response::DeleteFile(Request &request, const std::string &path) {
   if (IsDeleteableFile(request, path) == false) {
     return;
   }
-  if (unlink(path.c_str()) == -1) {
+  if (std::remove(path.c_str()) == -1) {
     SetResponseStatus(Http::HttpStatus(500));
   } else {
     SetResponseStatus(Http::HttpStatus(200));

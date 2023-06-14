@@ -14,7 +14,7 @@ GETメソッドで、クエリに基づいて/upload/ディレクトリ配下の
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
-#include <sys/types.h>
+
 #include <time.h>
 #include <map>
 

@@ -1,22 +1,19 @@
 #include "Socket.hpp"
+#include "CgiSocket.hpp"
 #include "Epoll.hpp"
 #include "define.hpp"
 #include "utils.hpp"
-#include "CgiSocket.hpp"
 #include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
 #include <string>
 #include <sys/epoll.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <vector>
 
 // ------------------------------------------------------------------
 // 継承用のクラス
 
-ASocket::ASocket(ConfVec config, Epoll *epoll) : fd_(-1), config_(config), epoll_(epoll) {
+ASocket::ASocket(ConfVec config, Epoll *epoll)
+    : fd_(-1), config_(config), epoll_(epoll) {
   last_event_.in_time = -1;
   last_event_.out_time = -1;
 }
@@ -29,10 +26,9 @@ ASocket::~ASocket() {
   if (close(fd_) < 0) {
     std::cerr << "Keep Running Error: close" << std::endl;
   }
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cerr << "~ASocket() end" << std::endl;
 #endif
-
 }
 
 ConfVec ASocket::GetConfVec() const { return config_; }
@@ -57,7 +53,8 @@ bool ASocket::IsTimeout(const std::time_t &threshold) const {
 // ------------------------------------------------------------------
 // 通信用のソケット
 
-ConnSocket::ConnSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll), rdhup_(false) {
+ConnSocket::ConnSocket(ConfVec config, Epoll *epoll)
+    : ASocket(config, epoll), rdhup_(false) {
   last_event_.in_time = time(NULL);
   last_event_.out_time = -1;
 }
@@ -69,17 +66,18 @@ ConnSocket::~ConnSocket() {
 
   for (std::set<CgiSocket *>::const_iterator it = cgi_sockets_.begin();
        it != cgi_sockets_.end();) {
-    #ifdef DEBUG
-    std::cerr << " delete cgi_socket fd:" << (*it)->GetParentSockFd() << std::endl;
-    #endif
+#ifdef DEBUG
+    std::cerr << " delete cgi_socket fd:" << (*it)->GetParentSockFd()
+              << std::endl;
+#endif
     (*it)->SetHttpClientTimeoutFlag(true);
     GetEpoll()->Del((*it)->GetParentSockFd());
     cgi_sockets_.erase(it++);
     std::cerr << " finish delete cgi_socket" << std::endl;
   }
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cerr << "~ConnSocket() end" << std::endl;
-  #endif
+#endif
 }
 
 void ConnSocket::AddResponse(const Response &response) {
@@ -120,7 +118,8 @@ int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end() && !rdhup_;) {
     if (it->GetProcessStatus() == DONE) {
-      std::cout << "before: AddString" << std::endl << it->GetString() << std::endl;
+      std::cout << "before: AddString" << std::endl
+                << it->GetString() << std::endl;
       send_buffer_.AddString(it->GetString());
       rdhup_ = !it->GetIsConnection();
       it = responses_.erase(it);
@@ -227,7 +226,8 @@ std::pair<std::string, std::string> ConnSocket::GetIpPort() const {
 // ------------------------------------------------------------------
 // listen用のソケット
 
-ListenSocket::ListenSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll) {
+ListenSocket::ListenSocket(ConfVec config, Epoll *epoll)
+    : ASocket(config, epoll) {
   fd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (fd_ < 0) {
     throw std::runtime_error("Fatal Error: socket");
@@ -236,9 +236,9 @@ ListenSocket::ListenSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll
   if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
     throw std::runtime_error("Fatal Error: setsockopt");
   }
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "ListenSocket: " << fd_ << std::endl;
-  #endif
+#endif
 }
 
 ListenSocket::~ListenSocket() {}

@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 #include <netdb.h> // for getaddrinfo()
-#include <netinet/in.h>
 #include <sstream>
 #include <stdarg.h>
 
