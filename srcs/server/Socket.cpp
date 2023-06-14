@@ -236,6 +236,14 @@ ListenSocket::ListenSocket(ConfVec config, Epoll *epoll) : ASocket(config, epoll
   if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
     throw std::runtime_error("Fatal Error: setsockopt");
   }
+
+  int flags = fcntl(fd_, F_GETFD);
+  if (flags < 0) {
+    throw std::runtime_error("Fatal Error: fcntl");
+  }
+  if (fcntl(fd_, F_SETFD, flags | FD_CLOEXEC) < 0) {
+    throw std::runtime_error("Fatal Error: fcntl");
+  }
   #ifdef DEBUG
   std::cout << "ListenSocket: " << fd_ << std::endl;
   #endif
@@ -275,6 +283,19 @@ ConnSocket *ListenSocket::Accept() {
 
   int yes = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
+    std::cerr << "Keep Running Error: setsockopt" << std::endl;
+    delete conn_socket;
+    return NULL;
+  }
+
+  int flags = fcntl(fd, F_GETFD);
+  if (flags < 0) {
+    std::cerr << "Keep Running Error: fcntl" << std::endl;
+    delete conn_socket;
+    return NULL;
+  }
+  if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
+    std::cerr << "Keep Running Error: fcntl" << std::endl;
     delete conn_socket;
     return NULL;
   }
