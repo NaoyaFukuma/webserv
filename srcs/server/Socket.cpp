@@ -4,6 +4,8 @@
 #include "define.hpp"
 #include "utils.hpp"
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <iostream>
 #include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -58,7 +60,7 @@ ConnSocket::~ConnSocket() {
 
   for (std::set<CgiSocket *>::const_iterator it = cgi_sockets_.begin();
        it != cgi_sockets_.end();) {
-        DEBUG_PRINT("%d: delete cgi_socket fd:%d\n", fd_, (*it)->GetParentSockFd());
+    DEBUG_PRINT("%d: delete cgi_socket fd:%d\n", fd_, (*it)->GetParentSockFd());
     (*it)->SetHttpClientTimeoutFlag(true);
     GetEpoll()->Del((*it)->GetParentSockFd());
     cgi_sockets_.erase(it++);

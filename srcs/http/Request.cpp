@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "define.hpp"
 #include "utils.hpp"
 #include <Socket.hpp>
 #include <algorithm>

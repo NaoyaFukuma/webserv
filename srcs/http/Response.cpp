@@ -2,14 +2,15 @@
 #include "CgiSocket.hpp"
 #include "Epoll.hpp"
 #include "Socket.hpp"
+#include "define.hpp"
 #include "utils.hpp"
 #include <fstream>
 #include <iostream>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 
-#include <vector>
 #include <cstdio>
+#include <vector>
 
 Response::Response() {
   process_status_ = PROCESSING;
