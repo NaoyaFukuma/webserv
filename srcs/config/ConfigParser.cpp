@@ -1,5 +1,6 @@
 #include "ConfigParser.hpp"
 #include "utils.hpp"
+#include "define.hpp"
 #include <fstream>
 #include <iostream>
 #include <netdb.h> // for getaddrinfo()
@@ -15,7 +16,8 @@
 
 ConfigParser::ConfigParser(const char *filepath)
     : file_content_(LoadFile(filepath)), it_(file_content_.begin()) {
-  std::cout << file_content_ << std::endl; // debug
+  DEBUG_PRINT("ConfigParser() filepath: %s\n", filepath);
+  DEBUG_PRINT("ConfigParser() file_content_: %s\n", file_content_.c_str());
 }
 
 ConfigParser::~ConfigParser() {}
