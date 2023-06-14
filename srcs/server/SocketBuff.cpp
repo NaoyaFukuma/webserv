@@ -112,7 +112,9 @@ int SocketBuff::SendSocket(int fd) {
   return send_len == len;
 }
 
-std::size_t SocketBuff::GetBuffSize() { return buffer_.size(); }
+std::size_t SocketBuff::GetBuffSize() {
+    return buffer_.size() - read_position_;
+}
 
 void SocketBuff::ClearBuff() {
   buffer_.clear();
