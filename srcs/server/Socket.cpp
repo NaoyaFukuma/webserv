@@ -62,8 +62,8 @@ ConnSocket::~ConnSocket() {
        it != cgi_sockets_.end();) {
     DEBUG_PRINT("%d: delete cgi_socket fd:%d\n", fd_, (*it)->GetParentSockFd());
     (*it)->SetHttpClientTimeoutFlag(true);
-    GetEpoll()->Del((*it)->GetParentSockFd());
-    cgi_sockets_.erase(it++);
+    GetEpoll()->Del((*it++)->GetParentSockFd());
+    // cgi_sockets_.erase(it++);
   }
 }
 

@@ -53,7 +53,7 @@ CgiSocket::~CgiSocket() {
   default: // 子プロセスが終了していて、終了ステータスを回収できた
     break;
   }
-  // http_client_sock_.DeleteCgiSocket(this);
+  http_client_sock_.DeleteCgiSocket(this);
 }
 
 /* retrun value SUCCESS(0) or FAILURE(-1) */
