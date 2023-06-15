@@ -85,6 +85,13 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       requests_.push_back(Request());
     }
     requests_.back().Parse(recv_buffer_, this);
+
+    if (requests_.back().GetRequestStatus().status_code == 413) {
+      DEBUG_PRINT("after: Parse\n%d %s\n",
+                  requests_.back().GetRequestStatus().status_code,
+                  requests_.back().GetRequestStatus().message.c_str());
+      return FAILURE;
+    }
   }
 
   for (std::deque<Request>::iterator it = requests_.begin();
