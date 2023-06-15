@@ -249,11 +249,8 @@ void Response::ResFileList(DIR *dir) {
   struct dirent *dp;
   while ((dp = readdir(dir)) != NULL) {
     // ディレクトリはスキップ
-    if (dp->d_type == DT_DIR) {
-      continue;
-    }
-    ss << "<li><a href=\"/upload/" << dp->d_name << "\">" << dp->d_name
-       << "</a></li>\r\n";
+    ss << "<li><a href=\"" << context_.resource_path.uri.path << "/"
+       << dp->d_name << "\">" << dp->d_name << "</a></li>\r\n";
   }
   ss << "</ul>\r\n";
   ss << "</body></html>\r\n";
