@@ -9,14 +9,10 @@
 #include "utils.hpp"
 #include <algorithm>
 #include <arpa/inet.h>
-#include <cstring>
-#include <errno.h>
-#include <fcntl.h>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <sys/epoll.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <vector>
 #include <wait.h>
 
@@ -30,26 +26,26 @@ CgiResponseParser::~CgiResponseParser() {}
 
 // recv_buffer_内のCGIレスポンスからResponseを構築する
 void CgiResponseParser::ParseCgiResponse() {
-  std::cout << "Parse対象のCGIレスポンス" << std::endl;
-  std::cout << cgi_socket_.recv_buffer_.GetString() << std::endl;
+  DEBUG_PRINT("Parse target CGI response\n%s\n",
+              cgi_socket_.recv_buffer_.GetString().c_str());
 
   if (ParseHeader() == FAILURE) {
-    std::cerr << "ParseHeader() == FAILURE" << std::endl;
+    DEBUG_PRINT("ParseHeader() == FAILURE\n");
     SetInternalErrorHttpResponse();
     return;
   }
   if (ParseBody() == FAILURE) {
-    std::cerr << "ParseBody() == FAILURE" << std::endl;
+    DEBUG_PRINT("ParseBody() == FAILURE\n");
     SetInternalErrorHttpResponse();
     return;
   }
   if (ParseStatusHeader() == FAILURE) {
-    std::cerr << "ParseStatusHeader() == FAILURE" << std::endl;
+    DEBUG_PRINT("ParseStatusHeader() == FAILURE\n");
     SetInternalErrorHttpResponse();
     return;
   }
   if (ParseLocationHeader() == FAILURE) {
-    std::cerr << "ParseLocationHeader() == FAILURE" << std::endl;
+    DEBUG_PRINT("ParseLocationHeader() == FAILURE\n");
     SetInternalErrorHttpResponse();
     return;
   }
@@ -83,23 +79,18 @@ int CgiResponseParser::ParseHeader() {
 
 int CgiResponseParser::ParseBody() {
   // ボディのサイズを取得 (ボディの最後の改行２文字分を引く)
-#ifdef DEBUG
-  std::cerr << "body のサイズ " << cgi_socket_.recv_buffer_.GetBuffSize()
-            << std::endl;
-  std::cerr << "body の内容\n"
-            << cgi_socket_.recv_buffer_.GetString() << std::endl;
-#endif
   std::size_t body_size = cgi_socket_.recv_buffer_.GetBuffSize();
   if (body_size == 0) {
     return SUCCESS;
   } else if (body_size < 2) {
-    std::cerr << "ボディの最後の改行が正しくありません" << std::endl;
+    DEBUG_PRINT(
+        "The body is missing a trailing '\r\n' and has an invalid format.");
     return FAILURE;
   } else {
     body_size -= 2;
   }
   if (IsValidBodyLength(body_size) == false) {
-    std::cerr << "ボディのサイズが大きすぎます" << std::endl;
+    DEBUG_PRINT("The body size is too long.");
     return FAILURE;
   }
 
@@ -108,7 +99,8 @@ int CgiResponseParser::ParseBody() {
     // ボディの最後の改行2文字分を削除
     body.erase(body_size + 1, 2);
   } else {
-    std::cerr << "ボディの最後の改行が正しくありません" << std::endl;
+    DEBUG_PRINT(
+        "The body is missing a trailing '\r\n' and has an invalid format.");
     return FAILURE;
   }
   temp_http_response_.SetBody(body);
@@ -201,9 +193,6 @@ int CgiResponseParser::ParseLocationHeaderValue(
 }
 
 int CgiResponseParser::ParseLocalRedirect(std::string &path) {
-#ifdef DEBUG
-  std::cerr << "ParseLocalRedirect parse path:" << path << std::endl;
-#endif
   if (IsValidAbsolutePath(path) == false) {
     return FAILURE;
   }
@@ -232,11 +221,9 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
 
   // pathにrootを連結する
   std::string concat = root + '/' + path;
-#ifdef DEBUG
-  std::cerr << "root: " << root << std::endl;
-  std::cerr << "path: " << path << std::endl;
-  std::cerr << "concat: " << concat << std::endl;
-#endif
+  DEBUG_PRINT("root: %s", root.c_str());
+  DEBUG_PRINT("path: %s", path.c_str());
+  DEBUG_PRINT("concat: %s", concat.c_str());
 
   // cgi_extensionsがない場合は静的ファイルが確定する
   if (temp_context_.location.cgi_extensions_.empty()) {
@@ -286,10 +273,9 @@ int CgiResponseParser::ParseLocalRedirect(std::string &path) {
 }
 
 int CgiResponseParser::GetAndSetLocalStaticFile() {
-#ifdef DEBUG
-  std::cerr << "GetAndSetLocalStaticFile()" << std::endl;
-  std::cerr << temp_context_.resource_path.server_path.c_str() << std::endl;
-#endif
+  DEBUG_PRINT("GetAndSetLocalStaticFile()");
+  DEBUG_PRINT("server_path: %s",
+              temp_context_.resource_path.server_path.c_str());
 
   // Open the file
   std::ifstream ifs(temp_context_.resource_path.server_path.c_str(),
@@ -395,10 +381,8 @@ bool CgiResponseParser::IsValidHeaderLength(std::size_t &header_len,
 }
 
 bool CgiResponseParser::IsValidHeaderLineFormat(const std::string &line) {
-// ':'の数を数えて、一つだけあることを確認
-#ifdef DEBUG
-  std::cerr << "line: " << line << std::endl;
-#endif
+  // ':'の数を数えて、一つだけあることを確認
+  DEBUG_PRINT("IsValidHeaderLineFormat()\n target line: %s", line.c_str());
   int colon_count = std::count(line.begin(), line.end(), ':');
   if (colon_count == 0) {
     std::cerr << "Keep Running Error: CGI response header line format error"
@@ -406,10 +390,8 @@ bool CgiResponseParser::IsValidHeaderLineFormat(const std::string &line) {
     return false;
   }
   std::pair<std::string, std::string> kv = SplitHeader(line);
-#ifdef DEBUG
-  std::cerr << "key: " << kv.first << std::endl;
-  std::cerr << "value: " << kv.second << std::endl;
-#endif
+  DEBUG_PRINT("key: %s", kv.first.c_str());
+  DEBUG_PRINT("value: %s", kv.second.c_str());
   return IsValidHeaderKey(kv.first) && IsValidHeaderValue(kv.second);
 }
 
@@ -427,9 +409,6 @@ bool CgiResponseParser::IsValidHeaderValue(const std::string &value) {
 }
 
 bool CgiResponseParser::IsValidToken(const std::string &token) {
-#ifdef DEBUG
-  std::cout << "token: " << token << std::endl;
-#endif
   if (token.empty()) {
     std::cerr << "Keep Running Error: CGI response header token is empty"
               << std::endl;

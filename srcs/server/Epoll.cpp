@@ -1,12 +1,22 @@
 #include "Epoll.hpp"
 #include "define.hpp"
 #include <sys/epoll.h>
+#include <iostream>
 #include <unistd.h>
+#include <fcntl.h>
 
 Epoll::Epoll() : epoll_fd_(-1), fd_to_socket_() {
   epoll_fd_ = epoll_create(1);
   if (epoll_fd_ == -1) {
     throw std::runtime_error("Fatal Error: epoll");
+  }
+  int flags = fcntl(epoll_fd_, F_GETFD);
+  if (flags == -1) {
+    throw std::runtime_error("Fatal Error: fcntl");
+  }
+  flags |= FD_CLOEXEC;
+  if (fcntl(epoll_fd_, F_SETFD, flags) == -1) {
+    throw std::runtime_error("Fatal Error: fcntl");
   }
 }
 
@@ -44,40 +54,20 @@ void Epoll::Add(ASocket *socket, uint32_t event_mask) {
 }
 
 void Epoll::Del(int fd) {
-#ifdef DEBUG
-  std::cout << "Del() start\n fd :" << fd << std::endl;
-#endif
-#ifdef DEBUG
-  std::cerr << " epoll fd:" << epoll_fd_ << std::endl;
-  std::cerr << " epoll_ctl delete fd " << fd << std::endl;
-  if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
-    std::cerr << " fd_to_socket_ find fd" << fd << std::endl;
-  } else {
-    std::cerr << " fd_to_socket_ not find fd" << fd << std::endl;
-  }
-  std::cerr << " EPOLL_CTL_DEL" << EPOLL_CTL_DEL << std::endl;
-#endif
+  DEBUG_PRINT("Del() fd: %d\n", fd);
   // if (fd_to_socket_.find(fd) != fd_to_socket_.end()) {
   if (fd_to_socket_.find(fd)->second != NULL) {
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
       throw std::runtime_error("Fatal Error: epoll_ctl");
     }
-#ifdef DEBUG
-    std::cout << " delete and erase fd:" << fd << std::endl;
-#endif
     delete fd_to_socket_[fd];
     fd_to_socket_[fd] = NULL;
     // fd_to_socket_.erase(fd);
   }
-#ifdef DEBUG
-  std::cout << "Del() end" << std::endl;
-#endif
 }
 
 void Epoll::Mod(int fd, uint32_t event_mask) {
-#ifdef DEBUG
-  std::cout << "Mod() start\n fd: " << fd << std::endl;
-#endif
+  DEBUG_PRINT("Mod() fd: %d\n", fd);
   struct epoll_event ev;
 
   ev.events = event_mask;
@@ -85,9 +75,6 @@ void Epoll::Mod(int fd, uint32_t event_mask) {
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) == -1) {
     throw std::runtime_error("Fatal Error: epoll_ctl");
   }
-#ifdef DEBUG
-  std::cout << "Mod()" << std::endl;
-#endif
 }
 
 void Epoll::CheckTimeout() {
@@ -95,13 +82,9 @@ void Epoll::CheckTimeout() {
        it != fd_to_socket_.end(); it++) {
     if (it->second != NULL && it->second->IsTimeout(kSocketTimeout)) {
       int fd = it->first;
-      std::cout << "Timeout: " << fd << std::endl;
-      // it++;
+      DEBUG_PRINT("Timeout: %d\n", fd);
       Del(fd);
     }
-    // else {
-    //   it++;
-    // }
   }
 
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();

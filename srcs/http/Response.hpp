@@ -89,12 +89,8 @@ public:
   void SetHeader(const std::string &key,
                  const std::vector<std::string> &values);
   void SetBody(std::string body);
-  void SetProcessStatus(ProcessStatus status) {
-    process_status_ = status;
-  }
-  void DelHeader(const std::string &key) {
-    header_.erase(key);
-  }
+  void SetProcessStatus(ProcessStatus status) { process_status_ = status; }
+  void DelHeader(const std::string &key) { header_.erase(key); }
 
   void ProcessRequest(Request &request, ConnSocket *socket, Epoll *epoll);
   void ProcessErrorPage();

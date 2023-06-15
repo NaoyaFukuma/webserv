@@ -6,10 +6,8 @@
 #include "Response.hpp"
 #include "Socket.hpp"
 #include "SocketBuff.hpp"
-#include <deque>
-#include <netinet/in.h>
-#include <time.h>
-#include <vector>
+#include <string>
+#include <sys/types.h> // pid_t
 
 class Epoll; // 相互参照
 

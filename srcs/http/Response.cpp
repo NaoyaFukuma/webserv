@@ -2,13 +2,14 @@
 #include "CgiSocket.hpp"
 #include "Epoll.hpp"
 #include "Socket.hpp"
+#include "define.hpp"
 #include "utils.hpp"
 #include <fstream>
 #include <iostream>
 #include <sys/epoll.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+
+#include <cstdio>
 #include <vector>
 
 Response::Response() {
@@ -81,12 +82,13 @@ void Response::SetBody(std::string body) {
 void Response::ProcessRequest(Request &request, ConnSocket *socket,
                               Epoll *epoll) {
   // parseの時点でerrorがあった場合はこの時点で返す
+  version_ = request.GetRequestMessage().request_line.version;
+
   if (request.GetRequestStatus().status_code != -1) {
     ProcessError(request, socket, epoll);
     return;
   }
 
-  version_ = request.GetRequestMessage().request_line.version;
   context_ = request.GetContext();
   connection_ = IsConnection(request);
   if (context_.location.return_.return_type_ != RETURN_EMPTY) {
@@ -109,7 +111,7 @@ void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
   ASocket *sock = cgi_socket->CreateCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
-    // エラー処理 クライアントへ500 Internal Server Errorを返す
+    SetResponseStatus(Http::HttpStatus(500));
     return;
   }
   uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
@@ -167,6 +169,7 @@ void Response::ProcessGET(Request &request) {
   Context context = request.GetContext();
   std::string path = context.resource_path.server_path;
   FileType ftype = get_filetype(path);
+  DEBUG_PRINT("ftype: %d\n", ftype)
 
   if (ftype == FILE_DIRECTORY) {
     if (!context.location.index_.empty() &&
@@ -221,7 +224,7 @@ void Response::DeleteFile(Request &request, const std::string &path) {
   if (IsDeleteableFile(request, path) == false) {
     return;
   }
-  if (unlink(path.c_str()) == -1) {
+  if (std::remove(path.c_str()) == -1) {
     SetResponseStatus(Http::HttpStatus(500));
   } else {
     SetResponseStatus(Http::HttpStatus(200));
@@ -246,11 +249,8 @@ void Response::ResFileList(DIR *dir) {
   struct dirent *dp;
   while ((dp = readdir(dir)) != NULL) {
     // ディレクトリはスキップ
-    if (dp->d_type == DT_DIR) {
-      continue;
-    }
-    ss << "<li><a href=\"/upload/" << dp->d_name << "\">" << dp->d_name
-       << "</a></li>\r\n";
+    ss << "<li><a href=\"" << context_.resource_path.uri.path << "/"
+       << dp->d_name << "\">" << dp->d_name << "</a></li>\r\n";
   }
   ss << "</ul>\r\n";
   ss << "</body></html>\r\n";

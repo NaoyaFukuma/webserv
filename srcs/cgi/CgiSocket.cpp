@@ -8,19 +8,15 @@
 #include "define.hpp"
 #include "utils.hpp"
 #include <arpa/inet.h>
-#include <cstring>
-#include <errno.h>
-#include <fcntl.h>
+#include <iostream>
 #include <string>
 #include <sys/epoll.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <vector>
 #include <wait.h>
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
-CgiSocket::CgiSocket(ConnSocket &http_client_sock,
-                     const Request http_request, Response &http_response)
+CgiSocket::CgiSocket(ConnSocket &http_client_sock, const Request http_request,
+                     Response &http_response)
     : ASocket(http_client_sock.GetConfVec(), http_client_sock.GetEpoll()),
       http_client_sock_(http_client_sock), src_http_request_(http_request),
       dest_http_response_(http_response), http_client_timeout_flag_(false) {
@@ -29,22 +25,18 @@ CgiSocket::CgiSocket(ConnSocket &http_client_sock,
 
 // このクラス独自のデストラクタ内の処理は特にないメンバ変数自身のデストラクタが暗黙に呼ばれることに任せる
 CgiSocket::~CgiSocket() {
-#ifdef DEBUG
-  std::cerr << "CgiSocket::~CgiSocket() start" << std::endl;
-#endif
+  DEBUG_PRINT("%d: CgiSocket::~CgiSocket()\n", fd_);
+
   int status;
 
   // 子プロセスが終了していない場合に備え、WNOHANGを使う
   int wait_res = waitpid(cgi_pid_, &status, WNOHANG);
   switch (wait_res) {
   case 0: // 子プロセスが終了していないのでresponseに500をセットし、子プロセスをkill()で終了させて、終了ステータスを回収する
-#ifdef DEBUG
-    std::cerr << " wait_res is 0 child process kill() and wait()" << std::endl;
-#endif
     if (http_client_timeout_flag_ == false) {
       SetInternalErrorHttpResponse();
       GetEpoll()->Mod(http_client_sock_.GetFd(),
-                EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+                      EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
     }
     if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
@@ -59,15 +51,9 @@ CgiSocket::~CgiSocket() {
     break;
 
   default: // 子プロセスが終了していて、終了ステータスを回収できた
-#ifdef DEBUG
-    std::cerr << " child process is already finished" << std::endl;
-#endif
     break;
   }
   http_client_sock_.DeleteCgiSocket(this);
-#ifdef DEBUG
-  std::cerr << "CgiSocket::~CgiSocket() end" << std::endl;
-#endif
 }
 
 /* retrun value SUCCESS(0) or FAILURE(-1) */
@@ -144,11 +130,7 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   uint32_t event_mask = *(static_cast<uint32_t *>(data));
 
   if (event_mask & EPOLLIN) {
-#ifdef DEBUG
-    std::cout << "FD: " << GetFd();
-    std::cout << " CgiSocket::ProcessSocket() EPOLLIN" << std::endl;
-#endif
-
+    DEBUG_PRINT("%d: EPOLLIN\n", fd_);
     if (OnReadable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
         SetInternalErrorHttpResponse();
@@ -160,11 +142,7 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   }
 
   if (event_mask & EPOLLOUT) {
-#ifdef DEBUG
-    std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLOUT"
-              << std::endl;
-#endif
-
+    DEBUG_PRINT("%d: EPOLLOUT\n", fd_);
     if (OnWritable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
         SetInternalErrorHttpResponse();
@@ -176,11 +154,7 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   }
 
   if (event_mask & EPOLLHUP) {
-#ifdef DEBUG
-    std::cout << "FD: " << GetFd() << " CgiSocket::ProcessSocket() EPOLLHUP"
-              << std::endl;
-#endif
-
+    DEBUG_PRINT("%d: EPOLLHUP\n", fd_);
     if (dest_http_response_.GetProcessStatus() == PROCESSING) {
       SetInternalErrorHttpResponse();
       epoll->Mod(http_client_sock_.GetFd(),
@@ -193,14 +167,8 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
 }
 
 void CgiSocket::SetInternalErrorHttpResponse() {
-#ifdef DEBUG
-  std::cout << "CgiSocket::SetInternalErrorHttpResponse() start" << std::endl;
-#endif
   dest_http_response_.SetResponseStatus(500);
   dest_http_response_.SetProcessStatus(DONE);
   dest_http_response_.SetVersion(
       src_http_request_.GetRequestMessage().request_line.version);
-#ifdef DEBUG
-  std::cout << "CgiSocket::SetInternalErrorHttpResponse() end" << std::endl;
-#endif
 }

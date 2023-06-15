@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "define.hpp"
 #include "utils.hpp"
 #include <Socket.hpp>
 #include <algorithm>
@@ -19,9 +20,7 @@ Request::Request() {
 Request::~Request() {}
 
 // これがないとcompile時に怒られたので追加
-Request::Request(const Request &src) { 
-  *this = src;
-}
+Request::Request(const Request &src) { *this = src; }
 
 Request &Request::operator=(const Request &rhs) {
   if (this != &rhs) {
@@ -58,25 +57,9 @@ bool Request::HasHeader(const std::string &key) const {
 void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   std::string line;
 
-  // parse_status の内容を表示
-  std::cout << "Parse開始\nparse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is COMPLETE, 4 is ERROR" << std::endl;
-  std::cout << "parse_status: " << parse_status_ << std::endl;
-  std::cout << "total_header_size_: " << total_header_size_ << std::endl;
-
   while (parse_status_ != COMPLETE && parse_status_ != ERROR &&
          parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
-  }
-  // ヘッダーの内容を出力 c++98
-  std::cout << "ヘッダーのParseが終了した" << std::endl;
-  std::cout << "parse_status: 0 is INIT, 1 is HEADER, 2 is BODY, 3 is COMPLETE, 4 is ERROR" << std::endl;
-  std::cout << "parse_status: " << parse_status_ << std::endl;
-  for (Header::iterator it = message_.header.begin(); it != message_.header.end(); ++it) {
-    std::cout << it->first << ": ";
-    for (std::vector<std::string>::iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
-      std::cout << *it2 << " ";
-    }
-    std::cout << std::endl;
   }
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
@@ -152,7 +135,6 @@ void Request::ParseHeader(const std::string &line) {
   }
 
   if (!ValidateHeaderSize(line)) {
-    std::cout << "ヘッダーのサイズが大きすぎる" << std::endl;
     parse_status_ = ERROR;
     return;
   }
@@ -173,10 +155,6 @@ void Request::ParseHeader(const std::string &line) {
   // pos以降のスペースをスキップする
   SplitHeaderValues(header_values, line.substr(pos));
   message_.header[key] = header_values;
-  std::cout << "key: " << key << std::endl;
-  for (std::vector<std::string>::iterator it = header_values.begin(); it != header_values.end(); ++it) {
-    std::cout << "value: " << *it << std::endl;
-  }
 }
 
 void Request::SplitHeaderValues(std::vector<std::string> &splited,
@@ -259,7 +237,8 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
 }
 
 bool Request::AssertSize() {
-  size_t client_max_body_size = GetContext().location.client_max_body_size_;
+  std::size_t client_max_body_size =
+      GetContext().location.client_max_body_size_;
   if (total_body_size_ > client_max_body_size) {
     SetRequestStatus(413);
     return false;
@@ -488,19 +467,19 @@ void Request::ResolvePath(const ConfVec &vservers) {
 
   // vserverを決定
   ResolveVserver(vservers, host);
-  std::cout << "vserver: " << context_.server_name << std::endl;
+  DEBUG_PRINT("vserver: %s\n", context_.server_name.c_str());
 
   // locationを決定
   ResolveLocation();
-  std::cout << "location: " << context_.location.path_ << std::endl;
+  DEBUG_PRINT("location: %s\n", context_.location.path_.c_str());
 
   Http::DeHexify(context_.resource_path.uri);
 
   // resource_path, is_cgiを決定
   ResolveResourcePath();
-  std::cout << "resource_path: " << context_.resource_path.server_path
-            << std::endl;
-  std::cout << "is_cgi: " << context_.is_cgi << std::endl;
+  DEBUG_PRINT("resource_path: %s\n",
+              context_.resource_path.server_path.c_str());
+  DEBUG_PRINT("is_cgi: %s\n", context_.is_cgi ? "true" : "false");
 }
 
 std::string Request::ResolveHost() {
