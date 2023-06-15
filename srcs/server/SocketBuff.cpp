@@ -23,8 +23,10 @@ int SocketBuff::ReadSocket(int fd) {
       break;
     }
   }
-  // len == 0の時、リモートがコネクションを閉じたことを意味する
-  return len != 0 ? SUCCESS : FAILURE;
+  // len > 0の時 -> SUCCESSでソケットを閉じない
+  // len <= 0の時 -> FAILUREでソケットを閉じる 0 はFINパケットを受け取った時
+  // -1はエラーでいずれにせよソケットを閉じる
+  return len > 0 ? SUCCESS : FAILURE;
 }
 
 bool SocketBuff::GetLine(std::string &line) {
@@ -104,8 +106,8 @@ std::string SocketBuff::GetString() {
 
 int SocketBuff::SendSocket(int fd) {
   ssize_t len = static_cast<ssize_t>(buffer_.size());
-  ssize_t send_len = send(fd, &buffer_[0], len, MSG_DONTWAIT);
-  if (send_len < 0) {
+  ssize_t send_len = send(fd, &buffer_[0], len, MSG_DONTWAIT | MSG_NOSIGNAL);
+  if (send_len < 0) { // エラー RSTパケットを受け取った時
     return -1;
   }
   buffer_.erase(buffer_.begin(), buffer_.begin() + send_len);
@@ -113,7 +115,7 @@ int SocketBuff::SendSocket(int fd) {
 }
 
 std::size_t SocketBuff::GetBuffSize() {
-    return buffer_.size() - read_position_;
+  return buffer_.size() - read_position_;
 }
 
 void SocketBuff::ClearBuff() {
