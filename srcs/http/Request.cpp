@@ -9,10 +9,10 @@
 
 Request::Request() {
   parse_status_ = INIT;
-  chunk_status_ = -1;
-  total_body_size_ = 0;
-  total_header_size_ = 0;
   is_chunked_ = false;
+  chunk_status_ = -1;
+  total_header_size_ = 0;
+  total_body_size_ = 0;
   message_.request_line.version = Http::HTTP11;
 }
 
@@ -210,7 +210,12 @@ void Request::ParseBody(SocketBuff &buffer_) {
       SetRequestStatus(400);
       parse_status_ = ERROR;
     } else {
-      parse_status_ = COMPLETE;
+      if (total_body_size_ > kMaxBodySize) {
+        SetRequestStatus(413);
+        parse_status_ = ERROR;
+      } else {
+        parse_status_ = COMPLETE;
+      }
     }
     return;
   }
@@ -354,12 +359,10 @@ bool Request::SetBodyType() {
   if (it_content_length != message_.header.end()) {
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
-    // 負の数、strtolのエラーもエラー
     if (!values.empty()) {
       errno = 0;
       long content_length = std::strtol(values[0].c_str(), NULL, 10);
       if (values.size() != 1 || errno == ERANGE || content_length <= 0) {
-        // error
         return false;
       } else {
         total_body_size_ = content_length;
