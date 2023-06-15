@@ -111,7 +111,7 @@ void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
   ASocket *sock = cgi_socket->CreateCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
-    // エラー処理 クライアントへ500 Internal Server Errorを返す
+    SetResponseStatus(Http::HttpStatus(500));
     return;
   }
   uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
