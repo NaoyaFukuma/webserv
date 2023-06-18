@@ -61,25 +61,28 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
          parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
+
+  if (parse_status_ == ERROR) {
+    return;
+  }
+
+  // socket = NULL -> DEBUG用
+  if (socket) {
+    ResolvePath(socket->GetConfVec());
+  }
+
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
   }
 
-  // socket = NULL -> DEBUG用
-  if (socket && parse_status_ != ERROR) {
-    if (parse_status_ == COMPLETE) {
-      ResolvePath(socket->GetConfVec());
-    }
+  if (!AssertSize()) {
+    parse_status_ = ERROR;
+    return;
+  }
 
-    if (!AssertSize()) {
-      parse_status_ = ERROR;
-      return;
-    }
-
-    if (!AssertUrlPath()) {
-      parse_status_ = ERROR;
-      return;
-    }
+  if (!AssertUrlPath()) {
+    parse_status_ = ERROR;
+    return;
   }
 }
 
@@ -184,26 +187,37 @@ void Request::Trim(std::string &str, const std::string &delim) {
 
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!SetBodyType()) {
-    if (message_.request_line.method == "POST") {
-      SetRequestStatus(400);
+    // POSTなのにbodyがない
+    SetRequestStatus(400);
+    parse_status_ = ERROR;
+    if (!buffer_.GetString().empty()) {
+      buffer_.GetString().clear();
+    }
+  } else {
+    if (!AssertSize()) {
+      SetRequestStatus(413);
       parse_status_ = ERROR;
-    } else {
-      if (total_body_size_ > kMaxBodySize) {
-        SetRequestStatus(413);
+      return;
+    }
+    // GET or DELETEの場合はbodyがないので終了
+    if (message_.request_line.method != "POST") {
+      if (!buffer_.GetString().empty()) {
+        buffer_.GetString().clear();
+        SetRequestStatus(400);
         parse_status_ = ERROR;
       } else {
         parse_status_ = COMPLETE;
       }
+      return;
     }
-    return;
-  }
-  // chunkedの場合
-  if (is_chunked_) {
-    ParseChunkedBody(buffer_);
-  }
-  // Content-Lengthの場合
-  else {
-    ParseContentLengthBody(buffer_);
+    // chunkedの場合
+    if (is_chunked_) {
+      ParseChunkedBody(buffer_);
+    }
+    // Content-Lengthの場合
+    else {
+      ParseContentLengthBody(buffer_);
+    }
   }
 }
 
@@ -236,13 +250,25 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   }
 }
 
-bool Request::AssertSize() {
+//bool Request::AssertSize() {
+//  std::size_t client_max_body_size =
+//      GetContext().location.client_max_body_size_;
+//  if (total_body_size_ > client_max_body_size) {
+//    SetRequestStatus(413);
+//    return false;
+//  }
+//  return true;
+//}
+
+bool Request::AssertSize() const {
   std::size_t client_max_body_size =
       GetContext().location.client_max_body_size_;
-  if (total_body_size_ > client_max_body_size) {
-    SetRequestStatus(413);
-    return false;
-  }
+  std::size_t max_body_size = kMaxBodySize > client_max_body_size
+                                  ? client_max_body_size
+                                  : kMaxBodySize;
+    if (total_body_size_ > max_body_size) {
+      return false;
+    }
   return true;
 }
 
@@ -336,6 +362,9 @@ bool Request::SetBodyType() {
   }
   // Content-Lengthがある場合
   if (it_content_length != message_.header.end()) {
+//    if (message_.request_line.method != "POST") {
+//      return false;
+//    }
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
     if (!values.empty()) {
@@ -348,6 +377,10 @@ bool Request::SetBodyType() {
         return true;
       }
     }
+  }
+  // GET or DELETEの場合はbodyがないので、trueを返す
+  if (message_.request_line.method != "POST") {
+    return true;
   }
   return false;
 }
