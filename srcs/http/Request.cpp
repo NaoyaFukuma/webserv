@@ -250,16 +250,6 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   }
 }
 
-//bool Request::AssertSize() {
-//  std::size_t client_max_body_size =
-//      GetContext().location.client_max_body_size_;
-//  if (total_body_size_ > client_max_body_size) {
-//    SetRequestStatus(413);
-//    return false;
-//  }
-//  return true;
-//}
-
 bool Request::AssertSize() const {
   std::size_t client_max_body_size =
       GetContext().location.client_max_body_size_;
@@ -340,13 +330,23 @@ bool Request::SetBodyType() {
   if (is_chunked_) {
     return true;
   }
-  // headerにContent-LengthかTransfer-Encodingがあるかを調べる
-  // どっちもある場合は普通はchunkを優先する
+  if (FindTransferEncoding()) {
+    return true;
+  }
+  if (FindContentLength()) {
+    return true;
+  }
+  // GET or DELETEの場合はbodyがないので、trueを返す
+  if (message_.request_line.method != "POST") {
+    return true;
+  }
+  return false;
+}
+
+bool Request::FindTransferEncoding() {
+  // Transfer-Encodingがある場合
   Header::iterator it_transfer_encoding =
       message_.header.find("Transfer-Encoding");
-  Header::iterator it_content_length = message_.header.find("Content-Length");
-
-  // Transfer-Encodingがある場合
   if (it_transfer_encoding != message_.header.end()) {
     std::vector<std::string> values = it_transfer_encoding->second;
     if (!values.empty()) {
@@ -360,7 +360,12 @@ bool Request::SetBodyType() {
       }
     }
   }
+  return false;
+}
+
+bool Request::FindContentLength() {
   // Content-Lengthがある場合
+  Header::iterator it_content_length = message_.header.find("Content-Length");
   if (it_content_length != message_.header.end()) {
 //    if (message_.request_line.method != "POST") {
 //      return false;
@@ -377,10 +382,6 @@ bool Request::SetBodyType() {
         return true;
       }
     }
-  }
-  // GET or DELETEの場合はbodyがないので、trueを返す
-  if (message_.request_line.method != "POST") {
-    return true;
   }
   return false;
 }
