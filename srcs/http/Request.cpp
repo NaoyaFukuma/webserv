@@ -15,6 +15,7 @@ Request::Request() {
   total_header_size_ = 0;
   total_body_size_ = 0;
   message_.request_line.version = Http::HTTP11;
+  context_.is_cgi = false;
 }
 
 Request::~Request() {}
