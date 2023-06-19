@@ -37,7 +37,7 @@ Request &Request::operator=(const Request &rhs) {
   return *this;
 }
 
-bool Request::CompareMethod(const std::string &lhs, enum method_type rhs) {
+bool Request::CompareMethod(const std::string &lhs, enum method_type rhs) const {
   if (lhs == "GET" && rhs == GET) {
     return true;
   } else if (lhs == "POST" && rhs == POST) {

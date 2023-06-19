@@ -92,7 +92,7 @@ public:
   bool AssertUrlPath();
   bool AssertSize() const;
   bool AssertAllowMethod();
-  bool CompareMethod(const std::string &lhs, enum method_type rhs);
+  bool CompareMethod(const std::string &lhs, enum method_type rhs) const;
 
   // resolve系
   std::string ResolveHost();
