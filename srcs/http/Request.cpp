@@ -37,6 +37,17 @@ Request &Request::operator=(const Request &rhs) {
   return *this;
 }
 
+bool Request::CompareMethod(const std::string &lhs, enum method_type rhs) {
+  if (lhs == "GET" && rhs == GET) {
+    return true;
+  } else if (lhs == "POST" && rhs == POST) {
+    return true;
+  } else if (lhs == "DELETE" && rhs == DELETE) {
+    return true;
+  }
+  return false;
+}
+
 RequestMessage Request::GetRequestMessage() const { return message_; }
 
 ParseStatus Request::GetParseStatus() const { return parse_status_; }
@@ -70,6 +81,11 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
   // socket = NULL -> DEBUG用
   if (socket) {
     ResolvePath(socket->GetConfVec());
+  }
+
+  if (!AssertAllowMethod()) {
+    parse_status_ = ERROR;
+    return;
   }
 
   if (parse_status_ == BODY) {
@@ -260,6 +276,20 @@ bool Request::AssertSize() const {
     return false;
   }
   return true;
+}
+
+bool Request::AssertAllowMethod() {
+  std::set<method_type>::iterator it =
+      GetContext().location.allow_methods_.begin();
+  const std::string method = GetRequestMessage().request_line.method;
+  while (it != GetContext().location.allow_methods_.end()) {
+    if (CompareMethod(method, *it)) {
+      return true;
+    }
+    it++;
+  }
+  SetRequestStatus(405);
+  return false;
 }
 
 void Request::ParseChunkData(SocketBuff &buffer_) {

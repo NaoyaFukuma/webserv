@@ -91,6 +91,8 @@ public:
   bool AssertRequestLine(const std::string &line);
   bool AssertUrlPath();
   bool AssertSize() const;
+  bool AssertAllowMethod();
+  bool CompareMethod(const std::string &lhs, enum method_type rhs);
 
   // resolve系
   std::string ResolveHost();
