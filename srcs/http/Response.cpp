@@ -61,6 +61,8 @@ bool Response::HasHeader(const std::string &key) const {
 
 bool Response::GetIsConnection() const { return connection_; }
 
+int Response::GetStatusCode() const { return status_code_; };
+
 void Response::SetResponseStatus(Http::HttpStatus status) {
   status_code_ = status.status_code;
   status_message_ = status.message;

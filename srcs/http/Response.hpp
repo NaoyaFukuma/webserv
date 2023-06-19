@@ -83,6 +83,7 @@ public:
   std::vector<std::string> GetHeader(const std::string &key);
   bool HasHeader(const std::string &key) const;
   bool GetIsConnection() const;
+  int GetStatusCode() const;
 
   void SetResponseStatus(Http::HttpStatus status);
   void SetVersion(Http::Version version);

@@ -85,6 +85,9 @@ int ConnSocket::OnReadable(Epoll *epoll) {
       requests_.push_back(Request());
     }
     requests_.back().Parse(recv_buffer_, this);
+    if (requests_.back().GetRequestStatus().status_code == 413) {
+      break;
+    }
   }
 
   for (std::deque<Request>::iterator it = requests_.begin();
@@ -104,10 +107,17 @@ int ConnSocket::OnReadable(Epoll *epoll) {
 int ConnSocket::OnWritable(Epoll *epoll) {
   for (std::deque<Response>::iterator it = responses_.begin();
        it != responses_.end() && !rdhup_;) {
-    if (it->GetProcessStatus() == DONE) {
+   if (it->GetProcessStatus() == DONE) {
       DEBUG_PRINT("before: AddString\n%s\n", it->GetString().c_str());
       send_buffer_.AddString(it->GetString());
-      rdhup_ = !it->GetIsConnection();
+      if (it->GetStatusCode() == 413) {
+        rdhup_ = true;
+        break;
+      } else {
+        rdhup_ = !it->GetIsConnection();
+      }
+     rdhup_ = !it->GetIsConnection();
+
       it = responses_.erase(it);
     } else {
       it++;
