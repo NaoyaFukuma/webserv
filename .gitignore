@@ -10,3 +10,4 @@ test_main.cpp
 build
 .Ds_Store
 CMakeLists.txt
+cmake-build-debug*

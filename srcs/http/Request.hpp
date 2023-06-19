@@ -80,14 +80,17 @@ public:
   void ParseChunkSize(SocketBuff &buffer_);
   void ParseChunkData(SocketBuff &buffer_);
   void ParseContentLengthBody(SocketBuff &buffer_);
-  // parse utiles
+
+  // parse utils
   void SplitHeaderValues(std::vector<std::string> &splited,
                          const std::string &line);
   void Trim(std::string &str, const std::string &delim);
   bool SetBodyType();
+  bool FindTransferEncoding();
+  bool FindContentLength();
   bool AssertRequestLine(const std::string &line);
   bool AssertUrlPath();
-  bool AssertSize();
+  bool AssertSize() const;
 
   // resolve系
   std::string ResolveHost();

@@ -10,11 +10,12 @@
 
 Request::Request() {
   parse_status_ = INIT;
-  chunk_status_ = -1;
-  total_body_size_ = 0;
-  total_header_size_ = 0;
   is_chunked_ = false;
+  chunk_status_ = -1;
+  total_header_size_ = 0;
+  total_body_size_ = 0;
   message_.request_line.version = Http::HTTP11;
+  context_.is_cgi = false;
 }
 
 Request::~Request() {}
@@ -61,25 +62,28 @@ void Request::Parse(SocketBuff &buffer_, ConnSocket *socket) {
          parse_status_ != BODY && buffer_.GetUntilCRLF(line)) {
     ParseLine(line);
   }
+
+  if (parse_status_ == ERROR) {
+    return;
+  }
+
+  // socket = NULL -> DEBUG用
+  if (socket) {
+    ResolvePath(socket->GetConfVec());
+  }
+
   if (parse_status_ == BODY) {
     ParseBody(buffer_);
   }
 
-  // socket = NULL -> DEBUG用
-  if (socket && parse_status_ != ERROR) {
-    if (parse_status_ == COMPLETE) {
-      ResolvePath(socket->GetConfVec());
-    }
+  if (!AssertSize()) {
+    parse_status_ = ERROR;
+    return;
+  }
 
-    if (!AssertSize()) {
-      parse_status_ = ERROR;
-      return;
-    }
-
-    if (!AssertUrlPath()) {
-      parse_status_ = ERROR;
-      return;
-    }
+  if (!AssertUrlPath()) {
+    parse_status_ = ERROR;
+    return;
   }
 }
 
@@ -184,21 +188,37 @@ void Request::Trim(std::string &str, const std::string &delim) {
 
 void Request::ParseBody(SocketBuff &buffer_) {
   if (!SetBodyType()) {
-    if (message_.request_line.method == "POST") {
-      SetRequestStatus(400);
-      parse_status_ = ERROR;
-    } else {
-      parse_status_ = COMPLETE;
+    // POSTなのにbodyがない
+    SetRequestStatus(400);
+    parse_status_ = ERROR;
+    if (!buffer_.GetString().empty()) {
+      buffer_.GetString().clear();
     }
-    return;
-  }
-  // chunkedの場合
-  if (is_chunked_) {
-    ParseChunkedBody(buffer_);
-  }
-  // Content-Lengthの場合
-  else {
-    ParseContentLengthBody(buffer_);
+  } else {
+    if (!AssertSize()) {
+      SetRequestStatus(413);
+      parse_status_ = ERROR;
+      return;
+    }
+    // GET or DELETEの場合はbodyがないので終了
+    if (message_.request_line.method != "POST") {
+      if (!buffer_.GetString().empty()) {
+        buffer_.GetString().clear();
+        SetRequestStatus(400);
+        parse_status_ = ERROR;
+      } else {
+        parse_status_ = COMPLETE;
+      }
+      return;
+    }
+    // chunkedの場合
+    if (is_chunked_) {
+      ParseChunkedBody(buffer_);
+    }
+    // Content-Lengthの場合
+    else {
+      ParseContentLengthBody(buffer_);
+    }
   }
 }
 
@@ -231,13 +251,15 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
   }
 }
 
-bool Request::AssertSize() {
+bool Request::AssertSize() const {
   std::size_t client_max_body_size =
       GetContext().location.client_max_body_size_;
-  if (total_body_size_ > client_max_body_size) {
-    SetRequestStatus(413);
-    return false;
-  }
+  std::size_t max_body_size = kMaxBodySize > client_max_body_size
+                                  ? client_max_body_size
+                                  : kMaxBodySize;
+    if (total_body_size_ > max_body_size) {
+      return false;
+    }
   return true;
 }
 
@@ -309,13 +331,23 @@ bool Request::SetBodyType() {
   if (is_chunked_) {
     return true;
   }
-  // headerにContent-LengthかTransfer-Encodingがあるかを調べる
-  // どっちもある場合は普通はchunkを優先する
+  if (FindTransferEncoding()) {
+    return true;
+  }
+  if (FindContentLength()) {
+    return true;
+  }
+  // GET or DELETEの場合はbodyがないので、trueを返す
+  if (message_.request_line.method != "POST") {
+    return true;
+  }
+  return false;
+}
+
+bool Request::FindTransferEncoding() {
+  // Transfer-Encodingがある場合
   Header::iterator it_transfer_encoding =
       message_.header.find("Transfer-Encoding");
-  Header::iterator it_content_length = message_.header.find("Content-Length");
-
-  // Transfer-Encodingがある場合
   if (it_transfer_encoding != message_.header.end()) {
     std::vector<std::string> values = it_transfer_encoding->second;
     if (!values.empty()) {
@@ -329,16 +361,22 @@ bool Request::SetBodyType() {
       }
     }
   }
+  return false;
+}
+
+bool Request::FindContentLength() {
   // Content-Lengthがある場合
+  Header::iterator it_content_length = message_.header.find("Content-Length");
   if (it_content_length != message_.header.end()) {
+//    if (message_.request_line.method != "POST") {
+//      return false;
+//    }
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
-    // 負の数、strtolのエラーもエラー
     if (!values.empty()) {
       errno = 0;
       long content_length = std::strtol(values[0].c_str(), NULL, 10);
       if (values.size() != 1 || errno == ERANGE || content_length <= 0) {
-        // error
         return false;
       } else {
         total_body_size_ = content_length;
