@@ -58,8 +58,9 @@ ssize_t SocketBuff::FindString(const std::string &target) {
 }
 
 std::string SocketBuff::GetAndErase(std::size_t pos) {
-  std::string str(buffer_.begin(), buffer_.begin() + pos);
-  buffer_.erase(buffer_.begin(), buffer_.begin() + pos);
+  std::string str(buffer_.begin() + read_position_,
+                  buffer_.begin() + read_position_ + pos);
+  buffer_.erase(buffer_.begin(), buffer_.begin() + read_position_ + pos);
   read_position_ -= pos;
   DEBUG_PRINT("GetAndErase() read_position_:%zu\n", read_position_);
   return str;
