@@ -637,10 +637,9 @@ bool ConfigParser::IsValidUrl(const std::string &url) {
   }
 
   // Absolute URL should start with http:// or https://
-  if (url.substr(0, 7) != "http://" || url.substr(0, 8) != "https://") {
+  if (url.substr(0, 7) != "http://" && url.substr(0, 8) != "https://") {
     return false;
   }
-
   // URL should have a valid domain name after http:// or https://
   // URLからドメイン名だけを抽出
   std::size_t start = url.find_first_of(':') + 3;
