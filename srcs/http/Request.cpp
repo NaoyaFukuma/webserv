@@ -279,10 +279,11 @@ bool Request::AssertSize() const {
 }
 
 bool Request::AssertAllowMethod() {
-  std::set<method_type>::iterator it =
-      GetContext().location.allow_methods_.begin();
+  std::set<method_type> set_method =
+      GetContext().location.allow_methods_;
+  std::set<method_type>::iterator it = set_method.begin();
   const std::string method = GetRequestMessage().request_line.method;
-  while (it != GetContext().location.allow_methods_.end()) {
+  while (it != set_method.end()) {
     if (CompareMethod(method, *it)) {
       return true;
     }
