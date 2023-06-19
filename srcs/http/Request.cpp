@@ -254,12 +254,11 @@ void Request::ParseChunkSize(SocketBuff &buffer_) {
 bool Request::AssertSize() const {
   std::size_t client_max_body_size =
       GetContext().location.client_max_body_size_;
-  std::size_t max_body_size = kMaxBodySize > client_max_body_size
-                                  ? client_max_body_size
-                                  : kMaxBodySize;
-    if (total_body_size_ > max_body_size) {
-      return false;
-    }
+  std::size_t max_body_size =
+      kMaxBodySize > client_max_body_size ? client_max_body_size : kMaxBodySize;
+  if (total_body_size_ > max_body_size) {
+    return false;
+  }
   return true;
 }
 
@@ -368,9 +367,9 @@ bool Request::FindContentLength() {
   // Content-Lengthがある場合
   Header::iterator it_content_length = message_.header.find("Content-Length");
   if (it_content_length != message_.header.end()) {
-//    if (message_.request_line.method != "POST") {
-//      return false;
-//    }
+    //    if (message_.request_line.method != "POST") {
+    //      return false;
+    //    }
     std::vector<std::string> values = it_content_length->second;
     // 複数の指定があったらエラー
     if (!values.empty()) {

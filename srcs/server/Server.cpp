@@ -1,7 +1,6 @@
 #include "Epoll.hpp"
 #include "define.hpp"
 #include <iostream>
-#include <sys/epoll.h>
 
 int main(int argc, char *argv[]) {
   try {
@@ -17,7 +16,7 @@ int main(int argc, char *argv[]) {
     default:
       std::cerr << "Usage: \"./webserv\"  \"./webserv [config_file]\""
                 << std::endl;
-      break;
+      return FAILURE;
     }
 #ifdef DEBUG
     std::cerr << config << std::endl;
