@@ -128,7 +128,7 @@ int ConnSocket::OnWritable(Epoll *epoll) {
     return FAILURE;
   } else if (send_result == 1) {
     // 送信完了
-    epoll->Mod(fd_, EPOLLIN | EPOLLRDHUP | EPOLLET);
+    epoll->Mod(fd_, EPOLLIN | EPOLLRDHUP );
     // rdhupが立っていたら送信完了後にsocketを閉じる
     if (rdhup_) {
       if (shutdown(fd_, SHUT_WR) < 0) {
@@ -300,7 +300,7 @@ ConnSocket *ListenSocket::Accept() {
 int ListenSocket::ProcessSocket(Epoll *epoll, void *data) {
   // 接続要求を処理
   (void)data;
-  static const uint32_t epoll_mask = EPOLLIN | EPOLLRDHUP | EPOLLET;
+  static const uint32_t epoll_mask = EPOLLIN | EPOLLRDHUP ;
 
   ConnSocket *client_socket = Accept();
   if (client_socket == NULL) {
