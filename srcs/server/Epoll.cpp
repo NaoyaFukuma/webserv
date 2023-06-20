@@ -104,8 +104,8 @@ void Epoll::RegisterListenSocket(const Config &config) {
   for (ConfigMap::iterator it = config_map.begin(); it != config_map.end();
        it++) {
     ListenSocket *socket = new ListenSocket(it->second, this);
-    socket->Passive();
     Add(socket, epoll_mask);
+    socket->Passive();
   }
 }
 
