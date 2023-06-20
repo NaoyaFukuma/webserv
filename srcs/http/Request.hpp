@@ -11,12 +11,13 @@
 class ConnSocket;
 
 struct RequestLine {
+  RequestLine() : version(Http::HTTP11) {}
   std::string method;
   std::string uri;
   Http::Version version;
 };
 
-typedef std::map<std::string, std::vector<std::string> > Header;
+typedef std::map<std::string, std::vector<std::string>> Header;
 
 struct RequestMessage {
   RequestLine request_line;
@@ -39,6 +40,7 @@ struct ResourcePath {
 };
 
 struct Context {
+  Context() : is_cgi(false) {}
   Vserver vserver;
   std::string server_name;
   Location location;

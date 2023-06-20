@@ -12,11 +12,8 @@
 #include <cstdio>
 #include <vector>
 
-Response::Response() {
-  process_status_ = PROCESSING;
-  version_ = Http::HTTP11;
-  connection_ = false;
-}
+Response::Response()
+    : process_status_(PROCESSING), version_(Http::HTTP11), connection_(false) {}
 
 Response::~Response() {}
 
