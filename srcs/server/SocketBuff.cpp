@@ -11,14 +11,13 @@ int SocketBuff::ReadSocket(int fd) {
   ssize_t len;
 
   len = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
-  // recv()がエラーを返すか、リモートがコネクションを閉じた場合にループを抜ける
   if (len < 0) {    // エラー
     DEBUG_PRINT("recv() failed\n");
-    return FAILURE; // ソケットを閉じる
+    return FAILURE;
   }
   if (len == 0) {   // FINパケットを受け取った
     DEBUG_PRINT("FINパケットを受け取った\n");
-    return FAILURE; // ソケットを閉じる
+    return FAILURE;
   }
 
   // 受信したデータがあるパターンなので、バッファに追加
