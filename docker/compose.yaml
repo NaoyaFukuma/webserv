@@ -10,5 +10,6 @@ services:
     volumes:
       - ../:/app
       - ../www:/var/www
+    hostname: webserv
     restart: on-failure
     container_name: ubuntu

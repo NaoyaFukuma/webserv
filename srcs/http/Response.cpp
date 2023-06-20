@@ -61,6 +61,8 @@ bool Response::HasHeader(const std::string &key) const {
 
 bool Response::GetIsConnection() const { return connection_; }
 
+int Response::GetStatusCode() const { return status_code_; };
+
 void Response::SetResponseStatus(Http::HttpStatus status) {
   status_code_ = status.status_code;
   status_message_ = status.message;
@@ -111,7 +113,7 @@ void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
   ASocket *sock = cgi_socket->CreateCgiProcess();
   if (sock == NULL) {
     delete cgi_socket;
-    // エラー処理 クライアントへ500 Internal Server Errorを返す
+    SetResponseStatus(Http::HttpStatus(500));
     return;
   }
   uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
@@ -249,11 +251,8 @@ void Response::ResFileList(DIR *dir) {
   struct dirent *dp;
   while ((dp = readdir(dir)) != NULL) {
     // ディレクトリはスキップ
-    if (dp->d_type == DT_DIR) {
-      continue;
-    }
-    ss << "<li><a href=\"/upload/" << dp->d_name << "\">" << dp->d_name
-       << "</a></li>\r\n";
+    ss << "<li><a href=\"" << context_.resource_path.uri.path << "/"
+       << dp->d_name << "\">" << dp->d_name << "</a></li>\r\n";
   }
   ss << "</ul>\r\n";
   ss << "</body></html>\r\n";

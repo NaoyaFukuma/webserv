@@ -83,12 +83,8 @@ void Epoll::CheckTimeout() {
     if (it->second != NULL && it->second->IsTimeout(kSocketTimeout)) {
       int fd = it->first;
       DEBUG_PRINT("Timeout: %d\n", fd);
-      // it++;
       Del(fd);
     }
-    // else {
-    //   it++;
-    // }
   }
 
   for (std::map<int, ASocket *>::iterator it = fd_to_socket_.begin();
