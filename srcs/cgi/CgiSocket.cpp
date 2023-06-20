@@ -33,7 +33,7 @@ CgiSocket::~CgiSocket() {
   int wait_res = waitpid(cgi_pid_, &status, WNOHANG);
   switch (wait_res) {
   case 0: // 子プロセスが終了していないのでresponseに500をセットし、子プロセスをkill()で終了させて、終了ステータスを回収する
-    if (http_client_timeout_flag_ == false) {
+    if (http_client_timeout_flag_ == false && dest_http_response_.GetProcessStatus() != DONE) {
       DEBUG_PRINT("SetInternalErrorHttpResponse()\n");
       SetInternalErrorHttpResponse();
       GetEpoll()->Mod(http_client_sock_.GetFd(),
