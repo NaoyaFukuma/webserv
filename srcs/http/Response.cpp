@@ -12,10 +12,8 @@
 #include <cstdio>
 #include <vector>
 
-Response::Response() {
-  process_status_ = PROCESSING;
-  version_ = Http::HTTP11;
-}
+Response::Response()
+    : process_status_(PROCESSING), version_(Http::HTTP11), connection_(false) {}
 
 Response::~Response() {}
 
@@ -24,10 +22,14 @@ Response::Response(const Response &src) { *this = src; }
 Response &Response::operator=(const Response &src) {
   if (this != &src) {
     process_status_ = src.process_status_;
+    version_ = src.version_;
     status_code_ = src.status_code_;
     status_message_ = src.status_message_;
     header_ = src.header_;
     body_ = src.body_;
+    context_ = src.context_;
+    ranges_ = src.ranges_;
+    connection_ = src.connection_;
   }
   return *this;
 }

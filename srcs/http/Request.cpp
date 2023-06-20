@@ -8,15 +8,9 @@
 #include <deque>
 #include <iostream>
 
-Request::Request() {
-  parse_status_ = INIT;
-  is_chunked_ = false;
-  chunk_status_ = -1;
-  total_header_size_ = 0;
-  total_body_size_ = 0;
-  message_.request_line.version = Http::HTTP11;
-  context_.is_cgi = false;
-}
+Request::Request()
+    : parse_status_(INIT), is_chunked_(false), chunk_status_(-1),
+      total_header_size_(0), total_body_size_(0) {}
 
 Request::~Request() {}
 
@@ -37,7 +31,8 @@ Request &Request::operator=(const Request &rhs) {
   return *this;
 }
 
-bool Request::CompareMethod(const std::string &lhs, enum method_type rhs) const {
+bool Request::CompareMethod(const std::string &lhs,
+                            enum method_type rhs) const {
   if (lhs == "GET" && rhs == GET) {
     return true;
   } else if (lhs == "POST" && rhs == POST) {
@@ -279,8 +274,7 @@ bool Request::AssertSize() const {
 }
 
 bool Request::AssertAllowMethod() {
-  std::set<method_type> set_method =
-      GetContext().location.allow_methods_;
+  std::set<method_type> set_method = GetContext().location.allow_methods_;
   std::set<method_type>::iterator it = set_method.begin();
   const std::string method = GetRequestMessage().request_line.method;
   while (it != set_method.end()) {
