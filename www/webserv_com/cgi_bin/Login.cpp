@@ -41,7 +41,6 @@ int main(int argc, char const *argv[], char const *envp[]) {
 	const char *method = getenv("REQUEST_METHOD");
 	
 	if (method == NULL || std::string(method) != "POST") {
-		std::cerr << "func: " << __func__ << " line: " << __LINE__ << std::endl;
 		ResBadRequest("This resource is only for POST method.");
 		return 0;
 	}
@@ -49,7 +48,6 @@ int main(int argc, char const *argv[], char const *envp[]) {
 	// ユーザー名をデータベースに登録する
 	std::ofstream ofs(kDataBasePath, std::ios::app);
 	if (!ofs) {
-		std::cerr << "func: " << __func__ << " line: " << __LINE__ << std::endl;
 		ResBadRequest("Failed to open database.");
 		return 0;
 	}
