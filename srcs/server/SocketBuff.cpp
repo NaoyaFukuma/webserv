@@ -9,24 +9,21 @@
 int SocketBuff::ReadSocket(int fd) {
   char buf[kBuffSize];
   ssize_t len;
-  ssize_t total_len = 0;
 
-  while (true) {
-    len = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
-    // recv()がエラーを返すか、リモートがコネクションを閉じた場合にループを抜ける
-    if (len <= 0) {
-      break;
-    }
-    buffer_.insert(buffer_.end(), buf, buf + len);
-    total_len += len;
-    if (len < static_cast<ssize_t>(sizeof(buf))) {
-      break;
-    }
+  len = recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
+  if (len < 0) {    // エラー
+    DEBUG_PRINT("recv() failed\n");
+    return FAILURE;
   }
-  // len > 0の時 -> SUCCESSでソケットを閉じない
-  // len <= 0の時 -> FAILUREでソケットを閉じる 0 はFINパケットを受け取った時
-  // -1はエラーでいずれにせよソケットを閉じる
-  return len > 0 ? SUCCESS : FAILURE;
+  if (len == 0) {   // FINパケットを受け取った
+    DEBUG_PRINT("FINパケットを受け取った\n");
+    return FAILURE;
+  }
+
+  // 受信したデータがあるパターンなので、バッファに追加
+  buffer_.insert(buffer_.end(), buf, buf + len);
+  return SUCCESS; // len > 0の時 ->
+                  // SUCCESSでソケットを閉じない。次回以降の受信を待つ
 }
 
 bool SocketBuff::GetLine(std::string &line) {
@@ -52,8 +49,10 @@ ssize_t SocketBuff::FindString(const std::string &target) {
       std::search(buffer_.begin() + read_position_, buffer_.end(),
                   target.begin(), target.end());
   if (it == buffer_.end()) {
+    DEBUG_PRINT("FindString() not found\n");
     return -1;
   }
+  DEBUG_PRINT("FindString() found\n");
   return std::distance(buffer_.begin(), it);
 }
 
@@ -106,13 +105,17 @@ std::string SocketBuff::GetString() {
 }
 
 int SocketBuff::SendSocket(int fd) {
-  ssize_t len = static_cast<ssize_t>(buffer_.size());
+  // 送信するデータがkBuffSizeを超えていたら、kBuffSizeにする
+  // つまり送信するデータの上限を決めている
+  size_t len = buffer_.size();
+  len = kBuffSize < len ? kBuffSize : len;
+
   ssize_t send_len = send(fd, &buffer_[0], len, MSG_DONTWAIT | MSG_NOSIGNAL);
   if (send_len < 0) { // エラー RSTパケットを受け取った時
     return -1;
   }
   buffer_.erase(buffer_.begin(), buffer_.begin() + send_len);
-  return send_len == len;
+  return buffer_.empty(); // 送信しきれない場合はfalseを返す
 }
 
 std::size_t SocketBuff::GetBuffSize() {

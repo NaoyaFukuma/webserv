@@ -33,10 +33,11 @@ CgiSocket::~CgiSocket() {
   int wait_res = waitpid(cgi_pid_, &status, WNOHANG);
   switch (wait_res) {
   case 0: // 子プロセスが終了していないのでresponseに500をセットし、子プロセスをkill()で終了させて、終了ステータスを回収する
-    if (http_client_timeout_flag_ == false) {
+    if (http_client_timeout_flag_ == false && dest_http_response_.GetProcessStatus() != DONE) {
+      DEBUG_PRINT("SetInternalErrorHttpResponse()\n");
       SetInternalErrorHttpResponse();
       GetEpoll()->Mod(http_client_sock_.GetFd(),
-                      EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+                      EPOLLIN | EPOLLOUT | EPOLLRDHUP);
     }
     if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
@@ -73,11 +74,11 @@ int CgiSocket::OnReadable(Epoll *epoll) {
     switch (cgi_res_parser.GetParseResult()) {
     case CgiResponseParser::CREATED_HTTP_RESPONSE:
       epoll->Mod(http_client_sock_.GetFd(),
-                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+                 EPOLLIN | EPOLLOUT  | EPOLLRDHUP);
       break;
     case CgiResponseParser::RIDIRECT_TO_LOCAL_CGI:
       epoll->Add(cgi_res_parser.GetRedirectNewCgiSocket(),
-                 EPOLLIN | EPOLLOUT | EPOLLET);
+                 EPOLLIN | EPOLLOUT );
       break;
     default:
       break;
@@ -103,7 +104,7 @@ int CgiSocket::OnWritable(Epoll *epoll) {
   }
   case 1: {
     // 送信完了 EPOLLOUTのイベント登録を解除し、EPOLLINのイベント登録を行う
-    uint32_t event_mask = EPOLLIN | EPOLLET;
+    uint32_t event_mask = EPOLLIN ;
     epoll->Mod(GetFd(), event_mask);
     if (shutdown(GetFd(), SHUT_WR) < 0) {
       std::cerr << "Keep Running Error: shutdown" << std::endl;
@@ -133,9 +134,10 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
     DEBUG_PRINT("%d: EPOLLIN\n", fd_);
     if (OnReadable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+        DEBUG_PRINT("SetInternalErrorHttpResponse\n");
         SetInternalErrorHttpResponse();
         epoll->Mod(http_client_sock_.GetFd(),
-                   EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+                   EPOLLIN | EPOLLOUT  | EPOLLRDHUP);
       }
       return FAILURE;
     }
@@ -145,9 +147,10 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
     DEBUG_PRINT("%d: EPOLLOUT\n", fd_);
     if (OnWritable(epoll) == FAILURE) {
       if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+        DEBUG_PRINT("SetInternalErrorHttpResponse\n");
         SetInternalErrorHttpResponse();
         epoll->Mod(http_client_sock_.GetFd(),
-                   EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+                   EPOLLIN | EPOLLOUT  | EPOLLRDHUP);
       }
       return FAILURE;
     }
@@ -156,9 +159,10 @@ int CgiSocket::ProcessSocket(Epoll *epoll, void *data) {
   if (event_mask & EPOLLHUP) {
     DEBUG_PRINT("%d: EPOLLHUP\n", fd_);
     if (dest_http_response_.GetProcessStatus() == PROCESSING) {
+      DEBUG_PRINT("SetInternalErrorHttpResponse\n");
       SetInternalErrorHttpResponse();
       epoll->Mod(http_client_sock_.GetFd(),
-                 EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP);
+                 EPOLLIN | EPOLLOUT  | EPOLLRDHUP);
     }
     return FAILURE;
   }

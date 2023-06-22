@@ -118,7 +118,7 @@ void Response::ProcessCgi(Request &request, ConnSocket *socket, Epoll *epoll) {
     SetResponseStatus(Http::HttpStatus(500));
     return;
   }
-  uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
+  uint32_t event_mask = EPOLLIN | EPOLLOUT | EPOLLRDHUP ;
   epoll->Add(sock, event_mask);
 }
 
@@ -126,7 +126,7 @@ void Response::ProcessError(Request &request, ConnSocket *socket,
                             Epoll *epoll) {
   SetResponseStatus(request.GetRequestStatus());
   ProcessErrorPage();
-  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP );
   process_status_ = DONE;
 }
 
@@ -146,7 +146,7 @@ void Response::ProcessReturn(Request &request, ConnSocket *socket,
   default:
     SetResponseStatus(Http::HttpStatus(500));
   }
-  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP );
   process_status_ = DONE;
 }
 
@@ -162,7 +162,7 @@ void Response::ProcessStatic(Request &request, ConnSocket *socket,
     SetResponseStatus(Http::HttpStatus(405));
   }
   ProcessErrorPage();
-  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET);
+  epoll->Mod(socket->GetFd(), EPOLLIN | EPOLLOUT | EPOLLRDHUP );
   process_status_ = DONE;
 }
 
