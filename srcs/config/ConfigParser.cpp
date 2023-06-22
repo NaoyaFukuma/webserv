@@ -286,9 +286,11 @@ void ConfigParser::AssertConfig(const Config &config) {
 }
 
 void ConfigParser::AssertServer(Vserver &server) {
-  if (server.server_names_.empty()) {
-    throw ParserException(ERR_MSG, "server name is not set");
-  }
+  // server_name ディレクティブが無い場合も許容する
+  // if (server.server_names_.empty()) {
+  //   throw ParserException(ERR_MSG, "server name is not set");
+  // }
+
   // location が設定されているかを確認
   if (server.locations_.empty()) {
     throw ParserException(ERR_MSG, "location is not set");
