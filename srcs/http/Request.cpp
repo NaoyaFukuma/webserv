@@ -562,12 +562,21 @@ std::string Request::ResolveHost() {
 void Request::ResolveVserver(const ConfVec &vservers, const std::string &host) {
   // vservers[0]: default vserver
   context_.vserver = vservers[0];
-  context_.server_name = vservers[0].server_names_[0];
+  if (!vservers[0].server_names_.empty()) {
+    context_.server_name = vservers[0].server_names_[0];
+  } else {
+    context_.server_name = "";
+  }
+
   if (host.empty()) {
     return;
   } else {
     for (ConfVec::const_iterator itv = vservers.begin(); itv != vservers.end();
          itv++) {
+      if (itv->server_names_.empty()) {
+        context_.vserver = *itv;
+        context_.server_name = "";
+      }
       for (std::vector<std::string>::const_iterator its =
                itv->server_names_.begin();
            its != itv->server_names_.end(); its++) {
