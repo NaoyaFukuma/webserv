@@ -46,6 +46,9 @@ std::string Response::GetString() {
       ret += ith->first + ": " + *itv + "\r\n";
     }
   }
+  if (!HasHeader("Content-Length")) {
+    ret += "Content-Length: " + ws_itostr(body_.length()) + "\r\n";
+  }
   ret += "\r\n";
   ret += body_;
   return ret;
