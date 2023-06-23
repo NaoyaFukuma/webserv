@@ -164,6 +164,12 @@ char **CgiSocket::SetChildProcessMetaVariables() {
   meta.push_back("SCRIPT_FILENAME=" +
                  src_http_request_.GetContext().resource_path.server_path);
 
+  // Cookie Headerがあれば設定
+  if (src_http_request_.HasHeader("Cookie")) {
+    meta.push_back("HTTP_COOKIE=" +
+                   src_http_request_.GetRequestMessage().header["Cookie"][0]);
+  }
+
   // メタ変数を構築したvectorをchar**に変換
   char **envp = new char *[meta.size() + 1];
   for (std::size_t i = 0; i < meta.size(); i++) {
