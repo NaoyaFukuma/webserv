@@ -14,7 +14,7 @@
 #include <string>
 #include <sys/epoll.h>
 #include <vector>
-#include <wait.h>
+#include <sys/wait.h>
 
 CgiResponseParser::CgiResponseParser(CgiSocket &cgi_socket,
                                      const Request http_request,
