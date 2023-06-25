@@ -12,7 +12,7 @@
 #include <string>
 #include <sys/epoll.h>
 #include <vector>
-#include <wait.h>
+#include <sys/wait.h>
 
 // CGI実行を要求したHTTPリクエストとクライアントの登録、そのクライアントのconfigを登録しておく
 CgiSocket::CgiSocket(ConnSocket &http_client_sock, const Request http_request,

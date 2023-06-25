@@ -13,7 +13,7 @@
 
 #include <unistd.h>
 #include <vector>
-#include <wait.h>
+#include <sys/wait.h>
 #include <iostream>
 
 /*
