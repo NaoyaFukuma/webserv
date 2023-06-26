@@ -42,7 +42,7 @@ CgiSocket::~CgiSocket() {
     if (kill(cgi_pid_, SIGKILL) < 0) {
       std::cerr << "Keep Running Error: kill" << std::endl;
     }
-    if (waitpid(cgi_pid_, &status, WNOHANG) < 0) {
+    if (waitpid(cgi_pid_, &status, 0) < 0) {
       std::cerr << "Keep Running Error: waitpid" << std::endl;
     }
     break;
