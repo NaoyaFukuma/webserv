@@ -50,7 +50,7 @@ curl -i -X DELETE http://localhost:8080/upload/{...}
 ```
 #### 負荷テスト
 ```
-siege -b -t 30S -H http://localhost:8080
+siege -b -t 30S http://localhost:8080
 ```
 #### マルチポート
 ```
