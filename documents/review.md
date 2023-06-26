@@ -44,7 +44,7 @@ http://localhost:8080/public_html/upload.html
 ```
 #### GET, POST, DELETEメソッド
 ```
-curl -i --data-binary './www/webserv_com/public_html/home.html' -X POST http://localhost:8080/cgi_bin/UploadCgi.cgi?filename=home.html
+curl -i --data-binary '@www/webserv_com/public_html/home.html' -X POST http://localhost:8080/cgi_bin/UploadCgi.cgi?filename=home.html
 curl -i -X GET http://localhost:8080/upload
 curl -i -X DELETE http://localhost:8080/upload/{...}
 ```
@@ -88,7 +88,7 @@ curl -i localhost:8080
 ```
 #### cgi
 ```
-curl -i --data-binary './www/webserv_com/public_html/home.html' -X POST http://localhost:8080/cgi_bin/UploadCgi.cgi?filename=home.html
+curl -i --data-binary '@www/webserv_com/public_html/home.html' -X POST http://localhost:8080/cgi_bin/UploadCgi.cgi?filename=home.html
 curl -i -X GET http://localhost:8080/upload
 ```
 
