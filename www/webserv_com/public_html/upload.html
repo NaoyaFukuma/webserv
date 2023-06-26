@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Text Upload</title>
     <style>
         /* ボタンのスタイル */
         .button {
-            background-color: #4CAF50; /* Green */
+            background-color: #4CAF50;
+            /* Green */
             border: none;
             color: white;
             padding: 15px 32px;
@@ -17,11 +19,41 @@
             cursor: pointer;
         }
     </style>
+    <script>
+        function submitForm(event) {
+            event.preventDefault();
+
+            // フォームからデータを取得
+            var fileName = document.getElementById("file_name").value + ".txt";
+            var content = document.getElementById("content").value;
+
+            // URLを組み立て
+            var url = "/cgi_bin/UploadCgi.cgi?file_name=" + encodeURIComponent(fileName);
+
+            // リクエストを送信
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: content // 本文をリクエストボディとして送信
+            }).then(response => {
+                if (response.ok) {
+                    alert('File uploaded successfully');
+                } else {
+                    alert('File upload failed');
+                }
+            }).catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    </script>
 </head>
+
 <body>
     <h1>Text Upload</h1>
-    <form action="/cgi_bin/UploadCgi.cgi" method="post">
-        <label for="file_name">File Name (Please include the extension):</label><br>
+    <form onsubmit="submitForm(event)">
+        <label for="file_name">File Name:</label><br>
         <input type="text" id="file_name" name="file_name"><br>
         <label for="content">Content:</label><br>
         <textarea id="content" name="content"></textarea><br>
@@ -31,4 +63,5 @@
     <!-- ここにアップロード済みのファイル一覧ページへのリンクを追加 -->
     <a href="/cgi_bin/UploadCgi.cgi" class="button">View Uploaded Files</a>
 </body>
+
 </html>
